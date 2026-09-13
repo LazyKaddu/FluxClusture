@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+  orchestrator:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      # Docker's internal DNS automatically resolves 'redis' to the database container
+      - REDIS_URL=redis://redis:6379
+      - PORT=8080
+    depends_on:
+      - redis
+    volumes:
+      # Syncs your local src folder to the container in real-time
+      # This prevents you from having to rebuild the image every time you edit code tonight
+      - ./src:/app/src

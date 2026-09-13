@@ -1,122 +1,94 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect, useState } from 'react';
+import { io } from 'socket.io-client';
 
-function App() {
-  const [count, setCount] = useState(0)
+// Connect to the local Node.js server
+const socket = io('http://localhost:8080');
+
+export default function App() {
+  const [roomId, setRoomId] = useState('room-7b9X');
+  const [isConnected, setIsConnected] = useState(false);
+  const [swarmState, setSwarmState] = useState({});
+  const [activeTask, setActiveTask] = useState(null);
+
+  useEffect(() => {
+    socket.on('connect', () => setIsConnected(true));
+    socket.on('disconnect', () => setIsConnected(false));
+    
+    socket.on('SWARM_STATE_UPDATE', (state) => {
+      console.log('Swarm updated:', state);
+      setSwarmState(state);
+    });
+
+    socket.on('ASSIGN_TASK', (task) => {
+      console.log('Task received:', task);
+      setActiveTask(task);
+    });
+
+    socket.on('WAIT', (msg) => {
+      console.log(msg.reason);
+      setActiveTask(null);
+    });
+
+    return () => {
+      socket.off('connect');
+      socket.off('disconnect');
+      socket.off('SWARM_STATE_UPDATE');
+      socket.off('ASSIGN_TASK');
+      socket.off('WAIT');
+    };
+  }, []);
+
+  const joinRoom = () => socket.emit('JOIN_ROOM', { roomId });
+  
+  const initJob = () => {
+    socket.emit('INIT_JOB', {
+      roomId,
+      clip: 'Walk_Cycle',
+      frames: 10,
+      gridCols: 4,
+      gridRows: 4,
+      masterHash: 'dummy-hash-123'
+    });
+  };
+
+  const requestTask = () => socket.emit('REQUEST_TASK');
+
+  const completeTask = () => {
+    if (!activeTask) return;
+    socket.emit('ACK_TILE', activeTask);
+    setActiveTask(null);
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div style={{ padding: '20px', fontFamily: 'monospace' }}>
+      <h1>FluxCluster Control Plane Test</h1>
+      <p>Status: {isConnected ? '🟢 Connected' : '🔴 Disconnected'} ({socket.id})</p>
 
-      <div className="ticks"></div>
+      <div style={{ marginBottom: '20px' }}>
+        <input 
+          value={roomId} 
+          onChange={(e) => setRoomId(e.target.value)} 
+          style={{ padding: '5px', marginRight: '10px' }}
+        />
+        <button onClick={joinRoom}>1. Join Room</button>
+      </div>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      <div style={{ marginBottom: '20px', gap: '10px', display: 'flex' }}>
+        <button onClick={initJob}>2. Init Render Job (10 Frames)</button>
+        <button onClick={requestTask}>3. Request Task</button>
+        <button onClick={completeTask} disabled={!activeTask}>4. Complete Task (ACK)</button>
+      </div>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      {activeTask && (
+        <div style={{ background: '#e0f7fa', padding: '10px', marginBottom: '20px' }}>
+          <strong>Working on:</strong> {activeTask.id} (Frame {activeTask.frame})
+        </div>
+      )}
+
+      <h3>Live Swarm State (Redis Hash Map)</h3>
+      <pre style={{ background: '#333', color: '#0f0', padding: '15px' }}>
+        {JSON.stringify(swarmState, null, 2)}
+      </pre>
+    </div>
+  );
 }
-
-export default App
