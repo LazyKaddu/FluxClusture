@@ -26,3 +26,12 @@ export async function getRoomWorkers(roomId) {
     
     return activeWorkers; // { "socket_abc123": { status: "idle", task: null }, ... }
 }
+
+
+export async function getGlbHash(roomId) {
+    return await redis.get(`glb_hash:${roomId}`);
+}
+
+export async function getOwnerId(roomId) {
+    return await redis.get(`job_owner:${roomId}`);
+}
