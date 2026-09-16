@@ -6,12 +6,12 @@ import TextAnimated from './TextAnimated';
 
 
 
-const NavLinks = ({href,text}) => {
-  return (
-    <div className='text-8xl cursor-pointer'>
-      <TextAnimated text={text}/>
-    </div>
-  )
+const NavLinks = ({ href, text }) => {
+    return (
+        <div className='text-8xl cursor-pointer'>
+            <TextAnimated text={text} />
+        </div>
+    )
 }
 
 
@@ -31,7 +31,7 @@ const Base = ({ childComponent: RenderPage }) => {
     const mainRef = useRef(null);
 
     const timeline = useRef(null);
-    
+
     // 2. React state to track if the animation is open or closed
     const [isActive, setIsActive] = useState(false);
 
@@ -42,7 +42,7 @@ const Base = ({ childComponent: RenderPage }) => {
 
         // Add your animations to the timeline
         timeline.current.to(mainRef.current, {
-            x: "-50vw",            
+            x: "-50vw",
             rotation: 12,      // Spin it  
             duration: 1,
             ease: "power2.inOut"
@@ -81,10 +81,12 @@ const Base = ({ childComponent: RenderPage }) => {
                         FLUX CLUSTER
                     </div>
                 </div>
-                <RenderPage />
+                <div className='w-7/11 h-screen flex items-center justify-center'>
+                    <RenderPage />
+                </div>
                 <div className='flex flex-col justify-between items-end mr-10 my-10'>
-                    <div className='bebas-neue-regular capitalize cursor-pointer text-xl' onClick={()=>setIsActive(true)}>
-                        <TextAnimated text={"MENU"}/>
+                    <div className='bebas-neue-regular capitalize cursor-pointer text-xl' onClick={() => setIsActive(true)}>
+                        <TextAnimated text={"MENU"} />
                     </div>
                     <div className='flex text-sm '>
                         <div className='mr-1'>
@@ -101,17 +103,17 @@ const Base = ({ childComponent: RenderPage }) => {
                 </div>
             </div>
             <div className={'absolute w-1/2 right-0 h-screen flex flex-col items-end justify-between p-10'}>
-                <div className='bebas-neue-regular capitalize cursor-pointer text-xl' onClick={()=>setIsActive(false)}>
-                        <TextAnimated text={"CLOSE"}/>
+                <div className='bebas-neue-regular capitalize cursor-pointer text-xl' onClick={() => setIsActive(false)}>
+                    <TextAnimated text={"CLOSE"} />
                 </div>
                 <div className='bebas-neue-regular flex flex-col items-end'>
-                    <NavLinks text={"ABOUT"}/>
-                    <NavLinks text={"BLOG"}/>
-                    <NavLinks text={"CONTACT"}/>
-                    <NavLinks text={"DESIGN"}/>
+                    <NavLinks text={"ABOUT"} />
+                    <NavLinks text={"BLOG"} />
+                    <NavLinks text={"CONTACT"} />
+                    <NavLinks text={"DESIGN"} />
                 </div>
                 <div className='text-right text-xs space-mono-regular'>
-                    <div className='mb-2'>FLUX IS OPEN SOURCED UNDER MIT LICENCE <br/>@GITHUB/LAZYKADDU</div>
+                    <div className='mb-2'>FLUX IS OPEN SOURCED UNDER MIT LICENCE <br />@GITHUB/LAZYKADDU</div>
                     <div>@FLUXCLUSTER || CREATING A DIFFERENCE</div>
                 </div>
 

@@ -4,7 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import { ReactLenis } from 'lenis/react';
 import ImageFade from '../components/ImageFade';
-import HeroSec from '../components/HeroSec';
+import ModelCanvas from '../components/Model';
 
 
 gsap.registerPlugin(ScrollTrigger);
@@ -38,7 +38,7 @@ const Home = () => {
     return (
         <ReactLenis
             // Changed from ID to className so we can securely query it
-            className="my-inner-scroller relative w-7/11 h-screen overflow-y-auto  scrollbar-none"
+            className="my-inner-scroller relative w-full h-screen overflow-y-auto  scrollbar-none"
             options={{ lerp: 0.1, duration: 1.5, smoothWheel: true }}
         >
             <div ref={containerRef} className="relative space-mono-regular">
@@ -51,7 +51,7 @@ const Home = () => {
                 </section>
 
                 <section className="snap-panel h-screen w-full">
-                    <HeroSec/>
+                    <ModelCanvas url={"/mobiusStrip.glb"}/>
                 </section>
                 <section className="snap-panel h-screen w-full flex items-center justify-center">
                     <div className='w-[21vw] h-[28vw] mr-10'>

@@ -7,6 +7,7 @@ import {
 import Base from './components/Base'
 
 import Home from './pages/Home';
+import UploadBefore from "./pages/UploadBefore";
 
 
 
@@ -21,7 +22,7 @@ const App = () => {
         />
         <Route
           path="/upload"
-          element={<Base childComponent={Home} />}
+          element={<Base childComponent={UploadBefore} />}
         />
         <Route
           path="/"

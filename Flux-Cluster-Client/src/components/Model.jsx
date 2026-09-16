@@ -4,10 +4,11 @@ import {
   useGLTF,
   Environment,
   Html,
+  OrbitControls,
 } from "@react-three/drei";
 
-const Model = () => {
-  const { scene } = useGLTF("/mobiusStrip.glb");
+const Model = ({url}) => {
+  const { scene } = useGLTF(url);
 
   return (
     <primitive
@@ -19,9 +20,10 @@ const Model = () => {
   );
 };
 
-const HeroSec = () => {
+const ModelCanvas = ({url}) => {
+  useGLTF.preload(url);
   return (
-    <div className="w-full h-screen bg-[#000000]">
+    <div className="w-full h-full bg-[#000000]">
       <Canvas
         camera={{
           position: [0, 0.8, 8],
@@ -52,18 +54,18 @@ const HeroSec = () => {
             </Html>
           }
         >
-          <Model />
+          <Model url={url}/>
 
           <Environment
             preset="studio"
             environmentIntensity={0.5}
           />
+          <OrbitControls/>
         </Suspense>
       </Canvas>
     </div>
   );
 };
 
-export default HeroSec;
+export default ModelCanvas;
 
-useGLTF.preload("/mobiusStrip.glb");
