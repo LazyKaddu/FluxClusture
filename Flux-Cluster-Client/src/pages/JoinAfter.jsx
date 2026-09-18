@@ -1,7 +1,7 @@
 import React,{useEffect,useRef,useState} from 'react'
 import { useSearchParams } from "react-router-dom";
 
-import RenderWorker from '../render/renderWorker.js?worker';
+// import RenderWorker from '../render/renderWorker.js?worker';
 
 
 const JoinAfter = () => {
@@ -14,21 +14,21 @@ const JoinAfter = () => {
     const canvasRef = useRef(null);
 
     // Inside your React component
-useEffect(() => {
-    // 1. Initialize the background Web Worker
-    workerRef.current = new RenderWorker();
-    // 2. Transfer control of the canvas to the background thread[cite: 1]
-    const offscreenCanvas = canvasRef.current.transferControlToOffscreen();
+// useEffect(() => {
+//     // 1. Initialize the background Web Worker
+//     workerRef.current = new RenderWorker();
+//     // 2. Transfer control of the canvas to the background thread[cite: 1]
+//     const offscreenCanvas = canvasRef.current.transferControlToOffscreen();
 
-    // 3. Send the INIT_CANVAS command[cite: 1]
-    workerRef.current.postMessage(
-        { type: 'INIT_CANVAS', canvas: offscreenCanvas },
-        [offscreenCanvas] // This array transfers memory ownership[cite: 1]
-    );
+//     // 3. Send the INIT_CANVAS command[cite: 1]
+//     workerRef.current.postMessage(
+//         { type: 'INIT_CANVAS', canvas: offscreenCanvas },
+//         [offscreenCanvas] // This array transfers memory ownership[cite: 1]
+//     );
 
-    // Cleanup worker on unmount[cite: 1]
-    return () => workerRef.current.terminate();
-}, []);
+//     // Cleanup worker on unmount[cite: 1]
+//     return () => workerRef.current.terminate();
+// }, []);
 
 
 function handleLoadModel(glbArrayBuffer, animationIndex, fps) {
