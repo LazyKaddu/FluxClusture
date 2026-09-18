@@ -1,6 +1,9 @@
 import React,{useEffect,useRef,useState} from 'react'
 import { useSearchParams } from "react-router-dom";
 
+import RenderWorker from '../render/renderWorker.js?worker';
+
+
 const JoinAfter = () => {
     const [searchParams] = useSearchParams();
     const roomID = searchParams.get("roomId");
@@ -13,8 +16,7 @@ const JoinAfter = () => {
     // Inside your React component
 useEffect(() => {
     // 1. Initialize the background Web Worker
-    workerRef.current = new Worker(new URL('../render/renderWorker.js', import.meta.url), { type: 'module' });
-
+    workerRef.current = new RenderWorker();
     // 2. Transfer control of the canvas to the background thread[cite: 1]
     const offscreenCanvas = canvasRef.current.transferControlToOffscreen();
 
