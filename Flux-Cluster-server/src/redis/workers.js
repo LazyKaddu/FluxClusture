@@ -35,3 +35,8 @@ export async function getGlbHash(roomId) {
 export async function getOwnerId(roomId) {
     return await redis.get(`job_owner:${roomId}`);
 }
+
+export async function getRenderSettings(roomId) {
+    const metaStr = await redis.get(`job_meta:${roomId}`);
+    return metaStr ? JSON.parse(metaStr) : null;
+}

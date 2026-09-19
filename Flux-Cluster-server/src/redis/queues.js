@@ -1,53 +1,92 @@
 import redis from './connection.js';
 
-export async function initializeJob(roomId, clip, frames, gridCols, gridRows, glb_hash, ownerId) {
-    // Clear any old data, INCLUDING the new pending_chunks set
+const CHUNK_SIZE = 64; 
+
+export async function initializeJob(
+    roomId, 
+    startFrame, 
+    endFrame, 
+    width, 
+    height, 
+    fps, 
+    glbHash, 
+    samples, 
+    noiseThreshold, 
+    animationIndex, 
+    ownerId
+) {
+    // 1. Clear any old data
     await redis.del(`macro_queue:${roomId}`);
     await redis.del(`micro_queue:${roomId}`);
     await redis.del(`pending_chunks:${roomId}`);
-    await redis.del(`job_owner:${roomId}`);
-    await redis.del(`glb_hash:${roomId}`);
+    await redis.del(`job_meta:${roomId}`);
 
-    // store the owner of the room which pushed the task
-    await redis.set(`job_owner:${roomId}`, ownerId);
-    
-    // Store the cryptographic hash of the 3D asset
-    await redis.set(`glb_hash:${roomId}`, glbHash);
+    // 2. Store global job configuration centrally as a single JSON object
+    const jobMeta = { 
+        ownerId, 
+        glbHash, 
+        width, 
+        height, 
+        fps,
+        samples,
+        noiseThreshold,
+        animationIndex
+    };
+    await redis.set(`job_meta:${roomId}`, JSON.stringify(jobMeta));
 
-
-    for (let i = 0; i < frames; i++) {
-        await redis.lPush(`macro_queue:${roomId}`, JSON.stringify({ frame: i, clip, gridCols, gridRows }));
+    // 3. Populate the Macro Queue with the exact frame range
+    for (let i = startFrame; i <= endFrame; i++) {
+        await redis.rPush(`macro_queue:${roomId}`, i.toString());
     }
     
+    // 4. Explode the first frame to kick off the swarm
     await advanceFrame(roomId);
 }
 
 export async function advanceFrame(roomId) {
-    const frameDataStr = await redis.rPop(`macro_queue:${roomId}`);
-    if (!frameDataStr) return false;
+    const frameStr = await redis.lPop(`macro_queue:${roomId}`);
+    if (!frameStr) return false;
 
-    const { frame, clip, gridCols, gridRows } = JSON.parse(frameDataStr);
+    const frame = parseInt(frameStr, 10);
     console.log(`[Room: ${roomId}] 💥 Exploding Frame ${frame}`);
 
-    const chunkIds = []; // Array to hold our set members
+    // Fetch the stored dimensions and render settings
+    const metaStr = await redis.get(`job_meta:${roomId}`);
+    if (!metaStr) throw new Error("Job metadata missing");
+    
+    // Unpack all the settings we stored in initializeJob
+    const { width, height, samples, noiseThreshold, animationIndex } = JSON.parse(metaStr);
 
-    for (let x = 0; x < gridCols; x++) {
-        for (let y = 0; y < gridRows; y++) {
-            const chunkId = `f${frame}_${x}_${y}`;
-            chunkIds.push(chunkId); // Add to our tracker array
+    const chunkIds = [];
+    const cols = Math.ceil(width / CHUNK_SIZE);
+    const rows = Math.ceil(height / CHUNK_SIZE);
 
+    for (let x = 0; x < cols; x++) {
+        for (let y = 0; y < rows; y++) {
+            const startX = x * CHUNK_SIZE;
+            const startY = y * CHUNK_SIZE;
+            
+            const chunkWidth = Math.min(CHUNK_SIZE, width - startX);
+            const chunkHeight = Math.min(CHUNK_SIZE, height - startY);
+
+            const chunkId = `f${frame}_x${startX}_y${startY}`;
+            chunkIds.push(chunkId);
+
+            // Construct the exact payload the Worker requires
             const chunkTask = {
                 id: chunkId,
                 roomId,
                 frame,
-                clip,
-                bounds: { gridX: x, gridY: y, cols: gridCols, rows: gridRows }
+                startX,
+                startY,
+                chunkWidth,
+                chunkHeight
             };
+            
             await redis.lPush(`micro_queue:${roomId}`, JSON.stringify(chunkTask));
         }
     }
     
-    // Add all chunk IDs to a Redis Set simultaneously
     if (chunkIds.length > 0) {
         await redis.sAdd(`pending_chunks:${roomId}`, chunkIds);
     }
@@ -64,13 +103,8 @@ export async function requeueTask(roomId, task) {
     await redis.rPush(`micro_queue:${roomId}`, JSON.stringify(task));
 }
 
-// NEW: Remove a chunk from the set and check if the set is empty
 export async function completeChunk(roomId, chunkId) {
-    // SREM removes the specific ID from the set
     await redis.sRem(`pending_chunks:${roomId}`, chunkId);
-    
-    // SCARD returns the number of items left in the set
     const remaining = await redis.sCard(`pending_chunks:${roomId}`);
-    return remaining === 0; // Returns true if the frame is completely finished
+    return remaining === 0;
 }
-

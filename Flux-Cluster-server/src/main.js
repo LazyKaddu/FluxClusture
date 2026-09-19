@@ -1,6 +1,6 @@
 import { Server } from 'socket.io';
 import { initializeJob, getNextTask, requeueTask, completeChunk, advanceFrame } from './redis/queues.js';
-import { setWorkerState, removeWorker, getRoomWorkers, getGlbHash, getOwnerId } from './redis/workers.js';
+import { setWorkerState, removeWorker, getRoomWorkers, getGlbHash, getOwnerId, getRenderSettings } from './redis/workers.js';
 
 const PORT = process.env.PORT || 8080;
 
@@ -20,12 +20,35 @@ io.on('connection', (socket) => {
     socket.on('JOIN_ROOM', async ({ roomId }) => {
         socket.join(roomId);
         socket.roomId = roomId;
-        
-        await setWorkerState(roomId, socket.id, { status: 'idle', task: null });
         console.log(`Node ${socket.id} joined room ${roomId}`);
         
         await broadcastSwarmState(roomId);
     });
+
+    socket.on('SET_INITIAL_STATE', async () => {
+        await setWorkerState(socket.roomId, socket.id, { status: 'idle', task: null });
+    })
+
+
+    socket.on('GET_RENDER_SETTINGS', async (roomId, callback) => {
+        if (!roomId) {
+            callback({ success: false, error: "No room ID provided" });
+            return;
+        }
+
+        try {
+            const settings = await getRenderSettings(roomId);
+            if (settings) {
+                callback({ success: true, settings });
+            } else {
+                callback({ success: false, error: "Settings not found for this room" });
+            }
+        } catch (error) {
+            console.error(`[Room: ${roomId}] Error fetching render settings:`, error);
+            callback({ success: false, error: "Internal server error" });
+        }
+    });
+
 
     // 2. Assign Task & Mark as Working
     socket.on('REQUEST_TASK', async () => {
@@ -122,7 +145,7 @@ io.on('connection', (socket) => {
     })
 
     // 4. Handle Disconnects (The foundation for Fault Tolerance)
-socket.on('disconnect', async () => {
+    socket.on('disconnect', async () => {
         if (socket.roomId) {
             const lastState = await removeWorker(socket.roomId, socket.id);
             console.log(`❌ Node disconnected: ${socket.id}. Last state:`, lastState);
@@ -144,7 +167,7 @@ socket.on('disconnect', async () => {
 
     socket.on('INIT_JOB', async (payload) => {
         if (!payload.roomId) return;
-        await initializeJob(payload.roomId, payload.clip, payload.frames, payload.gridCols, payload.gridRows, payload.glbhash, socket.id);
+        await initializeJob(payload.roomId, payload.startFrame, payload.endFrame, payload.width, payload.height, payload.fps, payload.glbHash, payload.noiseThreshold, payload.animationIndex, payload.ownerId)
         io.to(payload.roomId).emit('JOB_STARTED');
     });
 });
