@@ -28,7 +28,7 @@ const App = () => {
           element={<Base childComponent={UploadBefore} />}
         />
         <Route
-          path="/render-main"
+          path="/render"
           element={<Base childComponent={UploadAfter} />}
         />
         <Route

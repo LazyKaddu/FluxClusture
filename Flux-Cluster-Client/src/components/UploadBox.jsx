@@ -5,11 +5,7 @@ import ModelCanvas from './Model';
 
 
 
-const UploadBox = () => {
-
-    const [file, setFile] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [previewUrl, setPreviewUrl] = useState(null);
+const UploadBox = ({file, setFile, loading, setLoading, previewUrl, setPreviewUrl}) => {
 
     const handleFile = async (e) => {
         const selectedFile = e.target.files?.[0];

@@ -26,50 +26,50 @@ self.onmessage = async (event) => {
     }
 
     if (data.type === 'SETUP_SCENE') {
-    const gltf = await loadGLB(data.fileData); 
-    
-    // 1. Move the scene to the requested animation frame
-    if (gltf.animations && gltf.animations.length > 0) {
-        const mixer = new THREE.AnimationMixer(gltf.scene);
+        const gltf = await loadGLB(data.fileData);
 
-        const animIndex = data.animationIndex !== undefined ? data.animationIndex : 0;
+        // 1. Move the scene to the requested animation frame
+        if (gltf.animations && gltf.animations.length > 0) {
+            const mixer = new THREE.AnimationMixer(gltf.scene);
+
+            const animIndex = data.animationIndex !== undefined ? data.animationIndex : 0;
 
 
 
-        if (gltf.animations[animIndex]) {
-            const action = mixer.clipAction(gltf.animations[animIndex]); 
-            action.play();
-            
-            const targetTime = data.frame / data.fps; 
-            mixer.setTime(targetTime); 
-        } else {
-            console.warn(`Animation index ${animIndex} does not exist in this GLB.`);
+            if (gltf.animations[animIndex]) {
+                const action = mixer.clipAction(gltf.animations[animIndex]);
+                action.play();
+
+                const targetTime = data.frame / data.fps;
+                mixer.setTime(targetTime);
+            } else {
+                console.warn(`Animation index ${animIndex} does not exist in this GLB.`);
+            }
         }
-    }
-        
+
         // Convert the frame number to seconds (assuming 30 FPS standard)
         // e.g., frame 60 / 30fps = 2.0 seconds into the animation
-        const fps = data.fps; 
+        const fps = data.fps;
         const targetTime = data.frame / fps;
-        
+
         // Force the mixer to exactly this moment in time
-        mixer.setTime(targetTime); 
+        mixer.setTime(targetTime);
     }
-    
+
     syncCameraFromGLB(gltf.scene, camera, data.totalWidth, data.totalHeight);
-    
+
     // 2. Generate the BVH now that the geometry is in the correct pose
     const { bvh, materials, textures, geometry } = createFrameBVH(gltf.scene);
     pathTracer.setScene(bvh, materials, textures, geometry);
-}
+
 
     if (data.type === 'RENDER_CHUNK') {
         const finalPixels = await renderChunkAdaptively(
             renderer,
             pathTracer,
             camera,
-            data.startX,     
-            data.startY,     
+            data.startX,
+            data.startY,
             data.totalWidth,
             data.totalHeight,
             data.frame,
@@ -77,7 +77,7 @@ self.onmessage = async (event) => {
                 self.postMessage({
                     type: 'CHUNK_PROGRESS',
                     taskId: data.taskId,
-                    ...progressData 
+                    ...progressData
                 });
             },
             data.samples,
@@ -87,7 +87,7 @@ self.onmessage = async (event) => {
         // Zero-Copy Transfer
         self.postMessage(
             { type: 'CHUNK_FINISHED', taskId: data.taskId, pixels: finalPixels },
-            [finalPixels.buffer] 
+            [finalPixels.buffer]
         );
     }
 };

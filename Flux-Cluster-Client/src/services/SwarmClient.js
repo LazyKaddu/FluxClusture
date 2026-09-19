@@ -1,24 +1,45 @@
 import { SocketManager } from './SocketManager';
 import { WebRTCManager } from './WebRTCManager';
 
-const SOCKET_URL = process.env.REACT_APP_SERVER_URL || 'http://localhost:3001';
+const SOCKET_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
 
 class SwarmClient {
     constructor() {
         // Instantiate the two separate brains (Composition)
         this.socketManager = new SocketManager();
-        
+            
         // Pass a callback so WebRTC can ask the socket to send signals
-        this.webrtcManager = new WebRTCManager((signalPayload) => {
-            this.socketManager.emit('WEBRTC_SIGNAL', signalPayload);
-        });
+        this.webrtcManager = new WebRTCManager(
+            (signalPayload) => {
+                this.socketManager.emit('WEBRTC_SIGNAL', signalPayload);
+            },
+            (fileUrl) => {
+                this._trigger('status', 'GLB file downloaded successfully!');
+                this._trigger('fileReady', fileUrl); 
+            },
+            // NEW: Handle incoming render chunks
+            (metadata, pixelBuffer) => {
+                this._trigger('tileReceived', { metadata, pixelBuffer });
+            }
+        );
 
         this.role = null;
         this.listeners = {}; // Callbacks for React
+
+        this.glbBuffer = null;
+
+        this.width = 1900;
+        this.height = 1400;
+        this.noise = 0.1;
+        this.samples = 1024;
+        this.animationIndex = 0;
+        this.fps = 30;
+        this.glbHash = null;
+        this.ownerId = null;
     }
 
     // --- React API ---
-    
+        
     // React calls this to listen for updates
     on(event, callback) {
         this.listeners[event] = callback;
@@ -28,6 +49,28 @@ class SwarmClient {
     _trigger(event, data) {
         if (this.listeners[event]) this.listeners[event](data);
     }
+    setRenderSetting(ownerId,glbHash, width, height, noise, samples, animationIndex, fps ) {
+        this.ownerId = ownerId;
+        this.glbHash = glbHash;
+        this.width = width;
+        this.height = height;
+        this.noise = noise;
+        this.samples = samples;
+        this.animationIndex = animationIndex;
+        this.fps = fps;
+    }
+
+
+    async loadSeederFile(fileUrl) {
+        try {
+            this._trigger('status', 'Loading GLB file into memory...');
+            const response = await fetch(fileUrl);
+            this.glbBuffer = await response.arrayBuffer();
+            this._trigger('status', 'File ready for seeding.');
+        } catch (error) {
+            console.error("Failed to load GLB buffer:", error);
+        }
+    }
 
     joinAsWorker(roomId) {
         this.role = 'worker';
@@ -35,27 +78,57 @@ class SwarmClient {
 
         this.socketManager.on('connect', () => {
             this._trigger('status', 'Connected. Requesting file...');
+
+            this.socketManager.emit('JOIN_ROOM', { roomId });
+
             this.socketManager.emit('REQUEST_SEEDER', { roomId });
+
+            this.socketManager.socket.emit('GET_OWNER_ID', roomId, (response) => {
+                if (response && response.ownerId) {
+                    this.webrtcManager.setupPersistentRenderChannel(response.ownerId);
+                }
+            });
+
+            this.socketManager.socket.emit('RENDER_SETTINGS', roomId, (response)=>{
+                if(response && response.success){
+                    const { ownerId, glbHash, height, width, samples, noiseThreshold, animationIndex, fps} = response.settings;
+                    this.setRenderSetting(ownerId, glbHash, height, width, samples, noiseThreshold, animationIndex, fps);
+                }
+                else{
+                    console.error("Failed to fetch settings:", response?.error);
+                }
+            })
         });
 
         // Wire up the signaling bridge: Socket -> WebRTC
         this.socketManager.on('WEBRTC_SIGNAL', (payload) => {
             this.webrtcManager.handleIncomingSignal(payload.sender, payload);
         });
-        
+            
         // Listeners for swarm orchestration
         this.socketManager.on('ASSIGN_TASK', (task) => {
             this._trigger('newTask', task);
         });
-        
+            
         this.socketManager.on('WAIT', () => {
             this._trigger('status', 'Idle. Waiting for tasks...');
         });
-        
+            
         this.socketManager.on('TASKS_AVAILABLE', () => {
             if (this.role === 'worker') {
                 this.socketManager.emit('REQUEST_TASK');
             }
+        });
+
+        this.socketManager.on("INITIATE_OFFER", async (payload) => {
+            // We pass the requester ID to the WebRTC Manager, which handles the rest
+
+            if(!this.glbBuffer){
+                console.error("[SwarmClient] Cannot initiate offer: GLB buffer is empty.");
+                return;
+            }
+
+            await this.webrtcManager.initiateOffer(payload.requester, this.glbBuffer);
         });
     }
 
@@ -65,25 +138,77 @@ class SwarmClient {
 
         this.socketManager.on('connect', () => {
             this._trigger('status', 'Master node connected. Ready to start job.');
+            this.socketManager.emit('JOIN_ROOM', { roomId  });
         });
-        
+            
         this.socketManager.on('WEBRTC_SIGNAL', (payload) => {
             this.webrtcManager.handleIncomingSignal(payload.sender, payload);
         });
+
+        // --- NEW: Enable Master to receive tasks ---
+        this.socketManager.on('ASSIGN_TASK', (task) => {
+            this._trigger('newTask', task);
+        });
+            
+        this.socketManager.on('WAIT', () => {
+            this._trigger('status', 'Master rendering idle. Waiting for tasks...');
+        });
+            
+        this.socketManager.on('TASKS_AVAILABLE', () => {
+            // Master can now request tasks too!
+            if (this.role === 'master' || this.role === 'worker') {
+                this.socketManager.emit('REQUEST_TASK');
+            }
+        });
     }
 
-    startRenderJob(roomId, clip, frames, gridCols, gridRows, glbHash) {
+    startRenderJob(roomId, startFrame, endFrame, width, height, fps, glbHash, samples, noiseThreshold, animationIndex) {
         if (!this.socketManager.socket) return;
-        this.socketManager.emit('INIT_JOB', { roomId, clip, frames, gridCols, gridRows, glbHash });
+        
+        this.socketManager.emit('INIT_JOB', { 
+            roomId, 
+            startFrame, 
+            endFrame, 
+            width, 
+            height, 
+            fps, 
+            glbHash,
+            samples,
+            noiseThreshold,
+            animationIndex,
+        });
     }
 
     submitRenderedTile(task, imageData) {
-        // Phase 1: Notify server the task is done (Socket)
+        // Phase 1: Notify server the task is done
         this.socketManager.emit('ACK_TILE', task);
 
-        // Phase 2: WebRTC DataChannel send goes here later
+        // Phase 2: Route the pixels
+        if (this.role === 'worker') {
+            // Workers send pixels over WebRTC
+            if (this.webrtcManager.renderChannel && this.webrtcManager.renderChannel.readyState === 'open') {
+                const metadata = JSON.stringify({ 
+                    taskId: task.id, frame: task.frame, 
+                    startX: task.startX, startY: task.startY, 
+                    width: task.totalWidth, height: task.totalHeight 
+                });
+                this.webrtcManager.renderChannel.send(metadata);
+                this.webrtcManager.renderChannel.send(imageData.buffer);
+            } else {
+                console.warn("Render channel not open. Cannot send pixels.");
+            }
+        } 
+        else if (this.role === 'master') {
+            // NEW: Master bypasses WebRTC and triggers the local draw event immediately
+            const metadata = { 
+                taskId: task.id, frame: task.frame, 
+                startX: task.startX, startY: task.startY, 
+                width: task.totalWidth, height: task.totalHeight 
+            };
+            this._trigger('tileReceived', { metadata, pixelBuffer: imageData.buffer });
+        }
         
-        // Greedy Worker: instantly ask for next task
+        // Greedy Node: instantly ask for next task
         this.socketManager.emit('REQUEST_TASK');
     }
 }

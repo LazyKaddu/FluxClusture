@@ -1,7 +1,46 @@
-import React from 'react'
+import React, {useEffect, useState} from 'react'
+import { useLocation } from 'react-router-dom';
+import { swarmClient } from '../services/SwarmClient';
 
 const UploadAfter = () => {
-    const roomId = "absd";
+    const location = useLocation();
+    const config = location.state;
+    const [status, setStatus] = useState("Initializing...");
+
+    const {roomId, file, fileHash, previewUrl, animationIndex, startFrame, endFrame, fps, samples, noiseThreshold, width, height } = config;
+
+    useEffect(()=>{
+        swarmClient.on('status', (msg) => {
+            setStatus(msg);
+            if (msg.includes("Ready to start job")) {
+                swarmClient.startRenderJob(
+                    roomId, 
+                    startFrame, 
+                    endFrame, 
+                    width, 
+                    height, 
+                    fps, 
+                    fileHash,
+                    samples,
+                    noiseThreshold,
+                    animationIndex,
+                );
+            }
+        });
+
+        swarmClient.joinAsMaster(roomId, fileHash);
+        swarmClient.setRenderSetting(swarmClient.socketManager.id, fileHash, width, height, noiseThreshold, samples, animationIndex, fps);
+
+
+
+
+        return () => {
+            if (swarmClient.socketManager.socket) {
+                swarmClient.socketManager.socket.disconnect();
+            }
+        };
+    },[roomId, fileHash, startFrame, endFrame, fps, width, height])
+    
     let progress = 0.5;
     return (
         <div className='w-[84%] h-[90%] geist-mono-regular'>

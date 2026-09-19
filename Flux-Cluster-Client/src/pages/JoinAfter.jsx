@@ -1,5 +1,6 @@
 import React,{useEffect,useRef,useState} from 'react'
 import { useSearchParams } from "react-router-dom";
+import { swarmClient } from '../services/SwarmClient';
 
 // import RenderWorker from '../render/renderWorker.js?worker';
 
@@ -50,7 +51,7 @@ function startRenderingTile(task) {
         totalHeight: task.totalHeight,
         frame: task.frame,
         samples: task.samples,
-        noiseThreashold: task.noiseThreashold,
+        noiseThreshold: task.noiseThreshold,
     });
 }
 
