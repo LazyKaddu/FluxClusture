@@ -128,9 +128,8 @@ io.on('connection', (socket) => {
         if (!payload.target) return;
 
         io.to(payload.target).emit('WEBRTC_SIGNAL', {
-            sender: socket.id,
-            type: payload.type,
-            data: payload.data
+            ...payload,
+            sender: socket.id
         });
     });
 
@@ -167,7 +166,7 @@ io.on('connection', (socket) => {
 
     socket.on('INIT_JOB', async (payload) => {
         if (!payload.roomId) return;
-        await initializeJob(payload.roomId, payload.startFrame, payload.endFrame, payload.width, payload.height, payload.fps, payload.glbHash, payload.noiseThreshold, payload.animationIndex, payload.ownerId)
-        io.to(payload.roomId).emit('JOB_STARTED');
+        await initializeJob(payload.roomId, payload.startFrame, payload.endFrame, payload.width, payload.height, payload.fps, payload.glbHash, payload.samples, payload.noiseThreshold, payload.animationIndex, payload.ownerId)
+        io.to(payload.roomId).emit('TASKS_AVAILABLE');
     });
 });

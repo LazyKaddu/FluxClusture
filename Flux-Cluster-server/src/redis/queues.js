@@ -34,8 +34,11 @@ export async function initializeJob(
     };
     await redis.set(`job_meta:${roomId}`, JSON.stringify(jobMeta));
 
+    const sFrame = parseInt(startFrame, 10);
+    const eFrame = parseInt(endFrame, 10);
+
     // 3. Populate the Macro Queue with the exact frame range
-    for (let i = startFrame; i <= endFrame; i++) {
+    for (let i = sFrame; i <= eFrame; i++) {
         await redis.rPush(`macro_queue:${roomId}`, i.toString());
     }
     
