@@ -1,69 +1,319 @@
-import React, {useEffect, useState} from 'react'
+import React, { useEffect, useState, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { swarmClient } from '../services/SwarmClient';
+import RenderWorker from '../render/renderWorker.js?worker';
 
 const UploadAfter = () => {
     const location = useLocation();
-    const config = location.state;
+    const config = location.state || {};
+
+    const {
+        roomId = '',
+        file = null,
+        fileHash = null,
+        previewUrl = null,
+        animationIndex = 0,
+        fps = 30,
+        samples = 1024,
+        noiseThreshold = 0.1,
+        width = 1920,
+        height = 1080
+    } = config;
+
+    const startFrame = parseInt(config.startFrame || 0, 10);
+    const endFrame = parseInt(config.endFrame || 0, 10);
+
     const [status, setStatus] = useState("Initializing...");
+    const [progress, setProgress] = useState(0);
+    const [currentFrame, setCurrentFrame] = useState(startFrame);
+    const currentFrameRef = useRef(startFrame);
+    const [chunkAssigned, setChunkAssigned] = useState("idle");
 
-    const {roomId, file, fileHash, previewUrl, animationIndex, startFrame, endFrame, fps, samples, noiseThreshold, width, height } = config;
+    const containerCanvas = useRef(null);
+    const canvasRef = useRef(null);
+    const workerRef = useRef(null);
+    const completedTilesRef = useRef(0);
+    const isSceneReadyRef = useRef(false);
+    const pendingChunksRef = useRef([]);
 
-    useEffect(()=>{
+    const totalFrames = Math.max(1, endFrame - startFrame + 1);
+    const cols = Math.ceil(width / 64);
+    const rows = Math.ceil(height / 64);
+    const totalTiles = totalFrames * cols * rows;
+
+    function drawTileToCanvas(metadata, pixelBuffer) {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        const chunkW = 64;
+        const chunkH = 64;
+        const raw = new Uint8ClampedArray(pixelBuffer);
+        const flipped = new Uint8ClampedArray(raw.length);
+        const rowSize = chunkW * 4;
+
+        // Invert vertically since WebGL readRenderTargetPixels has bottom-left origin
+        for (let y = 0; y < chunkH; y++) {
+            const srcRow = (chunkH - 1 - y) * rowSize;
+            const dstRow = y * rowSize;
+            flipped.set(raw.subarray(srcRow, srcRow + rowSize), dstRow);
+        }
+        
+        // Force alpha to 255 so transparent backgrounds don't render as invisible
+        for (let i = 3; i < flipped.length; i += 4) {
+            flipped[i] = 255;
+        }
+        
+        console.log(`Drawing tile to canvas at ${metadata.startX}, ${metadata.startY}`);
+
+        const imgData = new ImageData(flipped, chunkW, chunkH);
+        const drawWidth = Math.min(chunkW, width - metadata.startX);
+        const drawHeight = Math.min(chunkH, height - metadata.startY);
+        ctx.putImageData(imgData, metadata.startX, metadata.startY, 0, 0, drawWidth, drawHeight);
+    }
+
+    useEffect(() => {
+        if (!roomId) return;
+
+        let isSubscribed = true;
+
+        // 1. Initialize background RenderWorker
+        const worker = new RenderWorker();
+        workerRef.current = worker;
+
+        try {
+            const offscreen = new OffscreenCanvas(64, 64);
+            worker.postMessage({ type: 'INIT_CANVAS', canvas: offscreen }, [offscreen]);
+        } catch (err) {
+            console.warn("Could not transfer OffscreenCanvas, letting worker self-initialize:", err);
+            worker.postMessage({ type: 'INIT_CANVAS' });
+        }
+
+        // 2. Load GLB ArrayBuffer into SwarmClient & RenderWorker
+        async function initModel() {
+            try {
+                let buffer = null;
+                if (file && typeof file.arrayBuffer === 'function') {
+                    buffer = await file.arrayBuffer();
+                } else if (previewUrl) {
+                    const response = await fetch(previewUrl);
+                    buffer = await response.arrayBuffer();
+                }
+
+                if (!isSubscribed) return;
+
+                if (buffer) {
+                    // Seed file to peers over WebRTC
+                    swarmClient.glbBuffer = buffer;
+
+                    // Send a copy to the local worker
+                    worker.postMessage({
+                        type: 'SETUP_SCENE',
+                        fileData: buffer.slice(0),
+                        animationIndex: animationIndex ?? 0,
+                        fps: fps ?? 30,
+                        totalWidth: width,
+                        totalHeight: height,
+                        frame: startFrame ?? 0
+                    });
+                }
+            } catch (err) {
+                console.error("Failed to load GLB file into worker:", err);
+            }
+        }
+
+        initModel();
+
+        // 3. Listen to messages from the background render worker
+        worker.onmessage = (event) => {
+            const data = event.data;
+            if (data.type === 'CHUNK_FINISHED') {
+                const { task, pixels } = data;
+                if (task && pixels) {
+                    swarmClient.submitRenderedTile(task, pixels);
+                }
+            } else if (data.type === 'SCENE_READY') {
+                isSceneReadyRef.current = true;
+                
+                // Flush any queued chunks that arrived before the scene was ready
+                pendingChunksRef.current.forEach(enrichedTask => {
+                    worker.postMessage({
+                        type: 'RENDER_CHUNK',
+                        taskId: enrichedTask.id,
+                        task: enrichedTask,
+                        startX: enrichedTask.startX,
+                        startY: enrichedTask.startY,
+                        totalWidth: width,
+                        totalHeight: height,
+                        frame: enrichedTask.frame,
+                        fps: fps,
+                        samples: samples,
+                        noiseThreshold: noiseThreshold
+                    });
+                });
+                pendingChunksRef.current = [];
+            } else if (data.type === 'ERROR') {
+                console.error("[RenderWorker Error]:", data.message);
+            }
+        };
+
+        // 4. Setup SwarmClient callbacks
         swarmClient.on('status', (msg) => {
+            if (!isSubscribed) return;
             setStatus(msg);
-            if (msg.includes("Ready to start job")) {
-                swarmClient.startRenderJob(
-                    roomId, 
-                    startFrame, 
-                    endFrame, 
-                    width, 
-                    height, 
-                    fps, 
-                    fileHash,
-                    samples,
-                    noiseThreshold,
-                    animationIndex,
-                );
+        });
+
+        swarmClient.on('newTask', (task) => {
+            if (!isSubscribed) return;
+
+            if (currentFrameRef.current !== task.frame) {
+                currentFrameRef.current = task.frame;
+                const canvas = canvasRef.current;
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        ctx.fillStyle = 'white';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    }
+                }
+            }
+
+            setCurrentFrame(task.frame);
+            setChunkAssigned(task.id || `${task.startX}_x_${task.startY}`);
+            
+            const enrichedTask = {
+                ...task,
+                totalWidth: width,
+                totalHeight: height,
+                samples: samples,
+                noiseThreshold: noiseThreshold,
+                fps: fps
+            };
+
+            // Queue chunks if scene is not ready yet, or post immediately
+            if (!isSceneReadyRef.current) {
+                pendingChunksRef.current.push(enrichedTask);
+            } else {
+                worker.postMessage({
+                    type: 'RENDER_CHUNK',
+                    taskId: task.id,
+                    task: enrichedTask,
+                    startX: task.startX,
+                    startY: task.startY,
+                    totalWidth: width,
+                    totalHeight: height,
+                    frame: enrichedTask.frame,
+                    fps: fps,
+                    samples: samples,
+                    noiseThreshold: noiseThreshold
+                });
             }
         });
 
-        swarmClient.joinAsMaster(roomId, fileHash);
-        swarmClient.setRenderSetting(swarmClient.socketManager.id, fileHash, width, height, noiseThreshold, samples, animationIndex, fps);
+        swarmClient.on('tileReceived', ({ metadata, pixelBuffer }) => {
+            if (!isSubscribed) return;
+            drawTileToCanvas(metadata, pixelBuffer);
 
+            
 
+            completedTilesRef.current += 1;
+            if (totalTiles > 0) {
+                const pct = Math.min(1, completedTilesRef.current / totalTiles);
+                setProgress(pct);
+            }
+        });
 
+        // 5. Connect and join as Master node
+        swarmClient.joinAsMaster(roomId);
+        console.log("joined to server as master")
 
+        swarmClient.setRenderSetting(
+            swarmClient.socketManager.id,
+            fileHash,
+            width,
+            height,
+            noiseThreshold,
+            samples,
+            animationIndex,
+            fps
+        );
+
+        swarmClient.startRenderJob(
+            roomId,
+            startFrame,
+            endFrame,
+            width,
+            height,
+            fps,
+            fileHash,
+            samples,
+            noiseThreshold,
+            animationIndex
+        );
+
+        // 6. Cleanup on unmount
         return () => {
+            isSubscribed = false;
+            if (workerRef.current) {
+                workerRef.current.terminate();
+                workerRef.current = null;
+            }
             if (swarmClient.socketManager.socket) {
                 swarmClient.socketManager.socket.disconnect();
             }
         };
-    },[roomId, fileHash, startFrame, endFrame, fps, width, height])
-    
-    let progress = 0.5;
+    }, [roomId, file, fileHash, previewUrl, startFrame, endFrame, fps, width, height, samples, noiseThreshold, animationIndex]);
+
+    const canvasRatio = width / height;
+    const containerRatio = 16 / 9;
+    const isWider = canvasRatio > containerRatio;
+
     return (
         <div className='w-[84%] h-[90%] geist-mono-regular'>
             <div className='text-sm text-[#606060]'>
-                <p className='text-white mb-2'>Room : {roomId}</p>
+                <div className='flex justify-between items-center mb-2'>
+                    <p className='text-white'>Room : {roomId}</p>
+                    <span className='text-xs text-gray-400'>Status: {status}</span>
+                </div>
                 <div className='mb-2'>
-                    <p>Rendering : Clove.glb / Frame : 2/34 / Chunk Assigned : 64x64_00_00</p>
-                    <p>samples: 1024 noise threshold: 0.01</p>
+                    <div className='flex justify-between'>
+                        <p>Rendering : {file?.name || 'Model'}</p>
+                        <p>/ Frame : {currentFrame}/{endFrame}</p>
+                        <p>/ Chunk Assigned : {chunkAssigned}</p>
+                    </div>
+
+                    <p>samples: {samples} noise threshold: {noiseThreshold}</p>
                 </div>
             </div>
-            <div className='bg-white w-full aspect-16/9 mb-4'>
-                <img />
+            <div
+                ref={containerCanvas}
+                className="w-full mb-4 aspect-video items-center flex justify-center overflow-hidden"
+            >
+                <canvas
+                    ref={canvasRef}
+                    width={width}
+                    height={height}
+                    className="bg-white"
+                    style={{
+                        width: isWider ? '100%' : 'auto',
+                        height: isWider ? 'auto' : '100%',
+                        aspectRatio: `${width} / ${height}`
+                    }}
+                />
             </div>
             <div className='w-full flex justify-center'>
-
-
-                <div className='w-[90%] border'>
-                    <div className={`h-full bg-white text-black p-1 flex items-center justify-center`} style={{ width: `${progress * 100}%` }}>{progress * 100}%</div>
+                <div className='w-[90%] border h-7'>
+                    <div
+                        className='h-full bg-white text-black p-1 flex items-center justify-center transition-all duration-150 text-xs font-bold'
+                        style={{ width: `${Math.max(2, progress * 100)}%` }}
+                    >
+                        {(progress * 100).toFixed(1)}%
+                    </div>
                 </div>
             </div>
-
         </div>
-    )
-}
+    );
+};
 
-export default UploadAfter
+export default UploadAfter;

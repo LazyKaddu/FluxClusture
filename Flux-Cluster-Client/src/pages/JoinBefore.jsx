@@ -15,7 +15,7 @@ const JoinBefore = () => {
             <div className='flex justify-between flex-col w-1/2 h-2/3'>
                 <div className='flex justify-between text-xs'>
                     <p className='geist-mono-bold '>&gt;_ JOIN ROOM</p>
-                    <p className='text-xs text-[#606060]'><div className='w-2 h-2 rounded-full inline-block bg-green-500'></div> CLUSTER_READY</p>
+                    <p className='text-xs text-[#606060]'><span className='w-2 h-2 rounded-full inline-block bg-green-500'></span> CLUSTER_READY</p>
                 </div>
 
                 <div>

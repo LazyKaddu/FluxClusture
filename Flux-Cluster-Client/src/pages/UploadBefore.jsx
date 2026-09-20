@@ -83,6 +83,7 @@ const UploadBefore = () => {
         }
     }, [RenderAnimation, Fps, animDurations]);
 
+    
 
 
     const createRoom = () => {
@@ -135,7 +136,9 @@ const UploadBefore = () => {
                                 {
                                     (Animations.length ? Animations.map((anim, index) => {
                                         return (
-                                            <p className={`pl-4 my-2 hover:text-white text-[#606060] ${RenderAnimation === index ? 'text-black bg-white' : ''}`} onClick={() => setRenderAnimation(index)}>
+                                            <p className={`pl-4 my-2  text-[#606060] ${RenderAnimation === index ? 'text-black bg-white' : 'hover:text-white'}`} onClick={() => setRenderAnimation(index)}
+                                            key={index}
+                                            >
                                                 {anim}
                                             </p>
                                         )
