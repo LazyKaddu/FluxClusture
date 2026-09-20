@@ -158,17 +158,27 @@ export class WebRTCManager {
         let pc = this.peers.get(senderId);
         if (!pc) pc = this.createPeer(senderId);
 
-        if (signal.type === 'offer') {
-            await pc.setRemoteDescription(new RTCSessionDescription(signal.offer));
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            this.onSignalNeeded({ target: senderId, type: 'answer', answer: answer });
-        } 
-        else if (signal.type === 'answer') {
-            await pc.setRemoteDescription(new RTCSessionDescription(signal.answer));
-        } 
-        else if (signal.type === 'candidate') {
-            await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+        try {
+            if (signal.type === 'offer') {
+                const desc = signal.offer || signal;
+                if (!desc || !desc.type) return;
+                await pc.setRemoteDescription(new RTCSessionDescription(desc));
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+                this.onSignalNeeded({ target: senderId, type: 'answer', answer: answer });
+            } 
+            else if (signal.type === 'answer') {
+                const desc = signal.answer || signal;
+                if (!desc || !desc.type) return;
+                await pc.setRemoteDescription(new RTCSessionDescription(desc));
+            } 
+            else if (signal.type === 'candidate') {
+                const cand = signal.candidate || signal;
+                if (!cand || (!cand.candidate && !cand.sdpMid)) return;
+                await pc.addIceCandidate(new RTCIceCandidate(cand));
+            }
+        } catch (err) {
+            console.error("[WebRTC] Error handling signal:", err, signal);
         }
     }
 }
