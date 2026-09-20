@@ -2,9 +2,16 @@ import { WebGLPathTracer } from 'three-gpu-pathtracer';
 
 /**
  * A tiny helper that pauses our loop for 1 frame, 
- * giving the browser time to paint the canvas to the monitor.
+ * giving the browser/worker time to breathe.
  */
-const yieldToBrowser = () => new Promise(resolve => requestAnimationFrame(resolve));
+const yieldToBrowser = () =>
+    new Promise(resolve => {
+        if (typeof requestAnimationFrame === 'function') {
+            requestAnimationFrame(resolve);
+        } else {
+            setTimeout(resolve, 0);
+        }
+    });
 
 /**
  * Compares two Uint8Array pixel buffers to calculate the noise delta.
@@ -40,6 +47,7 @@ export async function renderChunkAdaptively(renderer, pathTracer, camera, startX
 
     
     const bufferSize = chunkWidth * chunkHeight * 4;
+    let floatPixels = new Float32Array(bufferSize);
     let currentPixels = new Uint8Array(bufferSize);
     let previousPixels = null;
     let currentNoise = 1.0;
@@ -57,12 +65,18 @@ export async function renderChunkAdaptively(renderer, pathTracer, camera, startX
         renderer.readRenderTargetPixels(
             pathTracer.target,
             0, 0, chunkWidth, chunkHeight,
-            currentPixels
+            floatPixels
         );
+
+        for (let i = 0; i < bufferSize; i++) {
+            // Apply simple linear to sRGB gamma correction approximately, or just linear scale
+            // The renderer outputs linear colors if not tonemapped. A simple *255 might be dark, but let's stick to the simplest conversion.
+            currentPixels[i] = Math.max(0, Math.min(255, floatPixels[i] * 255));
+        }
         
         currentNoise = calculateConvergenceNoise(currentPixels, previousPixels);
         
-        if (onProgress) {
+        if (typeof onProgress === 'function') {
             onProgress({ progress: totalSamples/maxSamples });
         }
         
