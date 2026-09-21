@@ -84,29 +84,46 @@ class SwarmClient {
         this.role = 'worker';
         this.socketManager.connect();
 
-        this.socketManager.on('connect', () => {
+        const onConnected = () => {
+            console.log("[SwarmClient] Socket connected. Proceeding with worker join sequence.");
             this._trigger('status', 'Connected. Requesting file...');
 
             this.socketManager.emit('JOIN_ROOM', { roomId });
-
             this.socketManager.emit('REQUEST_SEEDER', { roomId });
 
+            console.log("[SwarmClient] Emitting GET_OWNER_ID...");
             this.socketManager.socket.emit('GET_OWNER_ID', roomId, (response) => {
+                console.log("[SwarmClient] GET_OWNER_ID response:", response);
                 if (response && response.ownerId) {
-                    this.webrtcManager.setupPersistentRenderChannel(response.ownerId);
+                    console.log(`[SwarmClient] Received Master ID: ${response.ownerId}. Setting up render stream...`);
+                    try {
+                        this.webrtcManager.setupPersistentRenderChannel(response.ownerId, this.socketManager.socket.id);
+                        console.log("[SwarmClient] setupPersistentRenderChannel completed successfully.");
+                    } catch (err) {
+                        console.error("[SwarmClient] Error in setupPersistentRenderChannel:", err);
+                    }
+                } else {
+                    console.error("[SwarmClient] Failed to retrieve Master ID! Render stream will not open. Response was:", response);
                 }
             });
 
             this.socketManager.socket.emit('GET_RENDER_SETTINGS', roomId, (response) => {
+                console.log("[SwarmClient] GET_RENDER_SETTINGS response:", response);
                 if (response && response.success) {
                     const { ownerId, glbHash, height, width, samples, noiseThreshold, animationIndex, fps } = response.settings;
                     this.setRenderSetting(ownerId, glbHash, height, width, samples, noiseThreshold, animationIndex, fps);
                 }
                 else {
-                    console.error("Failed to fetch settings:", response?.error);
+                    console.error("[SwarmClient] Failed to fetch settings:", response?.error);
                 }
             })
-        });
+        };
+
+        if (this.socketManager.socket && this.socketManager.socket.connected) {
+            onConnected();
+        } else {
+            this.socketManager.on('connect', onConnected);
+        }
 
         // Wire up the signaling bridge: Socket -> WebRTC
         this.socketManager.on('WEBRTC_SIGNAL', (payload) => {
@@ -199,10 +216,7 @@ class SwarmClient {
     }
 
     submitRenderedTile(task, imageData) {
-        // Phase 1: Notify server the task is done
-        this.socketManager.emit('ACK_TILE', task);
-
-        // Phase 2: Route the pixels
+        // Route the pixels
         if (this.role === 'worker') {
             // Workers send pixels over WebRTC
             if (this.webrtcManager.renderChannel && this.webrtcManager.renderChannel.readyState === 'open') {
@@ -212,9 +226,19 @@ class SwarmClient {
                     width: task.totalWidth, height: task.totalHeight
                 });
                 this.webrtcManager.renderChannel.send(metadata);
-                this.webrtcManager.renderChannel.send(imageData.buffer);
+
+                // Send the pixel buffer in safe 16KB chunks to avoid WebRTC max message size limits (64KB)
+                const buffer = imageData.buffer;
+                const CHUNK_SIZE = 16384;
+                let offset = 0;
+                
+                while (offset < buffer.byteLength) {
+                    const chunk = buffer.slice(offset, offset + CHUNK_SIZE);
+                    this.webrtcManager.renderChannel.send(chunk);
+                    offset += chunk.byteLength;
+                }
             } else {
-                console.warn("Render channel not open. Cannot send pixels.");
+                console.warn(`[SwarmClient] Render channel not open. ReadyState: ${this.webrtcManager.renderChannel?.readyState}`);
             }
         }
         else if (this.role === 'master') {

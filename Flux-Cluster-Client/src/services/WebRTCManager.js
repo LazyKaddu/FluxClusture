@@ -9,10 +9,10 @@ export class WebRTCManager {
         this.iceServers = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
     }
 
-    async setupPersistentRenderChannel(masterId) {
-        const pc = this.createPeer(masterId);
+    async setupPersistentRenderChannel(masterId, myId) {
+        const connectionId = `render_${myId}`;
+        const pc = this.createPeer(masterId, connectionId);
 
-        // Name this channel differently so we don't confuse it with the file transfer
         const dataChannel = pc.createDataChannel('render_stream');
         dataChannel.binaryType = 'arraybuffer';
 
@@ -20,7 +20,6 @@ export class WebRTCManager {
             console.log(`[WebRTC] Persistent Render Channel open to Master: ${masterId}`);
         };
 
-        // Save it to the class instance so we can use it whenever a chunk finishes
         this.renderChannel = dataChannel;
 
         const offer = await pc.createOffer();
@@ -28,117 +27,42 @@ export class WebRTCManager {
 
         this.onSignalNeeded({
             target: masterId,
+            connectionId: connectionId,
             type: 'offer',
             offer: offer
         });
     }
 
-    createPeer(targetId) {
-        const pc = new RTCPeerConnection(this.iceServers);
-        this.peers.set(targetId, pc);
-
-        pc.onicecandidate = (event) => {
-            if (event.candidate) {
-                this.onSignalNeeded({ target: targetId, type: 'candidate', candidate: event.candidate });
-            }
-        };
-
-        // NEW: Listen for the Master node opening the DataChannel
-        pc.ondatachannel = (event) => {
-            const dataChannel = event.channel;
-            
-            if (dataChannel.label === 'asset_transfer') {
-                let receivedBuffers = [];
-
-                // Handle incoming file data[cite: 1]
-                dataChannel.onmessage = (event) => {
-                    if (typeof event.data === 'string' && event.data === 'EOF') {
-                        console.log(`[WebRTC] Finished receiving GLB from ${targetId}`);
-                        
-                        // 1. Combine all the ArrayBuffer chunks into a single Blob
-                        const blob = new Blob(receivedBuffers);
-                        
-                        // 2. Create a local URL for the stitched file
-                        const fileUrl = URL.createObjectURL(blob);
-                        
-                        // 3. Send the URL up to the SwarmClient
-                        if (this.onFileReceived) this.onFileReceived(fileUrl);
-
-                        // 4. Clean up the ephemeral connection[cite: 1]
-                        receivedBuffers = [];
-                        dataChannel.close();
-                        pc.close();
-                        this.peers.delete(targetId);
-                        
-                    } else {
-                        // Push incoming binary chunks into the array
-                        receivedBuffers.push(event.data);
-                    }
-                };
-            }
-            if (dataChannel.label === 'render_stream') {
-                console.log(`[WebRTC] Master accepted render stream from ${targetId}`);
-    
-                let pendingMetadata = null;
-
-                dataChannel.onmessage = (event) => {
-                    if (typeof event.data === 'string') {
-                        // 1. First message arrives: Parse and store the metadata
-                        pendingMetadata = JSON.parse(event.data);
-                    } else {
-                        // 2. Second message arrives: It is the binary ArrayBuffer
-                        if (this.onRenderDataReceived && pendingMetadata) {
-                            this.onRenderDataReceived(pendingMetadata, event.data);
-                            pendingMetadata = null; // Reset for the next chunk
-                        }
-                    }
-                };
-            }
-                    };
-
-        return pc;
-    }
-
-    // Add glbFileBuffer as a parameter so the manager knows what to send
+    // The seeder (can be any node) initiates the offer for asset_transfer
     async initiateOffer(targetId, glbFileBuffer) {
-        const pc = this.createPeer(targetId);
+        const connectionId = `asset_${targetId}`;
+        const pc = this.createPeer(targetId, connectionId);
 
         const dataChannel = pc.createDataChannel('asset_transfer');
         dataChannel.binaryType = 'arraybuffer';
-
-        // Set a safe threshold for the browser's internal network buffer (e.g., 64KB)
         dataChannel.bufferedAmountLowThreshold = 65536;
 
         dataChannel.onopen = () => {
             console.log(`[WebRTC] DataChannel open! Streaming file to ${targetId}...`);
-            
-            const CHUNK_SIZE = 16384; // 16KB chunks are the safest cross-browser standard
+            const CHUNK_SIZE = 16384;
             let offset = 0;
 
             const sendNextChunk = () => {
-                // Keep sending chunks as long as we haven't reached the end of the file
                 while (offset < glbFileBuffer.byteLength) {
-                    
-                    // If we are pushing data faster than the network can send it, pause.
                     if (dataChannel.bufferedAmount > dataChannel.bufferedAmountLowThreshold) {
                         dataChannel.onbufferedamountlow = () => {
-                            dataChannel.onbufferedamountlow = null; // Unbind listener
-                            sendNextChunk(); // Resume sending
+                            dataChannel.onbufferedamountlow = null;
+                            sendNextChunk();
                         };
-                        return; // Exit the loop until the buffer drains
+                        return;
                     }
-
-                    // Slice the array and send the chunk
                     const chunk = glbFileBuffer.slice(offset, offset + CHUNK_SIZE);
                     dataChannel.send(chunk);
                     offset += chunk.byteLength;
                 }
-
-                // Once the loop finishes, send a tiny text message to tell the receiver we are done
-                dataChannel.send('EOF'); // End Of File
+                dataChannel.send('EOF');
                 console.log(`[WebRTC] Finished sending GLB to ${targetId}`);
             };
-
             sendNextChunk();
         };
 
@@ -147,16 +71,97 @@ export class WebRTCManager {
 
         this.onSignalNeeded({
             target: targetId,
+            connectionId: connectionId,
             type: 'offer',
             offer: offer
         });
 
-        return dataChannel;
+        return { dataChannel };
     }
 
+    createPeer(targetId, connectionId) {
+        const pc = new RTCPeerConnection(this.iceServers);
+        this.peers.set(connectionId, pc);
+
+        pc.onicecandidate = (event) => {
+            if (event.candidate) {
+                this.onSignalNeeded({ target: targetId, connectionId: connectionId, type: 'candidate', candidate: event.candidate });
+            }
+        };
+
+        // Worker node listens for the Master opening the DataChannels
+        pc.ondatachannel = (event) => {
+            const dataChannel = event.channel;
+            
+            if (dataChannel.label === 'asset_transfer') {
+                let receivedBuffers = [];
+                dataChannel.onmessage = (event) => {
+                    if (typeof event.data === 'string' && event.data === 'EOF') {
+                        console.log(`[WebRTC] Finished receiving GLB from ${targetId}`);
+                        const blob = new Blob(receivedBuffers);
+                        const fileUrl = URL.createObjectURL(blob);
+                        if (this.onFileReceived) this.onFileReceived(fileUrl);
+                        
+                        receivedBuffers = [];
+                        // Don't close the PC because we still need render_stream!
+                    } else {
+                        receivedBuffers.push(event.data);
+                    }
+                };
+            }
+            
+            if (dataChannel.label === 'render_stream') {
+                console.log(`[WebRTC] Master accepted render stream from ${targetId}`);
+    
+                let pendingMetadata = null;
+                let receivedBuffers = [];
+                let receivedBytes = 0;
+                let expectedBytes = 0;
+
+                dataChannel.onmessage = (event) => {
+                    if (typeof event.data === 'string') {
+                        // 1. First message arrives: Parse and store the metadata
+                        pendingMetadata = JSON.parse(event.data);
+                        // A tile is exactly metadata.width * metadata.height * 4 bytes
+                        expectedBytes = pendingMetadata.width * pendingMetadata.height * 4;
+                        receivedBuffers = [];
+                        receivedBytes = 0;
+                    } else {
+                        // 2. Subsequent messages are binary chunks
+                        if (pendingMetadata) {
+                            receivedBuffers.push(new Uint8Array(event.data));
+                            receivedBytes += event.data.byteLength;
+
+                            if (receivedBytes >= expectedBytes) {
+                                // We have the full tile! Recombine and emit
+                                const fullBuffer = new Uint8Array(expectedBytes);
+                                let offset = 0;
+                                for (const buffer of receivedBuffers) {
+                                    fullBuffer.set(buffer, offset);
+                                    offset += buffer.byteLength;
+                                }
+
+                                if (this.onRenderDataReceived) {
+                                    this.onRenderDataReceived(pendingMetadata, fullBuffer.buffer);
+                                }
+                                pendingMetadata = null;
+                            }
+                        }
+                    }
+                };
+            }
+        };
+
+        return pc;
+    }
+
+
     async handleIncomingSignal(senderId, signal) {
-        let pc = this.peers.get(senderId);
-        if (!pc) pc = this.createPeer(senderId);
+        const connectionId = signal.connectionId;
+        if (!connectionId) return; // Ignore signals without a connection ID
+
+        let pc = this.peers.get(connectionId);
+        if (!pc) pc = this.createPeer(senderId, connectionId);
 
         try {
             if (signal.type === 'offer') {
@@ -165,7 +170,7 @@ export class WebRTCManager {
                 await pc.setRemoteDescription(new RTCSessionDescription(desc));
                 const answer = await pc.createAnswer();
                 await pc.setLocalDescription(answer);
-                this.onSignalNeeded({ target: senderId, type: 'answer', answer: answer });
+                this.onSignalNeeded({ target: senderId, connectionId: connectionId, type: 'answer', answer: answer });
             } 
             else if (signal.type === 'answer') {
                 const desc = signal.answer || signal;

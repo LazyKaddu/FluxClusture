@@ -56,7 +56,7 @@ io.on('connection', (socket) => {
 
         const task = await getNextTask(socket.roomId);
         if (task) {
-            await setWorkerState(socket.roomId, socket.id, { status: 'working', task: task.id });
+            await setWorkerState(socket.roomId, socket.id, { status: 'working', task });
             socket.emit('ASSIGN_TASK', task);
         } else {
             await setWorkerState(socket.roomId, socket.id, { status: 'idle', task: null });
@@ -166,7 +166,8 @@ io.on('connection', (socket) => {
 
     socket.on('INIT_JOB', async (payload) => {
         if (!payload.roomId) return;
-        await initializeJob(payload.roomId, payload.startFrame, payload.endFrame, payload.width, payload.height, payload.fps, payload.glbHash, payload.samples, payload.noiseThreshold, payload.animationIndex, payload.ownerId)
+        const ownerId = payload.ownerId || socket.id; // Master's socket ID is the owner
+        await initializeJob(payload.roomId, payload.startFrame, payload.endFrame, payload.width, payload.height, payload.fps, payload.glbHash, payload.samples, payload.noiseThreshold, payload.animationIndex, ownerId)
         io.to(payload.roomId).emit('TASKS_AVAILABLE');
     });
 });

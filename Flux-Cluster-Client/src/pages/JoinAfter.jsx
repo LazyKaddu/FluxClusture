@@ -25,29 +25,49 @@ const JoinAfter = () => {
         // 1. Initialize Web Worker
         workerRef.current = new RenderWorker();
 
-        try {
-            // Transfer control of the visible canvas to the background thread
-            const offscreenCanvas = canvasRef.current.transferControlToOffscreen();
-            workerRef.current.postMessage(
-                { type: 'INIT_CANVAS', canvas: offscreenCanvas },
-                [offscreenCanvas]
-            );
-        } catch (err) {
-            console.warn("Could not transfer OffscreenCanvas:", err);
-            workerRef.current.postMessage({ type: 'INIT_CANVAS' });
-        }
+        // Let the worker use its own internal OffscreenCanvas
+        workerRef.current.postMessage({ type: 'INIT_CANVAS' });
 
         // 2. Setup Worker Message Handler
         workerRef.current.onmessage = (event) => {
             if (!isSubscribed) return;
             const data = event.data;
 
+            const drawPixelsToCanvas = (pixels) => {
+                if (!canvasRef.current || !pixels) return;
+                const ctx = canvasRef.current.getContext('2d');
+                if (!ctx) return;
+                
+                const chunkW = 64;
+                const chunkH = 64;
+                const raw = new Uint8ClampedArray(pixels);
+                const flipped = new Uint8ClampedArray(raw.length);
+                const rowSize = chunkW * 4;
+
+                for (let y = 0; y < chunkH; y++) {
+                    const srcRow = (chunkH - 1 - y) * rowSize;
+                    const dstRow = y * rowSize;
+                    flipped.set(raw.subarray(srcRow, srcRow + rowSize), dstRow);
+                }
+                
+                for (let i = 3; i < flipped.length; i += 4) {
+                    flipped[i] = 255;
+                }
+                
+                const imgData = new ImageData(flipped, chunkW, chunkH);
+                ctx.putImageData(imgData, 0, 0);
+            };
+
             if (data.type === 'CHUNK_PROGRESS') {
                 setProgress(data.progress);
+                if (data.pixels) {
+                    drawPixelsToCanvas(data.pixels);
+                }
             }
 
             if (data.type === 'CHUNK_FINISHED') {
                 const { pixels, task } = data;
+                drawPixelsToCanvas(pixels);
                 // Hand the final pixel array to SwarmClient to blast over WebRTC
                 swarmClient.submitRenderedTile(task, pixels);
             }

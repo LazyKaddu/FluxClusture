@@ -1,4 +1,5 @@
 import { WebGLPathTracer } from 'three-gpu-pathtracer';
+import * as THREE from 'three';
 
 /**
  * A tiny helper that pauses our loop for 1 frame, 
@@ -47,7 +48,6 @@ export async function renderChunkAdaptively(renderer, pathTracer, camera, startX
 
     
     const bufferSize = chunkWidth * chunkHeight * 4;
-    let floatPixels = new Float32Array(bufferSize);
     let currentPixels = new Uint8Array(bufferSize);
     let previousPixels = null;
     let currentNoise = 1.0;
@@ -62,22 +62,30 @@ export async function renderChunkAdaptively(renderer, pathTracer, camera, startX
         
         await yieldToBrowser();
         
-        renderer.readRenderTargetPixels(
-            pathTracer.target,
-            0, 0, chunkWidth, chunkHeight,
-            floatPixels
-        );
-
-        for (let i = 0; i < bufferSize; i++) {
-            // Apply simple linear to sRGB gamma correction approximately, or just linear scale
-            // The renderer outputs linear colors if not tonemapped. A simple *255 might be dark, but let's stick to the simplest conversion.
-            currentPixels[i] = Math.max(0, Math.min(255, floatPixels[i] * 255));
+        const textureType = pathTracer.target.texture.type;
+        
+        if (textureType === THREE.HalfFloatType) {
+            const halfFloatPixels = new Uint16Array(bufferSize);
+            renderer.readRenderTargetPixels(pathTracer.target, 0, 0, chunkWidth, chunkHeight, halfFloatPixels);
+            for (let i = 0; i < bufferSize; i++) {
+                const floatVal = THREE.DataUtils.fromHalfFloat(halfFloatPixels[i]);
+                currentPixels[i] = Math.max(0, Math.min(255, floatVal * 255));
+            }
+        } else if (textureType === THREE.FloatType) {
+            const floatPixels = new Float32Array(bufferSize);
+            renderer.readRenderTargetPixels(pathTracer.target, 0, 0, chunkWidth, chunkHeight, floatPixels);
+            for (let i = 0; i < bufferSize; i++) {
+                currentPixels[i] = Math.max(0, Math.min(255, floatPixels[i] * 255));
+            }
+        } else {
+            // Assume UnsignedByteType or fallback
+            renderer.readRenderTargetPixels(pathTracer.target, 0, 0, chunkWidth, chunkHeight, currentPixels);
         }
         
         currentNoise = calculateConvergenceNoise(currentPixels, previousPixels);
         
         if (typeof onProgress === 'function') {
-            onProgress({ progress: totalSamples/maxSamples });
+            onProgress({ progress: totalSamples/maxSamples, pixels: new Uint8Array(currentPixels) });
         }
         
         if (currentNoise <= noiseThreshold && previousPixels !== null) {

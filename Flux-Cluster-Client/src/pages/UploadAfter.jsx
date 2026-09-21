@@ -59,12 +59,12 @@ const UploadAfter = () => {
             const dstRow = y * rowSize;
             flipped.set(raw.subarray(srcRow, srcRow + rowSize), dstRow);
         }
-        
+
         // Force alpha to 255 so transparent backgrounds don't render as invisible
         for (let i = 3; i < flipped.length; i += 4) {
             flipped[i] = 255;
         }
-        
+
         console.log(`Drawing tile to canvas at ${metadata.startX}, ${metadata.startY}`);
 
         const imgData = new ImageData(flipped, chunkW, chunkH);
@@ -135,7 +135,7 @@ const UploadAfter = () => {
                 }
             } else if (data.type === 'SCENE_READY') {
                 isSceneReadyRef.current = true;
-                
+
                 // Flush any queued chunks that arrived before the scene was ready
                 pendingChunksRef.current.forEach(enrichedTask => {
                     worker.postMessage({
@@ -181,7 +181,7 @@ const UploadAfter = () => {
 
             setCurrentFrame(task.frame);
             setChunkAssigned(task.id || `${task.startX}_x_${task.startY}`);
-            
+
             const enrichedTask = {
                 ...task,
                 totalWidth: width,
@@ -213,9 +213,11 @@ const UploadAfter = () => {
 
         swarmClient.on('tileReceived', ({ metadata, pixelBuffer }) => {
             if (!isSubscribed) return;
+
+            swarmClient.socketManager.emit('ACK_TILE', { id: metadata.taskId });
             drawTileToCanvas(metadata, pixelBuffer);
 
-            
+
 
             completedTilesRef.current += 1;
             if (totalTiles > 0) {
