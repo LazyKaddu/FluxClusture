@@ -20,6 +20,10 @@ export class SocketManager {
         this.socket.on(event, callback);
     }
 
+    removeAllListeners(event) {
+        this.socket.removeAllListeners(event);
+    }
+
     get id() {
         return this.socket.id;
     }

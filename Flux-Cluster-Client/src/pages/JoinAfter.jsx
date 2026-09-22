@@ -59,7 +59,9 @@ const JoinAfter = () => {
             };
 
             if (data.type === 'CHUNK_PROGRESS') {
-                setProgress(data.progress);
+                if (data.maxSamples > 0) {
+                    setProgress(data.samples / data.maxSamples);
+                }
                 if (data.pixels) {
                     drawPixelsToCanvas(data.pixels);
                 }
@@ -135,8 +137,8 @@ const JoinAfter = () => {
                 task: task,
                 startX: task.startX,
                 startY: task.startY,
-                totalWidth: task.totalWidth,
-                totalHeight: task.totalHeight,
+                totalWidth: swarmClient.width,
+                totalHeight: swarmClient.height,
                 frame: task.frame,
                 samples: swarmClient.samples,
                 noiseThreshold: swarmClient.noise,

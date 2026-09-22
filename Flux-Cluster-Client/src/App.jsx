@@ -11,6 +11,7 @@ import UploadBefore from "./pages/UploadBefore";
 import JoinBefore from "./pages/JoinBefore";
 import JoinAfter from "./pages/JoinAfter";
 import UploadAfter from "./pages/UploadAfter";
+import PathTracerCanvas from './components/GpuRender';
 
 
 
@@ -38,6 +39,10 @@ const App = () => {
         <Route
           path="/joined"
           element={<Base childComponent={JoinAfter} />}
+        />
+        <Route
+          path="/demo"
+          element={<Base childComponent={PathTracerCanvas} />}
         />
       </Routes>
     </BrowserRouter>

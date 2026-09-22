@@ -1,5 +1,5 @@
-import React, { Suspense } from "react";
-import { Canvas } from "@react-three/fiber";
+import React, { Suspense, useEffect } from "react";
+import { Canvas, useThree } from "@react-three/fiber";
 import {
   useGLTF,
   Environment,
@@ -7,16 +7,34 @@ import {
   OrbitControls,
 } from "@react-three/drei";
 
+const CameraSetup = ({ cameras }) => {
+  const { set, size } = useThree();
+  useEffect(() => {
+    if (cameras && cameras.length > 0) {
+      const glbCamera = cameras[0];
+      // Ensure aspect ratio is correct for the canvas
+      glbCamera.aspect = size.width / size.height;
+      glbCamera.updateProjectionMatrix();
+      set({ camera: glbCamera });
+    }
+  }, [cameras, set, size]);
+  
+  return null;
+};
+
 const Model = ({url}) => {
-  const { scene } = useGLTF(url);
+  const { scene, cameras } = useGLTF(url);
 
   return (
-    <primitive
+    <>
+      <CameraSetup cameras={cameras} />
+      <primitive
       object={scene}
       scale={2.8}
       position={[0, 0, 0]}
       rotation={[0,Math.PI,0]}
     />
+    </>
   );
 };
 

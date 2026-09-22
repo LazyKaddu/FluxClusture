@@ -16,25 +16,37 @@ function syncCameraFromGLB(loadedScene, renderCamera, totalWidth, totalHeight) {
     if (!renderCamera) return;
     const glbCamera = loadedScene?.getObjectByProperty('isPerspectiveCamera', true);
     if (glbCamera) {
-        renderCamera.copy(glbCamera);
+        console.log("[Camera Debug] Found camera in GLB. Extracting world transform...");
+        // Ensure world matrices are up to date before extracting
+        loadedScene.updateMatrixWorld(true);
+
+        // Extract exact world position, rotation, and scale
+        glbCamera.matrixWorld.decompose(renderCamera.position, renderCamera.quaternion, renderCamera.scale);
+
+        renderCamera.fov = glbCamera.fov;
+        renderCamera.near = glbCamera.near;
+        renderCamera.far = glbCamera.far;
     } else if (loadedScene) {
         // Fallback: auto-fit camera to scene
         const box = new THREE.Box3().setFromObject(loadedScene);
         const center = box.getCenter(new THREE.Vector3());
         const size = box.getSize(new THREE.Vector3());
-        
+
         const maxDim = Math.max(size.x, size.y, size.z);
         if (maxDim > 0) {
             const fov = renderCamera.fov * (Math.PI / 180);
             let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
             cameraZ *= 1.5; // zoom out a bit
-            
+
             renderCamera.position.set(center.x, center.y, center.z + cameraZ);
             renderCamera.lookAt(center);
         }
     }
     renderCamera.aspect = totalWidth / totalHeight;
     renderCamera.updateProjectionMatrix();
+
+    const lookTarget = new THREE.Vector3(0, 0, -1).applyQuaternion(renderCamera.quaternion).add(renderCamera.position);
+    console.log(`[Camera Debug] Final Camera Pos: x=${renderCamera.position.x.toFixed(2)}, y=${renderCamera.position.y.toFixed(2)}, z=${renderCamera.position.z.toFixed(2)} | FOV: ${renderCamera.fov}`);
 }
 
 self.onmessage = async (event) => {
@@ -43,7 +55,13 @@ self.onmessage = async (event) => {
     try {
         if (data.type === 'INIT_CANVAS') {
             const canvas = data.canvas || new OffscreenCanvas(64, 64);
-            renderer = new THREE.WebGLRenderer({ canvas });
+            renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false });
+            renderer.setSize(64, 64, false); // Crucial: explicitly define WebGL bounds
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+
+            // Lower the exposure significantly because the GLB contains lights with massive intensities (e.g., 683)
+            renderer.toneMappingExposure = 0.05;
+
             pathTracer = new WebGLPathTracer(renderer);
             // Base camera setup; will be overwritten by the GLB camera
             camera = new THREE.PerspectiveCamera(75, canvas.width / canvas.height, 0.1, 1000);
@@ -53,11 +71,33 @@ self.onmessage = async (event) => {
         if (data.type === 'SETUP_SCENE') {
             sceneReadyPromise = new Promise(r => resolveSceneReady = r);
             const gltf = await loadGLB(data.fileData);
-            
-            // WebGLPathTracer requires a true THREE.Scene (with properties like backgroundRotation),
-            // but gltf.scene is often a THREE.Group. We wrap it to prevent errors.
+
             currentScene = new THREE.Scene();
+
+            // Set a dark background using a DataTexture. 
+            // three-gpu-pathtracer requires scene.background to be a Texture, NOT a THREE.Color.
+            const bgData = new Uint8Array([0, 0, 0, 255]); // Very dark grey
+            const bgTex = new THREE.DataTexture(bgData, 1, 1, THREE.RGBAFormat);
+            bgTex.needsUpdate = true;
+            currentScene.background = bgTex;
+
             currentScene.add(gltf.scene);
+
+            // --- DEBUG: Check for lights in the GLB ---
+            let lightCount = 0;
+            currentScene.traverse((child) => {
+                if (child.isLight) {
+                    lightCount++;
+                    console.log(`[GLB Debug] Found Light: ${child.type} - Intensity: ${child.intensity} - Color: #${child.color.getHexString()}`);
+                }
+            });
+
+            if (lightCount === 0) {
+                console.warn("[GLB Warning] No lights found in the uploaded GLB file! The render will be pitch black.");
+            } else {
+                console.log(`[GLB Debug] Total lights loaded from GLB: ${lightCount}`);
+            }
+            // ------------------------------------------
 
             // 1. Setup animation mixer if animations exist
             if (gltf.animations && gltf.animations.length > 0) {
@@ -99,6 +139,7 @@ self.onmessage = async (event) => {
         }
 
         if (data.type === 'RENDER_CHUNK') {
+            console.log(`[Pipeline] A. Worker received RENDER_CHUNK for (${data.startX}, ${data.startY})`);
             if (sceneReadyPromise) await sceneReadyPromise;
 
             if (!renderer || !pathTracer || !camera) {
@@ -115,18 +156,17 @@ self.onmessage = async (event) => {
                     mixer.setTime(data.frame / fps);
                 }
                 syncCameraFromGLB(currentScene, camera, data.totalWidth, data.totalHeight);
-                
-                // WORKAROUND: three-gpu-pathtracer has a bug in PathTracingSceneGenerator (line 180):
-                // `this._materialUuids.length !== length` where `length` is undefined.
-                // Setting `_materialUuids` to null forces a short-circuit before it throws ReferenceError.
+
+                // WORKAROUND: three-gpu-pathtracer has a bug in PathTracingSceneGenerator
                 if (pathTracer._generator) {
                     pathTracer._generator._materialUuids = null;
                 }
                 pathTracer.setScene(currentScene, camera);
-                
+
                 currentRenderedFrame = data.frame;
             }
 
+            console.log(`[Pipeline] B. Worker calling renderChunkAdaptively for (${data.startX}, ${data.startY})`);
             const finalPixels = await renderChunkAdaptively(
                 renderer,
                 pathTracer,
@@ -147,6 +187,7 @@ self.onmessage = async (event) => {
                 data.noiseThreshold
             );
 
+            console.log(`[Pipeline] C. Worker received finalPixels. Sending CHUNK_FINISHED to main thread. length: ${finalPixels.length}`);
             // Zero-Copy Transfer
             self.postMessage(
                 { type: 'CHUNK_FINISHED', taskId: data.taskId, task: data.task, pixels: finalPixels },

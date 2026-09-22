@@ -119,11 +119,12 @@ export class WebRTCManager {
                 let expectedBytes = 0;
 
                 dataChannel.onmessage = (event) => {
+                    console.log("Event",event)
                     if (typeof event.data === 'string') {
                         // 1. First message arrives: Parse and store the metadata
                         pendingMetadata = JSON.parse(event.data);
-                        // A tile is exactly metadata.width * metadata.height * 4 bytes
-                        expectedBytes = pendingMetadata.width * pendingMetadata.height * 4;
+                        // A tile is exactly metadata.chunkWidth * metadata.chunkHeight * 4 bytes
+                        expectedBytes = (pendingMetadata.chunkWidth || 64) * (pendingMetadata.chunkHeight || 64) * 4;
                         receivedBuffers = [];
                         receivedBytes = 0;
                     } else {

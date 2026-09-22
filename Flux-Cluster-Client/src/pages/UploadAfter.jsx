@@ -61,11 +61,15 @@ const UploadAfter = () => {
         }
 
         // Force alpha to 255 so transparent backgrounds don't render as invisible
-        for (let i = 3; i < flipped.length; i += 4) {
-            flipped[i] = 255;
+        let maxR = 0, maxG = 0, maxB = 0;
+        for (let i = 0; i < flipped.length; i += 4) {
+            flipped[i + 3] = 255;
+            if (flipped[i] > maxR) maxR = flipped[i];
+            if (flipped[i+1] > maxG) maxG = flipped[i+1];
+            if (flipped[i+2] > maxB) maxB = flipped[i+2];
         }
 
-        console.log(`Drawing tile to canvas at ${metadata.startX}, ${metadata.startY}`);
+        console.log(`[Pipeline] D. Main thread drawing tile to canvas at ${metadata.startX}, ${metadata.startY} | Max RGB: [${maxR}, ${maxG}, ${maxB}]`);
 
         const imgData = new ImageData(flipped, chunkW, chunkH);
         const drawWidth = Math.min(chunkW, width - metadata.startX);
@@ -213,6 +217,7 @@ const UploadAfter = () => {
 
         swarmClient.on('tileReceived', ({ metadata, pixelBuffer }) => {
             if (!isSubscribed) return;
+            console.log("renderChunk recieved : ", metadata);
 
             swarmClient.socketManager.emit('ACK_TILE', { id: metadata.taskId });
             drawTileToCanvas(metadata, pixelBuffer);
@@ -296,7 +301,7 @@ const UploadAfter = () => {
                     ref={canvasRef}
                     width={width}
                     height={height}
-                    className="bg-white"
+                    className=""
                     style={{
                         width: isWider ? '100%' : 'auto',
                         height: isWider ? 'auto' : '100%',

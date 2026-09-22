@@ -126,25 +126,29 @@ class SwarmClient {
         }
 
         // Wire up the signaling bridge: Socket -> WebRTC
+        this.socketManager.removeAllListeners('WEBRTC_SIGNAL');
         this.socketManager.on('WEBRTC_SIGNAL', (payload) => {
             this.webrtcManager.handleIncomingSignal(payload.sender, payload);
         });
 
-        // Listeners for swarm orchestration
+        this.socketManager.removeAllListeners('ASSIGN_TASK');
         this.socketManager.on('ASSIGN_TASK', (task) => {
             this._trigger('newTask', task);
         });
 
+        this.socketManager.removeAllListeners('WAIT');
         this.socketManager.on('WAIT', () => {
             this._trigger('status', 'Idle. Waiting for tasks...');
         });
 
+        this.socketManager.removeAllListeners('TASKS_AVAILABLE');
         this.socketManager.on('TASKS_AVAILABLE', () => {
             if (this.role === 'worker') {
                 this.socketManager.emit('REQUEST_TASK');
             }
         });
 
+        this.socketManager.removeAllListeners('INITIATE_OFFER');
         this.socketManager.on("INITIATE_OFFER", async (payload) => {
             // We pass the requester ID to the WebRTC Manager, which handles the rest
 
@@ -167,11 +171,13 @@ class SwarmClient {
             this.socketManager.emit('JOIN_ROOM', { roomId });
         });
 
+        this.socketManager.removeAllListeners('WEBRTC_SIGNAL');
         this.socketManager.on('WEBRTC_SIGNAL', (payload) => {
             this.webrtcManager.handleIncomingSignal(payload.sender, payload);
         });
 
         // Add listener so Master can act as a WebRTC seeder
+        this.socketManager.removeAllListeners('INITIATE_OFFER');
         this.socketManager.on("INITIATE_OFFER", async (payload) => {
             if (!this.glbBuffer) {
                 console.error("[SwarmClient Master] Cannot initiate offer: GLB buffer is empty.");
@@ -181,14 +187,17 @@ class SwarmClient {
         });
 
         // --- NEW: Enable Master to receive tasks ---
+        this.socketManager.removeAllListeners('ASSIGN_TASK');
         this.socketManager.on('ASSIGN_TASK', (task) => {
             this._trigger('newTask', task);
         });
 
+        this.socketManager.removeAllListeners('WAIT');
         this.socketManager.on('WAIT', () => {
             this._trigger('status', 'Master rendering idle. Waiting for tasks...');
         });
 
+        this.socketManager.removeAllListeners('TASKS_AVAILABLE');
         this.socketManager.on('TASKS_AVAILABLE', () => {
             // Master can now request tasks too!
             if (this.role === 'master' || this.role === 'worker') {
@@ -217,13 +226,15 @@ class SwarmClient {
 
     submitRenderedTile(task, imageData) {
         // Route the pixels
+        console.log("sending render chunks metaData and image")
         if (this.role === 'worker') {
             // Workers send pixels over WebRTC
             if (this.webrtcManager.renderChannel && this.webrtcManager.renderChannel.readyState === 'open') {
                 const metadata = JSON.stringify({
                     taskId: task.id, frame: task.frame,
                     startX: task.startX, startY: task.startY,
-                    width: task.totalWidth, height: task.totalHeight
+                    width: task.totalWidth, height: task.totalHeight,
+                    chunkWidth: 64, chunkHeight: 64
                 });
                 this.webrtcManager.renderChannel.send(metadata);
 
