@@ -204,6 +204,11 @@ class SwarmClient {
                 this.socketManager.emit('REQUEST_TASK');
             }
         });
+
+        this.socketManager.removeAllListeners('frameComplete');
+        this.socketManager.on('frameComplete', (task) => {
+            this._trigger('frameComplete', task);
+        })
     }
 
     startRenderJob(roomId, startFrame, endFrame, width, height, fps, glbHash, samples, noiseThreshold, animationIndex) {

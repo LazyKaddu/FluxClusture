@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { swarmClient } from '../services/SwarmClient';
 import RenderWorker from '../render/renderWorker.js?worker';
+import { encodeFramesToMP4 } from '../render/videoExporter';
 
 const UploadAfter = () => {
     const location = useLocation();
@@ -41,6 +42,8 @@ const UploadAfter = () => {
     const rows = Math.ceil(height / 64);
     const totalTiles = totalFrames * cols * rows;
 
+    const completedFramesMap = useRef(new Map());
+
     function drawTileToCanvas(metadata, pixelBuffer) {
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -65,8 +68,8 @@ const UploadAfter = () => {
         for (let i = 0; i < flipped.length; i += 4) {
             flipped[i + 3] = 255;
             if (flipped[i] > maxR) maxR = flipped[i];
-            if (flipped[i+1] > maxG) maxG = flipped[i+1];
-            if (flipped[i+2] > maxB) maxB = flipped[i+2];
+            if (flipped[i + 1] > maxG) maxG = flipped[i + 1];
+            if (flipped[i + 2] > maxB) maxB = flipped[i + 2];
         }
 
         console.log(`[Pipeline] D. Main thread drawing tile to canvas at ${metadata.startX}, ${metadata.startY} | Max RGB: [${maxR}, ${maxG}, ${maxB}]`);
@@ -168,6 +171,19 @@ const UploadAfter = () => {
             setStatus(msg);
         });
 
+
+        swarmClient.on('frameComplete', (task) => {
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+
+            // Extract the fully painted frame from the canvas
+            const fullFrameData = ctx.getImageData(0, 0, width, height);
+
+            // Save it in our map
+            completedFramesMap.current.set(task.frame, fullFrameData);
+            console.log(`Successfully saved Frame ${task.frame} to memory.`);
+        })
+
         swarmClient.on('newTask', (task) => {
             if (!isSubscribed) return;
 
@@ -219,7 +235,7 @@ const UploadAfter = () => {
             if (!isSubscribed) return;
             console.log("renderChunk recieved : ", metadata);
 
-            swarmClient.socketManager.emit('ACK_TILE', { id: metadata.taskId });
+            swarmClient.socketManager.emit('ACK_TILE', { id: metadata.taskId, task: { frame: metadata.frame } });
             drawTileToCanvas(metadata, pixelBuffer);
 
 
@@ -276,6 +292,38 @@ const UploadAfter = () => {
     const containerRatio = 16 / 9;
     const isWider = canvasRatio > containerRatio;
 
+
+    const handleExportVideo = async () => {
+        setStatus("Encoding video... Please wait.");
+
+        // Sort frames sequentially in case they finished out of order
+        const orderedFrames = [];
+        for (let f = startFrame; f <= endFrame; f++) {
+            if (completedFramesMap.current.has(f)) {
+                orderedFrames.push(completedFramesMap.current.get(f));
+            } else {
+                console.warn(`Missing frame ${f}, video might stutter.`);
+            }
+        }
+
+        try {
+            const videoBlob = await encodeFramesToMP4(orderedFrames, width, height, fps);
+
+            // Create a download trigger
+            const downloadUrl = URL.createObjectURL(videoBlob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            link.download = `FluxCluster_Render_${roomId}.mp4`;
+            link.click();
+            URL.revokeObjectURL(downloadUrl);
+
+            setStatus("Video downloaded!");
+        } catch (error) {
+            console.error("Video export failed:", error);
+            setStatus("Export failed.");
+        }
+    };
+
     return (
         <div className='w-[84%] h-[90%] geist-mono-regular'>
             <div className='text-sm text-[#606060]'>
@@ -310,14 +358,22 @@ const UploadAfter = () => {
                 />
             </div>
             <div className='w-full flex justify-center'>
-                <div className='w-[90%] border h-7'>
-                    <div
-                        className='h-full bg-white text-black p-1 flex items-center justify-center transition-all duration-150 text-xs font-bold'
-                        style={{ width: `${Math.max(2, progress * 100)}%` }}
-                    >
-                        {(progress * 100).toFixed(1)}%
-                    </div>
-                </div>
+                
+                    {(1-progress)?
+                    <div className='w-[90%] border h-7 flex items-center'>
+                        <div
+                            className='h-full bg-white text-black p-1 flex items-center justify-center transition-all duration-150 text-xs font-bold'
+                            style={{ width: `${Math.max(2, progress * 100)}%` }}
+                        >
+                            {(progress * 100).toFixed(1)}%
+                        </div>
+                        </div>
+                        : 
+                        <button className='h-full aspect-5/1 bg-none border border-white text-white' onClick={handleExportVideo}>
+                            Export video
+                        </button>
+                    }
+                
             </div>
         </div>
     );

@@ -21,7 +21,7 @@ io.on('connection', (socket) => {
         socket.join(roomId);
         socket.roomId = roomId;
         console.log(`Node ${socket.id} joined room ${roomId}`);
-        
+
         await broadcastSwarmState(roomId);
     });
 
@@ -71,7 +71,7 @@ io.on('connection', (socket) => {
         if (!socket.roomId) return;
 
         console.log(`[Room: ${socket.roomId}] Tile ${payload.id} completed by ${socket.id}`);
-        
+
         // 1. Mark this worker as idle
         await setWorkerState(socket.roomId, socket.id, { status: 'idle', task: null });
         io.to(socket.roomId).emit('TILE_FINISHED', payload);
@@ -79,13 +79,15 @@ io.on('connection', (socket) => {
 
         // 2. Remove the chunk from the Redis Set
         const isFrameDone = await completeChunk(socket.roomId, payload.id);
-        
+
         // 3. If the Set is empty, advance!
         if (isFrameDone) {
             console.log(`[Room: ${socket.roomId}] 🏁 Frame complete! Advancing...`);
-            
+
             const moreFrames = await advanceFrame(socket.roomId);
-            
+
+            io.to(socket.roomId).emit('frameComplete', payload.task);
+
             if (moreFrames) {
                 // Wake up swarm for the next frame
                 io.to(socket.roomId).emit('TASKS_AVAILABLE');
@@ -105,7 +107,7 @@ io.on('connection', (socket) => {
 
         // Fetch all active sockets in this room from Redis
         const workers = await getRoomWorkers(socket.roomId);
-        
+
         // Filter out the node that is asking
         const availablePeers = Object.keys(workers).filter(id => id !== socket.id);
 
@@ -138,7 +140,7 @@ io.on('connection', (socket) => {
         callback({ hash }); // Returns the hash directly to the requesting client
     });
 
-    socket.on('GET_OWNER_ID', async (roomId,callback) =>{
+    socket.on('GET_OWNER_ID', async (roomId, callback) => {
         const ownerId = await getOwnerId(roomId);
         callback({ ownerId })
     })
@@ -148,18 +150,18 @@ io.on('connection', (socket) => {
         if (socket.roomId) {
             const lastState = await removeWorker(socket.roomId, socket.id);
             console.log(`❌ Node disconnected: ${socket.id}. Last state:`, lastState);
-            
+
             // If they disconnected while working on a task, rescue it!
             if (lastState && lastState.status === 'working' && lastState.task) {
                 console.log(`🚨 Rescuing stranded task ${lastState.task.id} and waking swarm!`);
-                
+
                 // Push the abandoned task back to the right side (front) of the Redis queue
                 await requeueTask(socket.roomId, lastState.task);
-                
+
                 // Fire the alarm to wake up all sleeping nodes to grab this task
                 io.to(socket.roomId).emit('TASKS_AVAILABLE');
             }
-            
+
             await broadcastSwarmState(socket.roomId);
         }
     });

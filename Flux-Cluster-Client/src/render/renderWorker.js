@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { WebGLPathTracer } from 'three-gpu-pathtracer';
+import { CENTER } from 'three-mesh-bvh';
 import { renderChunkAdaptively } from './gpuRenderer.js';
 import { loadGLB } from './modelLoader.js';
 
@@ -63,6 +64,9 @@ self.onmessage = async (event) => {
             renderer.toneMappingExposure = 0.05;
 
             pathTracer = new WebGLPathTracer(renderer);
+            if (pathTracer._generator) {
+                pathTracer._generator.bvhOptions = { strategy: CENTER, maxLeafTris: 3 };
+            }
             // Base camera setup; will be overwritten by the GLB camera
             camera = new THREE.PerspectiveCamera(75, canvas.width / canvas.height, 0.1, 1000);
             self.postMessage({ type: 'CANVAS_INITIALIZED' });

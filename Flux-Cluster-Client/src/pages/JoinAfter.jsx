@@ -16,6 +16,8 @@ const JoinAfter = () => {
 
     const canvasRef = useRef(null);
     const workerRef = useRef(null);
+    const isSceneReadyRef = useRef(false);
+    const pendingChunksRef = useRef([]);
 
     useEffect(() => {
         if (!roomID) return;
@@ -77,6 +79,26 @@ const JoinAfter = () => {
             if (data.type === 'ERROR') {
                 console.error("[RenderWorker Error]:", data.message);
             }
+
+            if (data.type === 'SCENE_READY') {
+                isSceneReadyRef.current = true;
+                pendingChunksRef.current.forEach(task => {
+                    workerRef.current.postMessage({
+                        type: 'RENDER_CHUNK',
+                        taskId: task.id,
+                        task: task,
+                        startX: parseInt(task.startX, 10),
+                        startY: parseInt(task.startY, 10),
+                        totalWidth: parseInt(swarmClient.width, 10),
+                        totalHeight: parseInt(swarmClient.height, 10),
+                        frame: parseInt(task.frame, 10),
+                        samples: parseInt(swarmClient.samples, 10),
+                        noiseThreshold: parseFloat(swarmClient.noise),
+                        fps: parseInt(swarmClient.fps, 10)
+                    });
+                });
+                pendingChunksRef.current = [];
+            }
         };
 
         // 3. Setup SwarmClient Listeners
@@ -88,12 +110,12 @@ const JoinAfter = () => {
             if (!isSubscribed) return;
             
             setSettings({
-                samples: swarmClient.samples,
-                noiseThreshold: swarmClient.noise,
-                fps: swarmClient.fps,
-                width: swarmClient.width,
-                height: swarmClient.height,
-                animationIndex: swarmClient.animationIndex
+                samples: parseInt(swarmClient.samples, 10),
+                noiseThreshold: parseFloat(swarmClient.noise),
+                fps: parseInt(swarmClient.fps, 10),
+                width: parseInt(swarmClient.width, 10),
+                height: parseInt(swarmClient.height, 10),
+                animationIndex: parseInt(swarmClient.animationIndex, 10)
             });
 
             if (swarmClient.glbBuffer) {
@@ -112,10 +134,10 @@ const JoinAfter = () => {
                 workerRef.current.postMessage({
                     type: 'SETUP_SCENE',
                     fileData: swarmClient.glbBuffer.slice(0),
-                    animationIndex: swarmClient.animationIndex || 0,
-                    fps: swarmClient.fps || 30,
-                    totalWidth: swarmClient.width,
-                    totalHeight: swarmClient.height,
+                    animationIndex: parseInt(swarmClient.animationIndex, 10) || 0,
+                    fps: parseInt(swarmClient.fps, 10) || 30,
+                    totalWidth: parseInt(swarmClient.width, 10),
+                    totalHeight: parseInt(swarmClient.height, 10),
                     frame: 0
                 });
                 
@@ -127,23 +149,27 @@ const JoinAfter = () => {
         swarmClient.on('newTask', (task) => {
             if (!isSubscribed) return;
             
-            setCurrentFrame(task.frame);
+            setCurrentFrame(parseInt(task.frame, 10));
             setChunkAssigned(task.id || `${task.startX}_x_${task.startY}`);
             setProgress(0); // reset progress
 
-            workerRef.current.postMessage({
-                type: 'RENDER_CHUNK',
-                taskId: task.id,
-                task: task,
-                startX: task.startX,
-                startY: task.startY,
-                totalWidth: swarmClient.width,
-                totalHeight: swarmClient.height,
-                frame: task.frame,
-                samples: swarmClient.samples,
-                noiseThreshold: swarmClient.noise,
-                fps: swarmClient.fps
-            });
+            if (!isSceneReadyRef.current) {
+                pendingChunksRef.current.push(task);
+            } else {
+                workerRef.current.postMessage({
+                    type: 'RENDER_CHUNK',
+                    taskId: task.id,
+                    task: task,
+                    startX: parseInt(task.startX, 10),
+                    startY: parseInt(task.startY, 10),
+                    totalWidth: parseInt(swarmClient.width, 10),
+                    totalHeight: parseInt(swarmClient.height, 10),
+                    frame: parseInt(task.frame, 10),
+                    samples: parseInt(swarmClient.samples, 10),
+                    noiseThreshold: parseFloat(swarmClient.noise),
+                    fps: parseInt(swarmClient.fps, 10)
+                });
+            }
         });
 
         // 4. Connect to Swarm
