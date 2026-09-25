@@ -12,14 +12,14 @@ const UploadAfter = () => {
         roomId = '',
         file = null,
         fileHash = null,
-        previewUrl = null,
-        animationIndex = 0,
-        fps = 30,
-        samples = 1024,
-        noiseThreshold = 0.1,
-        width = 1920,
-        height = 1080
+        previewUrl = null
     } = config;
+    const width = parseInt(config.width || 1920, 10);
+    const height = parseInt(config.height || 1080, 10);
+    const fps = parseInt(config.fps || 30, 10);
+    const samples = parseInt(config.samples || 1024, 10);
+    const noiseThreshold = parseFloat(config.noiseThreshold || 0.1);
+    const animationIndex = parseInt(config.animationIndex || 0, 10);
 
     const startFrame = parseInt(config.startFrame || 0, 10);
     const endFrame = parseInt(config.endFrame || 0, 10);
@@ -47,7 +47,7 @@ const UploadAfter = () => {
     function drawTileToCanvas(metadata, pixelBuffer) {
         const canvas = canvasRef.current;
         if (!canvas) return;
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
         if (!ctx) return;
 
         const chunkW = 64;
@@ -174,7 +174,7 @@ const UploadAfter = () => {
 
         swarmClient.on('frameComplete', (task) => {
             const canvas = canvasRef.current;
-            const ctx = canvas.getContext('2d');
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
             // Extract the fully painted frame from the canvas
             const fullFrameData = ctx.getImageData(0, 0, width, height);
@@ -191,7 +191,7 @@ const UploadAfter = () => {
                 currentFrameRef.current = task.frame;
                 const canvas = canvasRef.current;
                 if (canvas) {
-                    const ctx = canvas.getContext('2d');
+                    const ctx = canvas.getContext('2d', { willReadFrequently: true });
                     if (ctx) {
                         ctx.fillStyle = 'white';
                         ctx.fillRect(0, 0, canvas.width, canvas.height);

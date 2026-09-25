@@ -20,6 +20,8 @@ export async function initializeJob(
     await redis.del(`micro_queue:${roomId}`);
     await redis.del(`pending_chunks:${roomId}`);
     await redis.del(`job_meta:${roomId}`);
+    await redis.del(`task_start:${roomId}`);
+    await redis.del(`chunk_stats:${roomId}`);
 
     // 2. Store global job configuration centrally as a single JSON object
     const jobMeta = { 
@@ -61,6 +63,7 @@ export async function advanceFrame(roomId) {
     const { width, height, samples, noiseThreshold, animationIndex } = JSON.parse(metaStr);
 
     const chunkIds = [];
+    const chunkTasks = [];
     const cols = Math.ceil(width / CHUNK_SIZE);
     const rows = Math.ceil(height / CHUNK_SIZE);
 
@@ -86,8 +89,18 @@ export async function advanceFrame(roomId) {
                 chunkHeight
             };
             
-            await redis.lPush(`micro_queue:${roomId}`, JSON.stringify(chunkTask));
+            chunkTasks.push(chunkTask);
         }
+    }
+
+    // Shuffle the tasks array using Fisher-Yates to randomize render order
+    for (let i = chunkTasks.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [chunkTasks[i], chunkTasks[j]] = [chunkTasks[j], chunkTasks[i]];
+    }
+
+    for (const task of chunkTasks) {
+        await redis.lPush(`micro_queue:${roomId}`, JSON.stringify(task));
     }
     
     if (chunkIds.length > 0) {
@@ -107,7 +120,8 @@ export async function requeueTask(roomId, task) {
 }
 
 export async function completeChunk(roomId, chunkId) {
-    await redis.sRem(`pending_chunks:${roomId}`, chunkId);
+    const removedCount = await redis.sRem(`pending_chunks:${roomId}`, chunkId);
+    if (removedCount === 0) return false;
     const remaining = await redis.sCard(`pending_chunks:${roomId}`);
     return remaining === 0;
 }

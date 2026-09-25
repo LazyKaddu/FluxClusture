@@ -1,6 +1,7 @@
 import { Server } from 'socket.io';
 import { initializeJob, getNextTask, requeueTask, completeChunk, advanceFrame } from './redis/queues.js';
 import { setWorkerState, removeWorker, getRoomWorkers, getGlbHash, getOwnerId, getRenderSettings } from './redis/workers.js';
+import { trackTaskStart, trackTaskCompletion, handleEmptyQueue } from './orchestrator/taskAllocator.js';
 
 const PORT = process.env.PORT || 8080;
 
@@ -57,11 +58,12 @@ io.on('connection', (socket) => {
         const task = await getNextTask(socket.roomId);
         if (task) {
             await setWorkerState(socket.roomId, socket.id, { status: 'working', task });
+            await trackTaskStart(socket.roomId, task.id);
             socket.emit('ASSIGN_TASK', task);
         } else {
             await setWorkerState(socket.roomId, socket.id, { status: 'idle', task: null });
             socket.emit('WAIT', { reason: 'Queue empty' });
-
+            handleEmptyQueue(socket.roomId, io);
         }
         await broadcastSwarmState(socket.roomId);
     });
@@ -71,6 +73,8 @@ io.on('connection', (socket) => {
         if (!socket.roomId) return;
 
         console.log(`[Room: ${socket.roomId}] Tile ${payload.id} completed by ${socket.id}`);
+
+        await trackTaskCompletion(socket.roomId, payload.id);
 
         // 1. Mark this worker as idle
         await setWorkerState(socket.roomId, socket.id, { status: 'idle', task: null });
