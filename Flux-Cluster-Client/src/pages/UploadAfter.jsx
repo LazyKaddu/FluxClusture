@@ -279,8 +279,14 @@ const UploadAfter = () => {
         return () => {
             isSubscribed = false;
             if (workerRef.current) {
-                workerRef.current.terminate();
-                workerRef.current = null;
+                // Send DISPOSE so the worker cleanly destroys the WebGL context before termination
+                workerRef.current.postMessage({ type: 'DISPOSE' });
+                setTimeout(() => {
+                    if (workerRef.current) {
+                        workerRef.current.terminate();
+                        workerRef.current = null;
+                    }
+                }, 100);
             }
             if (swarmClient.socketManager.socket) {
                 swarmClient.socketManager.socket.disconnect();

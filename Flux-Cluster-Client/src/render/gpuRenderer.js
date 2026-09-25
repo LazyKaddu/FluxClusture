@@ -53,9 +53,6 @@ export async function renderChunkAdaptively(renderer, pathTracer, camera, startX
     const pos = new THREE.Vector3().setFromMatrixPosition(camera.matrixWorld);
     console.log(`[Pipeline] 2. Camera updated. World Pos: (${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)})`);
 
-    const batchSize = 5;
-
-    
     const bufferSize = chunkWidth * chunkHeight * 4;
     let currentPixels = new Uint8Array(bufferSize);
     let previousPixels = null;
@@ -64,7 +61,12 @@ export async function renderChunkAdaptively(renderer, pathTracer, camera, startX
     let totalSamples = 0;
     
     while (totalSamples < maxSamples) {
-        for (let i = 0; i < batchSize; i++) {
+        // Dynamic batch size to defeat 8-bit quantization early termination
+        // We must batch more samples as we progress, otherwise the delta is too small to flip a single 8-bit value (0-255)
+        const batchSize = Math.max(5, Math.floor(totalSamples * 0.2)); 
+        const currentBatch = Math.min(batchSize, maxSamples - totalSamples);
+        
+        for (let i = 0; i < currentBatch; i++) {
             pathTracer.renderSample();
             totalSamples++;
         }

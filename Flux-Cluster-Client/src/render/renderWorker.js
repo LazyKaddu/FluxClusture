@@ -3,6 +3,7 @@ import { WebGLPathTracer } from 'three-gpu-pathtracer';
 import { CENTER } from 'three-mesh-bvh';
 import { renderChunkAdaptively } from './gpuRenderer.js';
 import { loadGLB } from './modelLoader.js';
+import { upgradeSceneLights } from './upgradeLights.js';
 
 let renderer = null;
 let pathTracer = null;
@@ -60,10 +61,18 @@ self.onmessage = async (event) => {
             renderer.setSize(64, 64, false); // Crucial: explicitly define WebGL bounds
             renderer.toneMapping = THREE.ACESFilmicToneMapping;
 
-            // Lower the exposure significantly because the GLB contains lights with massive intensities (e.g., 683)
+            // Lower the exposure significantly because the GLB contains lights with massive intensities (e.g., 16305)
             renderer.toneMappingExposure = 0.05;
 
             pathTracer = new WebGLPathTracer(renderer);
+            pathTracer.renderDelay = 0;
+            pathTracer.fadeDuration = 0;
+            pathTracer.minSamples = 1;
+            
+            // Cycles-like realism settings
+            pathTracer.bounces = 5;
+            pathTracer.transmissiveBounces = 5;
+            
             if (pathTracer._generator) {
                 pathTracer._generator.bvhOptions = { strategy: CENTER, maxLeafTris: 3 };
             }
@@ -77,15 +86,30 @@ self.onmessage = async (event) => {
             const gltf = await loadGLB(data.fileData);
 
             currentScene = new THREE.Scene();
-
-            // Set a dark background using a DataTexture. 
-            // three-gpu-pathtracer requires scene.background to be a Texture, NOT a THREE.Color.
-            const bgData = new Uint8Array([0, 0, 0, 255]); // Very dark grey
-            const bgTex = new THREE.DataTexture(bgData, 1, 1, THREE.RGBAFormat);
-            bgTex.needsUpdate = true;
-            currentScene.background = bgTex;
-
             currentScene.add(gltf.scene);
+
+            // Upgrade placeholder lights and extract World GI settings
+            const giConfig = upgradeSceneLights(currentScene);
+
+            // Set a solid color background based on GI config
+            // WebGLPathTracer automatically converts THREE.Color into a GradientEquirectTexture
+            let r, g, b;
+            if (giConfig.color && giConfig.color.isColor) {
+                r = giConfig.color.r;
+                g = giConfig.color.g;
+                b = giConfig.color.b;
+            } else {
+                r = ((giConfig.color >> 16) & 255) / 255;
+                g = ((giConfig.color >> 8) & 255) / 255;
+                b = (giConfig.color & 255) / 255;
+            }
+            
+            const bgColor = new THREE.Color(r, g, b);
+            currentScene.background = bgColor;
+            currentScene.environment = null; // Let the path tracer fall back to the generated background texture for GI
+            
+            // Set intensities if supported by the Three.js version
+            currentScene.backgroundIntensity = giConfig.intensity;
 
             // --- DEBUG: Check for lights in the GLB ---
             let lightCount = 0;
@@ -198,6 +222,16 @@ self.onmessage = async (event) => {
                 [finalPixels.buffer]
             );
         }
+        if (data.type === 'DISPOSE') {
+            if (renderer) {
+                renderer.dispose();
+                renderer.forceContextLoss();
+            }
+            renderer = null;
+            pathTracer = null;
+            return;
+        }
+
     } catch (error) {
         console.error("[RenderWorker Error]:", error);
         self.postMessage({ type: 'ERROR', message: error?.message || String(error) });
