@@ -274,16 +274,16 @@ export function useRenderPipeline({
 
                 swarmClient.joinAsMaster(roomId);
                 
-                swarmClient.setRenderSetting(
-                    swarmClient.socketManager.id,
-                    fileHash,
-                    config.width,
-                    config.height,
-                    config.noiseThreshold,
-                    config.samples,
-                    config.animationIndex,
-                    config.fps
-                );
+                swarmClient.setRenderSetting({
+                    ownerId: swarmClient.socketManager.id,
+                    glbHash: fileHash,
+                    width: config.width,
+                    height: config.height,
+                    noiseThreshold: config.noiseThreshold,
+                    samples: config.samples,
+                    animationIndex: config.animationIndex,
+                    fps: config.fps
+                });
         
                 swarmClient.startRenderJob(
                     roomId,
@@ -307,7 +307,7 @@ export function useRenderPipeline({
                 if (onSettingsReceived) {
                     onSettingsReceived({
                         samples: parseInt(swarmClient.samples, 10),
-                        noiseThreshold: parseFloat(swarmClient.noise),
+                        noiseThreshold: parseFloat(swarmClient.noiseThreshold ?? swarmClient.noise),
                         fps: parseInt(swarmClient.fps, 10),
                         width: parseInt(swarmClient.width, 10),
                         height: parseInt(swarmClient.height, 10),

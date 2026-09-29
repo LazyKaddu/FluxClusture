@@ -1,7 +1,8 @@
-import { SocketManager } from './SocketManager';
-import { WebRTCManager } from './WebRTCManager';
+import { SocketManager } from './SocketManager.js';
+import { WebRTCManager } from './WebRTCManager.js';
 
-const SOCKET_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
+const SOCKET_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SERVER_URL) || 'http://localhost:3001';
+
 
 class SwarmClient {
     constructor() {
@@ -39,6 +40,7 @@ class SwarmClient {
         this.width = 1900;
         this.height = 1400;
         this.noise = 0.1;
+        this.noiseThreshold = 0.1;
         this.samples = 1024;
         this.animationIndex = 0;
         this.fps = 30;
@@ -57,15 +59,35 @@ class SwarmClient {
     _trigger(event, data) {
         if (this.listeners[event]) this.listeners[event](data);
     }
-    setRenderSetting(ownerId, glbHash, width, height, noise, samples, animationIndex, fps) {
-        this.ownerId = ownerId;
-        this.glbHash = glbHash;
-        this.width = width;
-        this.height = height;
-        this.noise = noise;
-        this.samples = samples;
-        this.animationIndex = animationIndex;
-        this.fps = fps;
+    setRenderSetting(settingsOrOwnerId, glbHash, width, height, noiseThreshold, samples, animationIndex, fps) {
+        if (settingsOrOwnerId && typeof settingsOrOwnerId === 'object') {
+            const settings = settingsOrOwnerId;
+            if (settings.ownerId !== undefined) this.ownerId = settings.ownerId;
+            if (settings.glbHash !== undefined) this.glbHash = settings.glbHash;
+            if (settings.width !== undefined) this.width = settings.width;
+            if (settings.height !== undefined) this.height = settings.height;
+            const threshold = settings.noiseThreshold !== undefined ? settings.noiseThreshold : settings.noise;
+            if (threshold !== undefined) {
+                this.noiseThreshold = threshold;
+                this.noise = threshold;
+            }
+            if (settings.samples !== undefined) this.samples = settings.samples;
+            if (settings.animationIndex !== undefined) this.animationIndex = settings.animationIndex;
+            if (settings.fps !== undefined) this.fps = settings.fps;
+            return;
+        }
+
+        if (settingsOrOwnerId !== undefined) this.ownerId = settingsOrOwnerId;
+        if (glbHash !== undefined) this.glbHash = glbHash;
+        if (width !== undefined) this.width = width;
+        if (height !== undefined) this.height = height;
+        if (noiseThreshold !== undefined) {
+            this.noiseThreshold = noiseThreshold;
+            this.noise = noiseThreshold;
+        }
+        if (samples !== undefined) this.samples = samples;
+        if (animationIndex !== undefined) this.animationIndex = animationIndex;
+        if (fps !== undefined) this.fps = fps;
     }
 
 
@@ -109,9 +131,21 @@ class SwarmClient {
 
             this.socketManager.socket.emit('GET_RENDER_SETTINGS', roomId, (response) => {
                 console.log("[SwarmClient] GET_RENDER_SETTINGS response:", response);
-                if (response && response.success) {
-                    const { ownerId, glbHash, height, width, samples, noiseThreshold, animationIndex, fps } = response.settings;
-                    this.setRenderSetting(ownerId, glbHash, height, width, samples, noiseThreshold, animationIndex, fps);
+                if (response && response.success && response.settings) {
+                    const { ownerId, glbHash, width, height, samples, animationIndex, fps } = response.settings;
+                    const noiseThreshold = response.settings.noiseThreshold !== undefined
+                        ? response.settings.noiseThreshold
+                        : response.settings.noise;
+                    this.setRenderSetting({
+                        ownerId,
+                        glbHash,
+                        width,
+                        height,
+                        noiseThreshold,
+                        samples,
+                        animationIndex,
+                        fps
+                    });
                 }
                 else {
                     console.error("[SwarmClient] Failed to fetch settings:", response?.error);
@@ -277,3 +311,4 @@ class SwarmClient {
 
 // Export a single instance so the whole app shares the exact same state
 export const swarmClient = new SwarmClient();
+export { SwarmClient };
