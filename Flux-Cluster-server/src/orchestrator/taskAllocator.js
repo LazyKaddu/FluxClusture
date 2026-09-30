@@ -84,6 +84,9 @@ export async function handleEmptyQueue(roomId, io) {
                     chunkHeight
                 };
 
+                // Clear any stale ownership before returning to micro_queue
+                await redis.hDel(`task_owner:${roomId}`, chunkId);
+
                 // Add back to micro_queue
                 await redis.lPush(`micro_queue:${roomId}`, JSON.stringify(chunkTask));
             }

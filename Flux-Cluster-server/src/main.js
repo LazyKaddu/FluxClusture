@@ -1,5 +1,5 @@
 import { Server } from 'socket.io';
-import { initializeJob, getNextTask, requeueTask, completeChunk, advanceFrame } from './redis/queues.js';
+import { initializeJob, getNextTask, requeueTask, acknowledgeTask, completeChunk, advanceFrame } from './redis/queues.js';
 import { setWorkerState, removeWorker, getRoomWorkers, getGlbHash, getOwnerId, getRenderSettings } from './redis/workers.js';
 import { trackTaskStart, trackTaskCompletion, handleEmptyQueue } from './orchestrator/taskAllocator.js';
 
@@ -55,7 +55,7 @@ io.on('connection', (socket) => {
     socket.on('REQUEST_TASK', async () => {
         if (!socket.roomId) return;
 
-        const task = await getNextTask(socket.roomId);
+        const task = await getNextTask(socket.roomId, socket.id);
         if (task) {
             await setWorkerState(socket.roomId, socket.id, { status: 'working', task });
             await trackTaskStart(socket.roomId, task.id);
@@ -72,20 +72,33 @@ io.on('connection', (socket) => {
     socket.on('ACK_TILE', async (payload) => {
         if (!socket.roomId) return;
 
-        console.log(`[Room: ${socket.roomId}] Tile ${payload.id} completed by ${socket.id}`);
+        // Validate payload structure
+        if (!payload || typeof payload !== 'object' || typeof payload.id !== 'string' || payload.id.trim().length === 0) {
+            console.warn(`[Room: ${socket.roomId}] Rejected malformed ACK_TILE from ${socket.id}`);
+            socket.emit('ACK_TILE_REJECTED', { id: payload?.id, reason: 'INVALID_PAYLOAD' });
+            return;
+        }
 
-        await trackTaskCompletion(socket.roomId, payload.id);
+        const taskId = payload.id.trim();
 
-        // 1. Mark this worker as idle
-        await setWorkerState(socket.roomId, socket.id, { status: 'idle', task: null });
+        // Server-authoritative task ownership validation and atomic completion
+        const ackResult = await acknowledgeTask(socket.roomId, socket.id, taskId);
+
+        if (!ackResult || !ackResult.accepted) {
+            console.warn(`[Room: ${socket.roomId}] ACK_TILE rejected for ${taskId} from ${socket.id}: ${ackResult?.reason}`);
+            socket.emit('ACK_TILE_REJECTED', { id: taskId, reason: ackResult?.reason || 'REJECTED' });
+            return;
+        }
+
+        console.log(`[Room: ${socket.roomId}] Tile ${taskId} completed by ${socket.id}`);
+
+        await trackTaskCompletion(socket.roomId, taskId);
+
         io.to(socket.roomId).emit('TILE_FINISHED', payload);
         await broadcastSwarmState(socket.roomId);
 
-        // 2. Remove the chunk from the Redis Set
-        const isFrameDone = await completeChunk(socket.roomId, payload.id);
-
-        // 3. If the Set is empty, advance!
-        if (isFrameDone) {
+        // If the frame is done, advance!
+        if (ackResult.isFrameDone) {
             console.log(`[Room: ${socket.roomId}] 🏁 Frame complete! Advancing...`);
 
             const moreFrames = await advanceFrame(socket.roomId);
@@ -160,10 +173,13 @@ io.on('connection', (socket) => {
                 console.log(`🚨 Rescuing stranded task ${lastState.task.id} and waking swarm!`);
 
                 // Push the abandoned task back to the right side (front) of the Redis queue
-                await requeueTask(socket.roomId, lastState.task);
+                // only if this worker is still the recorded owner of the task
+                const requeued = await requeueTask(socket.roomId, lastState.task, socket.id);
 
-                // Fire the alarm to wake up all sleeping nodes to grab this task
-                io.to(socket.roomId).emit('TASKS_AVAILABLE');
+                if (requeued) {
+                    // Fire the alarm to wake up all sleeping nodes to grab this task
+                    io.to(socket.roomId).emit('TASKS_AVAILABLE');
+                }
             }
 
             await broadcastSwarmState(socket.roomId);
