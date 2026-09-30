@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
-    "test": "node --test test/",
+    "test": "node --test",
     "preview": "vite preview"
   },
   "dependencies": {
