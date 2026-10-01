@@ -22,13 +22,16 @@ io.on('connection', (socket) => {
         socket.join(roomId);
         socket.roomId = roomId;
         console.log(`Node ${socket.id} joined room ${roomId}`);
+        
+        await setWorkerState(roomId, socket.id, { status: 'idle', task: null });
 
         await broadcastSwarmState(roomId);
     });
 
     socket.on('SET_INITIAL_STATE', async () => {
+        console.log("set initial state for ",socket.id)
         await setWorkerState(socket.roomId, socket.id, { status: 'idle', task: null });
-    })
+    });
 
 
     socket.on('GET_RENDER_SETTINGS', async (roomId, callback) => {
