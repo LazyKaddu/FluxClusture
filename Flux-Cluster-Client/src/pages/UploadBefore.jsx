@@ -29,6 +29,8 @@ const UploadBefore = () => {
     const [width, setWidth] = useState(1920);
     const [height, setHeight] = useState(1080);
 
+    const [masterWillRender, setMasterWillRender] = useState(true);
+
     const [min, setMin] = useState(0);
     const [max, setMax] = useState(120);
 
@@ -106,10 +108,11 @@ const UploadBefore = () => {
             samples: samples,
             noiseThreshold: noiseThreshold,
             width: width,
-            height: height
+            height: height,
+            masterWillRender: masterWillRender
         };
 
-        navigate(`/render`, { state: renderConfig })
+        navigate(`/editor`, { state: renderConfig })
     }
 
 
@@ -300,6 +303,18 @@ const UploadBefore = () => {
                             <div className='w-full h-[90%] flex items-center justify-center'>
                                 <UploadBox file={file} setFile={setFile} loading={loading} setLoading={setLoading} previewUrl={previewUrl} setPreviewUrl={setPreviewUrl} />
                             </div>
+                        </div>
+                        <div className="flex items-center gap-2 mb-3">
+                            <input
+                                type="checkbox"
+                                id="masterRender"
+                                className="w-4 h-4 cursor-pointer"
+                                checked={masterWillRender}
+                                onChange={(e) => setMasterWillRender(e.target.checked)}
+                            />
+                            <label htmlFor="masterRender" className="text-sm cursor-pointer hover:text-gray-300">
+                                I also want to render the chunk
+                            </label>
                         </div>
                         <button className='border w-full aspect-6/1' onClick={createRoom}>start Rendering</button>
                     </div>

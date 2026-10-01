@@ -37,6 +37,8 @@ class SwarmClient {
 
         this.glbBuffer = null;
 
+        this.masterWillRender = true;
+
         this.width = 1900;
         this.height = 1400;
         this.noise = 0.1;
@@ -236,7 +238,7 @@ class SwarmClient {
         this.socketManager.removeAllListeners('TASKS_AVAILABLE');
         this.socketManager.on('TASKS_AVAILABLE', () => {
             // Master can now request tasks too!
-            if (this.role === 'master' || this.role === 'worker') {
+            if (this.role === 'worker' || (this.role === 'master' && this.masterWillRender)) {
                 this.socketManager.emit('REQUEST_TASK');
             }
         });
@@ -305,7 +307,9 @@ class SwarmClient {
         }
 
         // Greedy Node: instantly ask for next task
-        this.socketManager.emit('REQUEST_TASK');
+        if (this.role === 'worker' || (this.role === 'master' && this.masterWillRender)) {
+            this.socketManager.emit('REQUEST_TASK');
+        }
     }
 }
 

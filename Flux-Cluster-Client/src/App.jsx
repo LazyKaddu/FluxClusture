@@ -12,6 +12,7 @@ import JoinBefore from "./pages/JoinBefore";
 import JoinAfter from "./pages/JoinAfter";
 import UploadAfter from "./pages/UploadAfter";
 import PathTracerCanvas from './components/GpuRender';
+import Editor from './pages/Editor';
 
 
 
@@ -31,6 +32,10 @@ const App = () => {
         <Route
           path="/render"
           element={<Base childComponent={UploadAfter} />}
+        />
+        <Route
+          path="/editor"
+          element={<Base childComponent={Editor} />}
         />
         <Route
           path="/join"

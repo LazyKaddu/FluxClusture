@@ -55,6 +55,7 @@ export function useRenderPipeline({
     onSettingsReceived
 }) {
     const isSceneReadyRef = useRef(false);
+    const hasInitializedMasterRef = useRef(false);
     const taskQueueRef = useRef(null);
 
     const rendererRef = useRef(null);
@@ -260,6 +261,9 @@ export function useRenderPipeline({
             });
 
             async function initMaster() {
+                if (hasInitializedMasterRef.current) return;
+                hasInitializedMasterRef.current = true;
+
                 let buffer = null;
                 if (file && typeof file.arrayBuffer === 'function') {
                     buffer = await file.arrayBuffer();
@@ -272,6 +276,10 @@ export function useRenderPipeline({
                 swarmClient.glbBuffer = buffer;
                 await setupScene(buffer);
 
+                if (config.masterWillRender !== undefined) {
+                    swarmClient.masterWillRender = config.masterWillRender;
+                }
+                
                 swarmClient.joinAsMaster(roomId);
                 
                 swarmClient.setRenderSetting({

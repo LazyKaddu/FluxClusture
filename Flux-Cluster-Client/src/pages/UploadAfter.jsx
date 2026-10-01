@@ -11,7 +11,8 @@ const UploadAfter = () => {
         roomId = '',
         file = null,
         fileHash = null,
-        previewUrl = null
+        previewUrl = null,
+        masterWillRender = true
     } = config;
     const width = parseInt(config.width || 1920, 10);
     const height = parseInt(config.height || 1080, 10);
@@ -68,8 +69,8 @@ const UploadAfter = () => {
     }
 
     const configObject = React.useMemo(() => ({
-        width, height, fps, samples, noiseThreshold, animationIndex, startFrame, endFrame
-    }), [width, height, fps, samples, noiseThreshold, animationIndex, startFrame, endFrame]);
+        width, height, fps, samples, noiseThreshold, animationIndex, startFrame, endFrame, masterWillRender
+    }), [width, height, fps, samples, noiseThreshold, animationIndex, startFrame, endFrame, masterWillRender]);
 
     useRenderPipeline({
         role: 'master',
