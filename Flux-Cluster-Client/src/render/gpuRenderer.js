@@ -366,7 +366,7 @@ export function renderChunk(
                     }
 
                     const currentTime = now();
-
+                    
                     // Compiling shaders blocks accumulation by design; advance watchdog deadline
                     if (pathTracer.isCompiling) {
                         lastProgressAt = currentTime;
@@ -378,6 +378,11 @@ export function renderChunk(
 
                     const samplesBefore = pathTracer.samples;
                     pathTracer.renderSample();
+
+                    // Log progress occasionally so the user knows it's not frozen
+                    if (Math.floor(pathTracer.samples) > Math.floor(samplesBefore) && Math.floor(pathTracer.samples) % 50 === 0) {
+                        console.log(`[gpuRenderer] Rendering tile... ${Math.floor(pathTracer.samples)} / ${targetSamples} samples`);
+                    }
 
                     if (typeof onProgress === 'function') {
                         onProgress({ samples: pathTracer.samples, maxSamples: targetSamples });

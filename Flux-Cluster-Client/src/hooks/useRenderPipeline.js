@@ -81,6 +81,20 @@ export function useRenderPipeline({
         // 1. Initialize WebGL Canvas and Renderer (Off-DOM)
         const renderCanvas = document.createElement('canvas');
         rendererRef.current = new THREE.WebGLRenderer({ canvas: renderCanvas, antialias: false, alpha: false, preserveDrawingBuffer: true });
+        
+        // Monkey-patch compileAsync to prevent infinite hang on detached canvases.
+        // Chrome defers KHR_parallel_shader_compile completion indefinitely for off-DOM canvases.
+        // We force a synchronous-style compile and resolve immediately.
+        rendererRef.current.compileAsync = function(scene, camera, targetScene) {
+            try {
+                rendererRef.current.compile(scene, camera || cameraRef.current, targetScene);
+                return Promise.resolve(scene);
+            } catch (err) {
+                console.error("[FluxCluster] compile() threw an error:", err);
+                return Promise.reject(err);
+            }
+        };
+
         rendererRef.current.toneMapping = THREE.ACESFilmicToneMapping;
         rendererRef.current.toneMappingExposure = 1.0;
 
@@ -138,6 +152,18 @@ export function useRenderPipeline({
                         if (isSubscribed && !effectiveSignal.aborted) {
                             if (role === 'worker' && progressData.maxSamples > 0 && setProgress) {
                                 setProgress(progressData.samples / progressData.maxSamples);
+                            } else if (role === 'master' && progressData.maxSamples > 0 && setProgress) {
+                                // Master progress is (completed chunks + partial current chunk) / total chunks
+                                const totalFrames = Math.max(1, config.endFrame - config.startFrame + 1);
+                                const cols = Math.ceil(config.width / 128);
+                                const rows = Math.ceil(config.height / 128);
+                                const totalTiles = totalFrames * cols * rows;
+                                
+                                if (totalTiles > 0) {
+                                    const tileProgress = Math.min(1, progressData.samples / progressData.maxSamples);
+                                    const pct = Math.min(1, (completedTilesRef.current + tileProgress) / totalTiles);
+                                    setProgress(pct);
+                                }
                             }
                             if (role === 'worker' && progressData.pixels && onTileReceived) {
                                 onTileReceived({ chunkWidth: tChunkW, chunkHeight: tChunkH }, progressData.pixels);
@@ -280,8 +306,8 @@ export function useRenderPipeline({
 
                 completedTilesRef.current += 1;
                 const totalFrames = Math.max(1, config.endFrame - config.startFrame + 1);
-                const cols = Math.ceil(config.width / 64);
-                const rows = Math.ceil(config.height / 64);
+                const cols = Math.ceil(config.width / 128);
+                const rows = Math.ceil(config.height / 128);
                 const totalTiles = totalFrames * cols * rows;
 
                 if (totalTiles > 0 && setProgress) {

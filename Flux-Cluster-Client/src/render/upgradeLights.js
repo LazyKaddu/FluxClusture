@@ -17,7 +17,7 @@ export function upgradeSceneLights(scene) {
     const nodesToRemove = [];
     
     // Default fallback if no World_GI placeholder is found
-    let globalIllumination = { intensity: 1.0, color: 0xffffff };
+    let globalIllumination = { intensity: 0.0, color: 0x000000 };
     
 
     scene.updateMatrixWorld(true);
@@ -140,6 +140,14 @@ export function ensurePathTracerEnvironment(pathTracer) {
             colorBg.update();
             if (pathTracer._pathTracer?.material) {
                 pathTracer._pathTracer.material.backgroundMap = colorBg;
+                pathTracer._pathTracer.material.envMapInfo.updateFrom(colorBg);
+                pathTracer._pathTracer.material.environmentIntensity = scene.backgroundIntensity !== undefined ? scene.backgroundIntensity : 1.0;
+            }
+        } else {
+            // Even if the data was already generated, ensure it's used for the environment GI too
+            if (pathTracer._pathTracer?.material) {
+                pathTracer._pathTracer.material.envMapInfo.updateFrom(colorBg);
+                pathTracer._pathTracer.material.environmentIntensity = scene.backgroundIntensity !== undefined ? scene.backgroundIntensity : 1.0;
             }
         }
     }
