@@ -127,6 +127,7 @@ io.on('connection', (socket) => {
 
         // Fetch all active sockets in this room from Redis
         const workers = await getRoomWorkers(socket.roomId);
+        const settings = await getRenderSettings(socket.roomId);
 
         // Filter out the node that is asking
         const availablePeers = Object.keys(workers).filter(id => id !== socket.id);
@@ -137,8 +138,12 @@ io.on('connection', (socket) => {
             return;
         }
 
-        // Pick a random peer from the pool to act as the seeder
-        const seederId = availablePeers[Math.floor(Math.random() * availablePeers.length)];
+        // Prioritize the master node (owner) if they are in the room, otherwise pick random
+        let seederId = availablePeers[Math.floor(Math.random() * availablePeers.length)];
+        if (settings && settings.ownerId && availablePeers.includes(settings.ownerId)) {
+            seederId = settings.ownerId;
+        }
+
         console.log(`[Room: ${socket.roomId}] Matchmaking: ${seederId} will seed to ${socket.id}`);
 
         // Command the chosen seeder to create an SDP offer

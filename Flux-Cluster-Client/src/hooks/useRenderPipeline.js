@@ -98,12 +98,23 @@ export function useRenderPipeline({
 
                 if (task.frame !== undefined && task.frame !== currentRenderedFrameRef.current) {
                     console.log(`[useRenderPipeline] 🎬 Frame changed from ${currentRenderedFrameRef.current} to ${task.frame}. Updating mixer and camera...`);
+                    
+                    syncCamera(sceneRef.current, cameraRef.current, width, height);
+                    
                     if (mixerRef.current) {
                         mixerRef.current.setTime(task.frame / fps);
+                        
+                        if (setStatus) setStatus(`Updating BVH for Frame ${task.frame} (Please wait)...`);
+                        await new Promise(r => setTimeout(r, 100)); // Yield to browser to paint status
+                        
+                        pathTracerRef.current.setScene(sceneRef.current, cameraRef.current);
+                        ensurePathTracerEnvironment(pathTracerRef.current);
+                    } else {
+                        // For static scenes, we only need to update the camera, which is 
+                        // automatically handled inside gpuRenderer.js (pathTracer.updateCamera).
+                        // No need to rebuild the extremely expensive BVH every frame!
                     }
-                    syncCamera(sceneRef.current, cameraRef.current, width, height);
-                    pathTracerRef.current.setScene(sceneRef.current, cameraRef.current);
-                    ensurePathTracerEnvironment(pathTracerRef.current);
+                    
                     currentRenderedFrameRef.current = task.frame;
                 }
 
@@ -165,6 +176,15 @@ export function useRenderPipeline({
                 sceneRef.current.background = worldBackgroundColor(giConfig && giConfig.color);
                 sceneRef.current.backgroundIntensity = (giConfig && giConfig.intensity) || 1.0;
 
+                // Ensure at least one mesh exists to prevent empty BVH which causes Shader Error 0
+                let hasMesh = false;
+                sceneRef.current.traverse(c => { if (c.isMesh) hasMesh = true; });
+                if (!hasMesh) {
+                    console.warn("[useRenderPipeline] No meshes found. Adding dummy mesh to prevent WebGL validation failure.");
+                    const dummy = new THREE.Mesh(new THREE.BoxGeometry(0.001, 0.001, 0.001), new THREE.MeshStandardMaterial({ color: 0x000000 }));
+                    sceneRef.current.add(dummy);
+                }
+
                 const animIndex = role === 'master' ? (config?.animationIndex || 0) : (parseInt(swarmClient.animationIndex, 10) || 0);
                 if (gltf.animations && gltf.animations.length > 0) {
                     console.log(`[useRenderPipeline] 🎞️ Model has animations. Setting up AnimationMixer for index ${animIndex}...`);
@@ -189,7 +209,17 @@ export function useRenderPipeline({
 
                 console.log("[useRenderPipeline] 🎥 Syncing camera and passing scene to PathTracer...");
                 syncCamera(sceneRef.current, cameraRef.current, width, height);
+                
+                // Speed up BVH generation by using the CENTER split strategy (0) instead of SAH (2)
+                if (pathTracerRef.current._generator) {
+                    pathTracerRef.current._generator.bvhOptions = { strategy: 0 };
+                }
+
+                if (setStatus) setStatus("Generating BVH (This may take a while)...");
+                await new Promise(r => setTimeout(r, 100)); // Yield to browser to paint status
+                
                 pathTracerRef.current.setScene(sceneRef.current, cameraRef.current);
+                
                 ensurePathTracerEnvironment(pathTracerRef.current);
                 isSceneReadyRef.current = true;
                 console.log("[useRenderPipeline] 🎉 Scene setup complete! Resuming render task queue.");

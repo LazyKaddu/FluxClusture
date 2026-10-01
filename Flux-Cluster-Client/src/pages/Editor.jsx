@@ -92,8 +92,8 @@ const Editor = () => {
 
                 // If no lights found, maybe add a default so user can see something?
                 if (extractedLights.length === 0) {
-                    const ambient = new THREE.AmbientLight(0xffffff, 0.5);
-                    ambient.name = "AmbientLight";
+                    const ambient = new THREE.PointLight(0xffffff, 0.5);
+                    ambient.name = "World_GI"; // Default to World_GI naming so it becomes Ambient on the cluster
                     scene.add(ambient);
                     extractedLights.push(ambient);
                 }

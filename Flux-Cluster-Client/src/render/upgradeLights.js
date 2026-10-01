@@ -20,10 +20,12 @@ export function upgradeSceneLights(scene) {
     let globalIllumination = { intensity: 1.0, color: 0xffffff };
     
 
+    scene.updateMatrixWorld(true);
+
     scene.traverse((child) => {
         
-        // Only target Point lights acting as our data carriers
-        if (child.isPointLight && child.name) {
+        // Target all lights acting as our data carriers
+        if (child.isLight && child.name) {
             const name = child.name.toLowerCase();
             let newLight = null;
 
@@ -39,21 +41,21 @@ export function upgradeSceneLights(scene) {
                 const height = child.scale.y;
                 newLight = new ShapedAreaLight(hexColor, intensity, width, height);
                 newLight.isCircular = false;
-                newLight.position.copy(position);
-                newLight.rotation.copy(rotation);
+                child.getWorldPosition(newLight.position);
+                child.getWorldQuaternion(newLight.quaternion);
             } 
             else if (name.includes('spot')) {
                 // Spot lights: Math.PI/4 (45 degrees) is a safe default angle
                 newLight = new PhysicalSpotLight(hexColor, intensity, distance, Math.PI / 4, 0.5, decay);
                 newLight.radius = 0.05; // Set a small physical radius for soft shadows
-                newLight.position.copy(position);
-                newLight.rotation.copy(rotation);
+                child.getWorldPosition(newLight.position);
+                child.getWorldQuaternion(newLight.quaternion);
             } 
             else if (name.includes('sun')) {
                 // Sun translates to DirectionalLight (infinite parallel rays)
                 newLight = new DirectionalLight(hexColor, intensity);
-                newLight.position.copy(position);
-                newLight.rotation.copy(rotation);
+                child.getWorldPosition(newLight.position);
+                child.getWorldQuaternion(newLight.quaternion);
             }
             else if (name.includes('world_gi')) {
                 // Hijack this specific light to act as the environment controller
@@ -133,13 +135,11 @@ export function ensurePathTracerEnvironment(pathTracer) {
         // the constructor defaulted topColor without generating texture data. Force update.
         if (data && data[0] === 0 && data[1] === 0 && data[2] === 0) {
             const bg = scene.background;
-            if (bg.r !== 0 || bg.g !== 0 || bg.b !== 0) {
-                colorBg.topColor.copy(bg);
-                colorBg.bottomColor.copy(bg);
-                colorBg.update();
-                if (pathTracer._pathTracer?.material) {
-                    pathTracer._pathTracer.material.backgroundMap = colorBg;
-                }
+            colorBg.topColor.copy(bg);
+            colorBg.bottomColor.copy(bg);
+            colorBg.update();
+            if (pathTracer._pathTracer?.material) {
+                pathTracer._pathTracer.material.backgroundMap = colorBg;
             }
         }
     }
