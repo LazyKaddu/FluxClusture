@@ -256,6 +256,7 @@ export function renderChunk(
 ) {
     const stallTimeoutMs = options.stallTimeoutMs ?? STALL_TIMEOUT_MS;
     const now = typeof options.now === 'function' ? options.now : () => Date.now();
+    const noiseThreshold = options.noiseThreshold || 0;
 
     return new Promise((resolve, reject) => {
         // Captured before the first mutation so cleanup can restore everything
@@ -265,6 +266,10 @@ export function renderChunk(
         let settled = false;
         let rafId = null;
         let onAbort = null;
+        
+        let previousPixels = null;
+        let lastNoiseCheckSample = 0;
+        const noiseCheckInterval = 50; // Check every 50 samples
 
         const cleanupListeners = () => {
             if (abortSignal && onAbort && typeof abortSignal.removeEventListener === 'function') {
@@ -371,26 +376,72 @@ export function renderChunk(
                     if (pathTracer.isCompiling) {
                         lastProgressAt = currentTime;
                         if (!settled) {
+                            if (!pathTracer._hasLoggedCompiling) {
+                                console.log("[gpuRenderer] ⏳ Waiting for shader compilation to finish...");
+                                pathTracer._hasLoggedCompiling = true;
+                            }
                             rafId = requestAnimationFrame(step);
                         }
                         return;
+                    }
+                    if (pathTracer._hasLoggedCompiling) {
+                        pathTracer._hasLoggedCompiling = false;
+                        console.log("[gpuRenderer] ⚡ Shader compilation finished!");
                     }
 
                     const samplesBefore = pathTracer.samples;
                     pathTracer.renderSample();
 
                     // Log progress occasionally so the user knows it's not frozen
-                    if (Math.floor(pathTracer.samples) > Math.floor(samplesBefore) && Math.floor(pathTracer.samples) % 50 === 0) {
-                        console.log(`[gpuRenderer] Rendering tile... ${Math.floor(pathTracer.samples)} / ${targetSamples} samples`);
+                    const currentSampleLog = Math.floor(pathTracer.samples);
+                    if (currentSampleLog > Math.floor(samplesBefore) && (currentSampleLog === 1 || currentSampleLog % 50 === 0)) {
+                        console.log(`[gpuRenderer] Rendering tile... ${currentSampleLog} / ${targetSamples} samples`);
                     }
 
                     if (typeof onProgress === 'function') {
                         onProgress({ samples: pathTracer.samples, maxSamples: targetSamples });
                     }
 
-                    if (pathTracer.samples >= targetSamples) {
+                    // --- Adaptive Sampling Check ---
+                    let earlyBailout = false;
+                    const parsedThreshold = parseFloat(noiseThreshold);
+                    const currentSample = Math.floor(pathTracer.samples);
+                    if (!isNaN(parsedThreshold) && parsedThreshold > 0 && currentSample >= lastNoiseCheckSample + noiseCheckInterval) {
                         const pixels = new Uint8Array(chunkWidth * chunkHeight * 4);
-                        if (gl) {
+                        if (gl && typeof gl.readPixels === 'function') {
+                            let prevFb = null;
+                            if (typeof gl.getParameter === 'function') prevFb = gl.getParameter(gl.FRAMEBUFFER_BINDING);
+                            if (typeof gl.bindFramebuffer === 'function') gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+                            
+                            gl.readPixels(0, 0, chunkWidth, chunkHeight, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+                            
+                            if (typeof gl.bindFramebuffer === 'function') gl.bindFramebuffer(gl.FRAMEBUFFER, prevFb);
+
+                            if (previousPixels) {
+                                let totalDiff = 0;
+                                for (let i = 0; i < pixels.length; i += 4) {
+                                    totalDiff += Math.abs(pixels[i] - previousPixels[i]);
+                                    totalDiff += Math.abs(pixels[i+1] - previousPixels[i+1]);
+                                    totalDiff += Math.abs(pixels[i+2] - previousPixels[i+2]);
+                                }
+                                const pixelCount = chunkWidth * chunkHeight;
+                                const currentNoise = totalDiff / (pixelCount * 3 * 255);
+                                
+                                console.log(`[gpuRenderer] Adaptive sampling: noise = ${currentNoise.toFixed(6)} (threshold: ${parsedThreshold})`);
+                                
+                                if (currentNoise <= parsedThreshold) {
+                                    console.log(`[gpuRenderer] Early bailout triggered at ${currentSample} samples! Noise (${currentNoise.toFixed(6)}) <= Threshold (${parsedThreshold})`);
+                                    earlyBailout = true;
+                                }
+                            }
+                            previousPixels = pixels;
+                        }
+                        lastNoiseCheckSample = currentSample;
+                    }
+
+                    if (pathTracer.samples >= targetSamples || earlyBailout) {
+                        const pixels = previousPixels || new Uint8Array(chunkWidth * chunkHeight * 4);
+                        if (!previousPixels && gl) {
                             if (typeof gl.getParameter === 'function') {
                                 shared.previousGlFramebuffer = gl.getParameter(gl.FRAMEBUFFER_BINDING);
                             }

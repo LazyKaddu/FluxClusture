@@ -170,7 +170,8 @@ export function useRenderPipeline({
                             }
                         }
                     },
-                    effectiveSignal
+                    effectiveSignal,
+                    { noiseThreshold: config.noiseThreshold || 0.0 }
                 );
 
                 console.log(`[useRenderPipeline] ✅ renderChunk completed for ${task.id || `${task.startX}_x_${task.startY}`}. Submitting tile...`);
