@@ -55,16 +55,34 @@ export async function handleEmptyQueue(roomId, io) {
         await new Promise(resolve => setTimeout(resolve, avgTime));
 
         // After waiting, check pending chunks again
-        const pendingChunks = await redis.sMembers(`pending_chunks:${roomId}`);
+            const pendingChunks = await redis.sMembers(`pending_chunks:${roomId}`);
         if (pendingChunks.length > 0) {
-            console.log(`[Room: ${roomId}] Rescuing ${pendingChunks.length} chunks that are taking too long!`);
+            const now = Date.now();
+            const rescuedChunks = [];
+            for (const chunkId of pendingChunks) {
+                const startTimeStr = await redis.hGet(`task_start:${roomId}`, chunkId);
+                if (startTimeStr) {
+                    const startTime = parseInt(startTimeStr, 10);
+                    if (now - startTime > avgTime * 2) {
+                        rescuedChunks.push(chunkId);
+                    }
+                } else {
+                    rescuedChunks.push(chunkId);
+                }
+            }
+
+            if (rescuedChunks.length === 0) {
+                return;
+            }
+
+            console.log(`[Room: ${roomId}] Rescuing ${rescuedChunks.length} chunks that are taking too long!`);
             
             const metaStr = await redis.get(`job_meta:${roomId}`);
             if (!metaStr) return;
             const { width, height } = JSON.parse(metaStr);
-            const CHUNK_SIZE = 64;
+            const CHUNK_SIZE = 128;
 
-            for (const chunkId of pendingChunks) {
+            for (const chunkId of rescuedChunks) {
                 // Parse f{frame}_x{startX}_y{startY}
                 const parts = chunkId.split('_');
                 const frame = parseInt(parts[0].substring(1), 10);
