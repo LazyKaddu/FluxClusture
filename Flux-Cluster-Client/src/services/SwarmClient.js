@@ -201,13 +201,23 @@ class SwarmClient {
     joinAsMaster(roomId) {
         this.role = 'master';
         console.log("joining the room as master");
+        
+        // Emit JOIN_ROOM immediately so it gets buffered FIRST before INIT_JOB
+        this.socketManager.emit('JOIN_ROOM', { roomId });
+
         this.socketManager.connect();
         console.log("connected to server")
-        this.socketManager.removeAllListeners('connect');
-        this.socketManager.on('connect', () => {
+
+        const onConnected = () => {
             this._trigger('status', 'Master node connected. Ready to start job.');
-            this.socketManager.emit('JOIN_ROOM', { roomId });
-        });
+        };
+
+        if (this.socketManager.socket && this.socketManager.socket.connected) {
+            onConnected();
+        } else {
+            this.socketManager.removeAllListeners('connect');
+            this.socketManager.on('connect', onConnected);
+        }
 
         this.socketManager.removeAllListeners('WEBRTC_SIGNAL');
         this.socketManager.on('WEBRTC_SIGNAL', (payload) => {
@@ -237,6 +247,7 @@ class SwarmClient {
 
         this.socketManager.removeAllListeners('TASKS_AVAILABLE');
         this.socketManager.on('TASKS_AVAILABLE', () => {
+            console.log("[swarm client] task available")
             // Master can now request tasks too!
             if (this.role === 'worker' || (this.role === 'master' && this.masterWillRender)) {
                 this.socketManager.emit('REQUEST_TASK');

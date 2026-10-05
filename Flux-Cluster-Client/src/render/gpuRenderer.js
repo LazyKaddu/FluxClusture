@@ -370,25 +370,6 @@ export function renderChunk(
                         return;
                     }
 
-                    const currentTime = now();
-                    
-                    // Compiling shaders blocks accumulation by design; advance watchdog deadline
-                    if (pathTracer.isCompiling) {
-                        lastProgressAt = currentTime;
-                        if (!settled) {
-                            if (!pathTracer._hasLoggedCompiling) {
-                                console.log("[gpuRenderer] ⏳ Waiting for shader compilation to finish...");
-                                pathTracer._hasLoggedCompiling = true;
-                            }
-                            rafId = requestAnimationFrame(step);
-                        }
-                        return;
-                    }
-                    if (pathTracer._hasLoggedCompiling) {
-                        pathTracer._hasLoggedCompiling = false;
-                        console.log("[gpuRenderer] ⚡ Shader compilation finished!");
-                    }
-
                     const samplesBefore = pathTracer.samples;
                     pathTracer.renderSample();
 

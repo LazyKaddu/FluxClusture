@@ -5,7 +5,11 @@ import { trackTaskStart, trackTaskCompletion, handleEmptyQueue } from './orchest
 
 const PORT = process.env.PORT || 8080;
 
-const io = new Server(PORT, { cors: { origin: "*" } });
+const io = new Server(PORT, { 
+    cors: { origin: "*" },
+    pingTimeout: 120000, // 2 minutes (allows long WebGL shader compilation)
+    pingInterval: 25000
+});
 console.log(`🚀 Master Node running on port ${PORT}`);
 
 // Helper: Broadcasts the live worker map to the room

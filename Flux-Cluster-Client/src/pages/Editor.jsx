@@ -80,6 +80,38 @@ const Editor = () => {
                 scene.add(gltf.scene);
                 gltfAnimationsRef.current = gltf.animations || [];
                 
+                // Sync camera from GLB if available
+                const glbCamera = scene.getObjectByProperty('isPerspectiveCamera', true);
+                if (glbCamera) {
+                    scene.updateMatrixWorld(true);
+                    glbCamera.matrixWorld.decompose(camera.position, camera.quaternion, camera.scale);
+                    camera.fov = glbCamera.fov;
+                    camera.near = glbCamera.near;
+                    camera.far = glbCamera.far;
+                    camera.updateProjectionMatrix();
+
+                    // Update OrbitControls target to look along the camera's forward axis
+                    const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                    const targetPos = new THREE.Vector3().copy(camera.position).add(direction.multiplyScalar(10));
+                    controls.target.copy(targetPos);
+                    controls.update();
+                } else {
+                    // Fallback to bounding box center if no camera found
+                    const box = new THREE.Box3().setFromObject(scene);
+                    const center = box.getCenter(new THREE.Vector3());
+                    const size = box.getSize(new THREE.Vector3());
+
+                    const maxDim = Math.max(size.x, size.y, size.z);
+                    if (maxDim > 0) {
+                        const fov = camera.fov * (Math.PI / 180);
+                        let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+                        cameraZ *= 1.5; 
+                        camera.position.set(center.x, center.y, center.z + cameraZ);
+                        controls.target.copy(center);
+                        controls.update();
+                    }
+                }
+                
                 // Extract lights
                 const extractedLights = [];
                 gltf.scene.traverse((child) => {

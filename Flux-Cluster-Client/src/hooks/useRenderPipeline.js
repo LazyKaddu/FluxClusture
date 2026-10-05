@@ -18,6 +18,7 @@ function syncCamera(scene, renderCamera, width, height) {
         renderCamera.fov = glbCamera.fov;
         renderCamera.near = glbCamera.near;
         renderCamera.far = glbCamera.far;
+        console.log(renderCamera.position,renderCamera.quaternion,renderCamera.scale)
     } else {
         const box = new THREE.Box3().setFromObject(scene);
         const center = box.getCenter(new THREE.Vector3());
@@ -78,22 +79,18 @@ export function useRenderPipeline({
         const chunkW = 128;
         const chunkH = 128;
 
-        // 1. Initialize WebGL Canvas and Renderer (Off-DOM)
+        // 1. Initialize WebGL Canvas and Renderer
+        // We attach the canvas to the DOM (hidden) because Chrome defers KHR_parallel_shader_compile 
+        // completion indefinitely for completely off-DOM canvases, which leads to hanging or 
+        // synchronous compilation that triggers TDR (Context Lost).
         const renderCanvas = document.createElement('canvas');
+        renderCanvas.style.position = 'absolute';
+        renderCanvas.style.left = '-9999px';
+        renderCanvas.style.visibility = 'hidden';
+        renderCanvas.style.pointerEvents = 'none';
+        document.body.appendChild(renderCanvas);
+
         rendererRef.current = new THREE.WebGLRenderer({ canvas: renderCanvas, antialias: false, alpha: false, preserveDrawingBuffer: true });
-        
-        // Monkey-patch compileAsync to prevent infinite hang on detached canvases.
-        // Chrome defers KHR_parallel_shader_compile completion indefinitely for off-DOM canvases.
-        // We force a synchronous-style compile and resolve immediately.
-        rendererRef.current.compileAsync = function(scene, camera, targetScene) {
-            try {
-                rendererRef.current.compile(scene, camera || cameraRef.current, targetScene);
-                return Promise.resolve(scene);
-            } catch (err) {
-                console.error("[FluxCluster] compile() threw an error:", err);
-                return Promise.reject(err);
-            }
-        };
 
         rendererRef.current.toneMapping = THREE.ACESFilmicToneMapping;
         rendererRef.current.toneMappingExposure = 1.0;
@@ -119,10 +116,17 @@ export function useRenderPipeline({
                         mixerRef.current.setTime(task.frame / fps);
                         
                         if (setStatus) setStatus(`Updating BVH for Frame ${task.frame} (Please wait)...`);
-                        await new Promise(r => setTimeout(r, 100)); // Yield to browser to paint status
                         
+                        if (setStatus) setStatus(`Updating BVH for Frame ${task.frame} (Please wait)...`);
+                        await new Promise(r => setTimeout(r, 100)); // Yield to browser to paint status
                         pathTracerRef.current.setScene(sceneRef.current, cameraRef.current);
+                        
                         ensurePathTracerEnvironment(pathTracerRef.current);
+                        
+                        if (typeof pathTracerRef.current.compileAsync === 'function') {
+                            if (setStatus) setStatus("Compiling Shaders...");
+                            await pathTracerRef.current.compileAsync();
+                        }
                     } else {
                         // For static scenes, we only need to update the camera, which is 
                         // automatically handled inside gpuRenderer.js (pathTracer.updateCamera).
@@ -165,13 +169,18 @@ export function useRenderPipeline({
                                     setProgress(pct);
                                 }
                             }
-                            if (role === 'worker' && progressData.pixels && onTileReceived) {
-                                onTileReceived({ chunkWidth: tChunkW, chunkHeight: tChunkH }, progressData.pixels);
+                            if (progressData.pixels && onTileReceived) {
+                                onTileReceived({ 
+                                    startX: task.startX, 
+                                    startY: task.startY, 
+                                    chunkWidth: tChunkW, 
+                                    chunkHeight: tChunkH 
+                                }, progressData.pixels);
                             }
                         }
                     },
                     effectiveSignal,
-                    { noiseThreshold: config.noiseThreshold || 0.0 }
+                    { noiseThreshold: role === 'master' ? (config?.noiseThreshold || 0.0) : (parseFloat(swarmClient.noiseThreshold) || 0.0) }
                 );
 
                 console.log(`[useRenderPipeline] ✅ renderChunk completed for ${task.id || `${task.startX}_x_${task.startY}`}. Submitting tile...`);
@@ -243,11 +252,16 @@ export function useRenderPipeline({
                 }
 
                 if (setStatus) setStatus("Generating BVH (This may take a while)...");
-                await new Promise(r => setTimeout(r, 100)); // Yield to browser to paint status
                 
+                await new Promise(r => setTimeout(r, 100)); // Yield to browser to paint status
                 pathTracerRef.current.setScene(sceneRef.current, cameraRef.current);
                 
                 ensurePathTracerEnvironment(pathTracerRef.current);
+
+                if (typeof pathTracerRef.current.compileAsync === 'function') {
+                    if (setStatus) setStatus("Compiling Shaders...");
+                    await pathTracerRef.current.compileAsync();
+                }
                 isSceneReadyRef.current = true;
                 console.log("[useRenderPipeline] 🎉 Scene setup complete! Resuming render task queue.");
 
@@ -420,6 +434,10 @@ export function useRenderPipeline({
 
             if (swarmClient.socketManager.socket) {
                 swarmClient.socketManager.socket.disconnect();
+            }
+
+            if (renderCanvas && renderCanvas.parentNode) {
+                renderCanvas.parentNode.removeChild(renderCanvas);
             }
         };
     }, [roomId, role, file, fileHash, previewUrl, config]);
