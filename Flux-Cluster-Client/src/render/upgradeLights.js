@@ -1,6 +1,9 @@
 import { 
     Color,
-    DirectionalLight 
+    DirectionalLight,
+    Mesh,
+    PlaneGeometry,
+    MeshStandardMaterial
 } from 'three';
 import { 
     ShapedAreaLight, 
@@ -37,10 +40,17 @@ export function upgradeSceneLights(scene) {
 
             if (name.includes('area')) {
                 // Area lights use the placeholder's scale for physical dimensions
-                const width = child.scale.x;
-                const height = child.scale.y;
-                newLight = new ShapedAreaLight(hexColor, intensity, width, height);
-                newLight.isCircular = false;
+                const width = Math.max(child.scale.x || 1, 0.0001);
+                const height = Math.max(child.scale.y || 1, 0.0001);
+                const geometry = new PlaneGeometry(width, height);
+                const material = new MeshStandardMaterial({
+                    emissive: hexColor !== undefined ? hexColor : 0xffffff,
+                    emissiveIntensity: intensity !== undefined ? intensity : 1,
+                    transparent: true,
+                    opacity: 0.0,
+                    side: 2 // DoubleSide, just in case the plane is facing backwards
+                });
+                newLight = new Mesh(geometry, material);
                 child.getWorldPosition(newLight.position);
                 child.getWorldQuaternion(newLight.quaternion);
             } 
