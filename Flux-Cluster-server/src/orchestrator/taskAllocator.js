@@ -63,7 +63,8 @@ export async function handleEmptyQueue(roomId, io) {
                 const startTimeStr = await redis.hGet(`task_start:${roomId}`, chunkId);
                 if (startTimeStr) {
                     const startTime = parseInt(startTimeStr, 10);
-                    if (now - startTime > avgTime * 2) {
+                    const timeoutLimit = Math.max(avgTime * 4, 30000); // at least 30 seconds
+                    if (now - startTime > timeoutLimit) {
                         rescuedChunks.push(chunkId);
                     }
                 } else {

@@ -279,6 +279,9 @@ class SwarmClient {
     }
 
     submitRenderedTile(task, imageData) {
+        // Everyone (Master or Worker) acknowledges their own tiles directly to the server!
+        this.socketManager.emit('ACK_TILE', { id: task.id, task: { frame: task.frame } });
+
         // Route the pixels
         console.log("sending render chunks metaData and image")
         if (this.role === 'worker') {

@@ -184,8 +184,6 @@ export function useRenderPipeline({
             swarmClient.on('tileReceived', ({ metadata, pixelBuffer }) => {
                 if (!isSubscribed) return;
                 
-                swarmClient.socketManager.emit('ACK_TILE', { id: metadata.taskId, task: { frame: metadata.frame } });
-                
                 if (onTileReceived) onTileReceived(metadata, pixelBuffer);
 
                 completedTilesRef.current += 1;
