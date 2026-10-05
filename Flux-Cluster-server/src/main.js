@@ -5,8 +5,12 @@ import { trackTaskStart, trackTaskCompletion, handleEmptyQueue } from './orchest
 
 const PORT = process.env.PORT || 8080;
 
-const io = new Server(PORT, { 
-    cors: { origin: "*" },
+const io = new Server(PORT, {
+    cors: {
+        origin: "https://flux-cluster.vercel.app",
+        methods: ["GET", "POST", "OPTIONS"],
+        allowedHeaders: ["*"]
+    },
     pingTimeout: 120000, // 2 minutes (allows long WebGL shader compilation)
     pingInterval: 25000
 });
@@ -26,14 +30,14 @@ io.on('connection', (socket) => {
         socket.join(roomId);
         socket.roomId = roomId;
         console.log(`Node ${socket.id} joined room ${roomId}`);
-        
+
         await setWorkerState(roomId, socket.id, { status: 'idle', task: null });
 
         await broadcastSwarmState(roomId);
     });
 
     socket.on('SET_INITIAL_STATE', async () => {
-        console.log("set initial state for ",socket.id)
+        console.log("set initial state for ", socket.id)
         await setWorkerState(socket.roomId, socket.id, { status: 'idle', task: null });
     });
 
@@ -202,7 +206,7 @@ io.on('connection', (socket) => {
         if (!payload.roomId) return;
         const ownerId = payload.ownerId || socket.id; // Master's socket ID is the owner
         await initializeJob(payload.roomId, payload.startFrame, payload.endFrame, payload.width, payload.height, payload.fps, payload.glbHash, payload.samples, payload.noiseThreshold, payload.animationIndex, ownerId)
-        console.log("task available for " ,payload.roomId)
+        console.log("task available for ", payload.roomId)
         io.to(payload.roomId).emit('TASKS_AVAILABLE');
     });
 });

@@ -4,7 +4,12 @@ export class SocketManager {
     constructor(url) {
         // Initialize the socket client immediately so it can accept listeners, 
         // but don't connect to the server until connect() is called.
-        this.socket = io(url, { autoConnect: false });
+        this.socket = io(url, { 
+            autoConnect: false,
+            extraHeaders: {
+                "ngrok-skip-browser-warning": "true"
+            }
+        });
     }
 
     connect() {
