@@ -8,8 +8,6 @@ services:
 
   orchestrator:
     build: .
-    ports:
-      - "8080:8080"
     environment:
       # Docker's internal DNS automatically resolves 'redis' to the database container
       - REDIS_URL=redis://redis:6379
@@ -20,3 +18,12 @@ services:
       # Syncs your local src folder to the container in real-time
       # This prevents you from having to rebuild the image every time you edit code tonight
       - ./src:/app/src
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - orchestrator

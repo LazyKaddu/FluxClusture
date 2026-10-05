@@ -1,7 +1,8 @@
 import { SocketManager } from './SocketManager.js';
 import { WebRTCManager } from './WebRTCManager.js';
 
-const SOCKET_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SERVER_URL) || 'http://localhost:3001';
+// Vite statically replaces import.meta.env variables during build on Vercel
+const SOCKET_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
 
 
 class SwarmClient {
