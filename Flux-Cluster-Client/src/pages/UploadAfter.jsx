@@ -150,7 +150,7 @@ const UploadAfter = () => {
             </div>
             <div
                 ref={containerCanvas}
-                className="w-full mb-4 aspect-video items-center flex justify-center overflow-hidden"
+                className="w-full mb-4 aspect-video bg-white items-center flex justify-center overflow-hidden"
             >
                 <canvas
                     ref={canvasRef}

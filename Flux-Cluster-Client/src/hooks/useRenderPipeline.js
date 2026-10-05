@@ -1,51 +1,15 @@
 import { useEffect, useRef } from 'react';
-import * as THREE from 'three';
-import { WebGLPathTracer } from 'three-gpu-pathtracer';
 import { swarmClient } from '../services/SwarmClient';
-import { loadGLB } from '../render/modelLoader';
-import { upgradeSceneLights, worldBackgroundColor, ensurePathTracerEnvironment } from '../render/upgradeLights';
-import { renderChunk } from '../render/gpuRenderer';
 import { RenderTaskQueue } from '../render/taskQueue';
 import { generateFileHash } from '../utils/helper';
-
-function syncCamera(scene, renderCamera, width, height) {
-    if (!renderCamera) return;
-    const glbCamera = scene.getObjectByProperty('isPerspectiveCamera', true);
-    
-    if (glbCamera) {
-        scene.updateMatrixWorld(true);
-        glbCamera.matrixWorld.decompose(renderCamera.position, renderCamera.quaternion, renderCamera.scale);
-        renderCamera.fov = glbCamera.fov;
-        renderCamera.near = glbCamera.near;
-        renderCamera.far = glbCamera.far;
-    } else {
-        const box = new THREE.Box3().setFromObject(scene);
-        const center = box.getCenter(new THREE.Vector3());
-        const size = box.getSize(new THREE.Vector3());
-
-        const maxDim = Math.max(size.x, size.y, size.z);
-        if (maxDim > 0) {
-            const fov = renderCamera.fov * (Math.PI / 180);
-            let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
-            cameraZ *= 1.5; 
-            renderCamera.position.set(center.x, center.y, center.z + cameraZ);
-            renderCamera.lookAt(center);
-        }
-    }
-    
-    renderCamera.aspect = width / height;
-    renderCamera.updateProjectionMatrix();
-}
 
 export function useRenderPipeline({
     role,
     roomId,
-    // Master specific config
     file,
     previewUrl,
     fileHash,
-    config, // { width, height, fps, samples, noiseThreshold, animationIndex, startFrame, endFrame }
-    // Callbacks
+    config,
     setStatus,
     setProgress,
     setCurrentFrame,
@@ -57,14 +21,8 @@ export function useRenderPipeline({
     const isSceneReadyRef = useRef(false);
     const hasInitializedMasterRef = useRef(false);
     const taskQueueRef = useRef(null);
-
-    const rendererRef = useRef(null);
-    const pathTracerRef = useRef(null);
-    const cameraRef = useRef(null);
-    const sceneRef = useRef(null);
-    const mixerRef = useRef(null);
-    const currentRenderedFrameRef = useRef(role === 'master' ? (config?.startFrame || 0) : 0);
     const completedTilesRef = useRef(0);
+    const workerRef = useRef(null);
 
     useEffect(() => {
         if (!roomId) return;
@@ -75,177 +33,130 @@ export function useRenderPipeline({
         taskQueueRef.current = taskQueue;
         taskQueue.pause();
 
-        const chunkW = 128;
-        const chunkH = 128;
+        // 1. Initialize Web Worker
+        const worker = new Worker(new URL('../workers/render.worker.js', import.meta.url), { type: 'module' });
+        workerRef.current = worker;
 
-        // 1. Initialize WebGL Canvas and Renderer (Off-DOM)
         const renderCanvas = document.createElement('canvas');
-        rendererRef.current = new THREE.WebGLRenderer({ canvas: renderCanvas, antialias: false, alpha: false, preserveDrawingBuffer: true });
-        rendererRef.current.toneMapping = THREE.ACESFilmicToneMapping;
-        rendererRef.current.toneMappingExposure = 1.0;
+        renderCanvas.style.position = 'absolute';
+        renderCanvas.style.left = '-9999px';
+        renderCanvas.style.visibility = 'hidden';
+        renderCanvas.style.pointerEvents = 'none';
+        document.body.appendChild(renderCanvas);
 
-        pathTracerRef.current = new WebGLPathTracer(rendererRef.current);
-        cameraRef.current = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+        const offscreen = renderCanvas.transferControlToOffscreen();
+        worker.postMessage({ type: 'INIT', payload: { canvas: offscreen } }, [offscreen]);
+
+        worker.onmessage = (e) => {
+            if (!isSubscribed) return;
+            const { type, payload, task } = e.data;
+
+            if (type === 'STATUS' && setStatus) {
+                setStatus(payload);
+            } 
+            else if (type === 'SCENE_READY') {
+                isSceneReadyRef.current = true;
+                taskQueue.resume();
+                if (role === 'worker') {
+                    swarmClient.socketManager.emit('REQUEST_TASK');
+                }
+            }
+            else if (type === 'PROGRESS') {
+                const progressData = payload;
+                if (role === 'worker' && progressData.maxSamples > 0 && setProgress) {
+                    setProgress(progressData.samples / progressData.maxSamples);
+                } else if (role === 'master' && progressData.maxSamples > 0 && setProgress) {
+                    const totalFrames = Math.max(1, config.endFrame - config.startFrame + 1);
+                    const cols = Math.ceil(config.width / 128);
+                    const rows = Math.ceil(config.height / 128);
+                    const totalTiles = totalFrames * cols * rows;
+                    if (totalTiles > 0) {
+                        const tileProgress = Math.min(1, progressData.samples / progressData.maxSamples);
+                        const pct = Math.min(1, (completedTilesRef.current + tileProgress) / totalTiles);
+                        setProgress(pct);
+                    }
+                }
+            }
+            else if (type === 'TILE_RECEIVED') {
+                const { metadata, pixels } = payload;
+                if (onTileReceived) onTileReceived(metadata, pixels);
+            }
+            else if (type === 'TILE_COMPLETED') {
+                const { task: completedTask, pixels } = payload;
+                if (role === 'worker' && onTileReceived) {
+                    onTileReceived({ chunkWidth: completedTask.chunkWidth || 128, chunkHeight: completedTask.chunkHeight || 128 }, pixels);
+                }
+                swarmClient.submitRenderedTile(completedTask, pixels);
+            }
+        };
 
         const processTask = async (task, taskSignal) => {
             if (!isSubscribed || taskSignal?.aborted || abortController.signal.aborted) return;
-            console.log(`[useRenderPipeline] 🚀 Starting processTask for chunk:`, task.id || `${task.startX}_x_${task.startY}`);
-            try {
-                const fps = role === 'master' ? (config?.fps || 30) : (parseInt(swarmClient.fps, 10) || 30);
-                const width = role === 'master' ? (config?.width || 1920) : parseInt(swarmClient.width, 10);
-                const height = role === 'master' ? (config?.height || 1080) : parseInt(swarmClient.height, 10);
-                const samples = role === 'master' ? (config?.samples || 1024) : parseInt(swarmClient.samples, 10);
+            
+            const taskConfig = role === 'master' ? {
+                fps: config?.fps || 30,
+                width: config?.width || 1920,
+                height: config?.height || 1080,
+                samples: config?.samples || 1024,
+                noiseThreshold: config?.noiseThreshold || 0.0
+            } : {
+                fps: parseInt(swarmClient.fps, 10) || 30,
+                width: parseInt(swarmClient.width, 10),
+                height: parseInt(swarmClient.height, 10),
+                samples: parseInt(swarmClient.samples, 10),
+                noiseThreshold: parseFloat(swarmClient.noiseThreshold) || 0.0
+            };
 
-                if (task.frame !== undefined && task.frame !== currentRenderedFrameRef.current) {
-                    console.log(`[useRenderPipeline] 🎬 Frame changed from ${currentRenderedFrameRef.current} to ${task.frame}. Updating mixer and camera...`);
-                    
-                    syncCamera(sceneRef.current, cameraRef.current, width, height);
-                    
-                    if (mixerRef.current) {
-                        mixerRef.current.setTime(task.frame / fps);
-                        
-                        if (setStatus) setStatus(`Updating BVH for Frame ${task.frame} (Please wait)...`);
-                        await new Promise(r => setTimeout(r, 100)); // Yield to browser to paint status
-                        
-                        pathTracerRef.current.setScene(sceneRef.current, cameraRef.current);
-                        ensurePathTracerEnvironment(pathTracerRef.current);
-                    } else {
-                        // For static scenes, we only need to update the camera, which is 
-                        // automatically handled inside gpuRenderer.js (pathTracer.updateCamera).
-                        // No need to rebuild the extremely expensive BVH every frame!
+            worker.postMessage({
+                type: 'PROCESS_TASK',
+                payload: { task, config: taskConfig }
+            });
+
+            return new Promise((resolve, reject) => {
+                const handler = (e) => {
+                    const { type, payload } = e.data;
+                    if (type === 'TILE_COMPLETED' && payload.task.id === task.id) {
+                        worker.removeEventListener('message', handler);
+                        resolve();
                     }
-                    
-                    currentRenderedFrameRef.current = task.frame;
-                }
-
-                const tChunkW = parseInt(task.chunkWidth, 10) || chunkW;
-                const tChunkH = parseInt(task.chunkHeight, 10) || chunkH;
-
-                console.log(`[useRenderPipeline] ⚙️ Calling gpuRenderer renderChunk for ${tChunkW}x${tChunkH} pixels...`);
-                const effectiveSignal = taskSignal || abortController.signal;
-                const pixels = await renderChunk(
-                    rendererRef.current,
-                    pathTracerRef.current,
-                    cameraRef.current,
-                    parseInt(task.startX, 10),
-                    parseInt(task.startY, 10),
-                    tChunkW,
-                    tChunkH,
-                    width,
-                    height,
-                    samples,
-                    (progressData) => {
-                        if (isSubscribed && !effectiveSignal.aborted) {
-                            if (role === 'worker' && progressData.maxSamples > 0 && setProgress) {
-                                setProgress(progressData.samples / progressData.maxSamples);
-                            }
-                            if (role === 'worker' && progressData.pixels && onTileReceived) {
-                                onTileReceived({ chunkWidth: tChunkW, chunkHeight: tChunkH }, progressData.pixels);
-                            }
-                        }
-                    },
-                    effectiveSignal
-                );
-
-                console.log(`[useRenderPipeline] ✅ renderChunk completed for ${task.id || `${task.startX}_x_${task.startY}`}. Submitting tile...`);
-                if (isSubscribed && !effectiveSignal.aborted && pixels) {
-                    if (role === 'worker' && onTileReceived) {
-                        onTileReceived({ chunkWidth: tChunkW, chunkHeight: tChunkH }, pixels);
-                    }
-                    swarmClient.submitRenderedTile(task, pixels);
-                }
-            } catch (error) {
-                if (error.message !== "Render aborted" && error.message !== "WebGL context lost") {
-                    console.error("[useRenderPipeline] ❌ Render error:", error);
-                } else {
-                    console.log(`[useRenderPipeline] 🛑 Render aborted: ${error.message}`);
-                }
-            }
+                };
+                taskSignal?.addEventListener('abort', () => {
+                    worker.removeEventListener('message', handler);
+                    reject(new Error("Render aborted"));
+                });
+                worker.addEventListener('message', handler);
+            });
         };
 
         const setupScene = async (buffer) => {
             if (!isSubscribed) return;
-            console.log("[useRenderPipeline] 🏗️ Setting up 3D scene from GLB buffer...");
-            try {
-                const gltf = await loadGLB(buffer.slice(0));
-                console.log("[useRenderPipeline] 📦 GLB loaded successfully. Upgrading lights...");
-                sceneRef.current = new THREE.Scene();
-                sceneRef.current.add(gltf.scene);
-
-                const giConfig = upgradeSceneLights(sceneRef.current);
-                sceneRef.current.background = worldBackgroundColor(giConfig && giConfig.color);
-                sceneRef.current.backgroundIntensity = (giConfig && giConfig.intensity) || 1.0;
-
-                // Ensure at least one mesh exists to prevent empty BVH which causes Shader Error 0
-                let hasMesh = false;
-                sceneRef.current.traverse(c => { if (c.isMesh) hasMesh = true; });
-                if (!hasMesh) {
-                    console.warn("[useRenderPipeline] No meshes found. Adding dummy mesh to prevent WebGL validation failure.");
-                    const dummy = new THREE.Mesh(new THREE.BoxGeometry(0.001, 0.001, 0.001), new THREE.MeshStandardMaterial({ color: 0x000000 }));
-                    sceneRef.current.add(dummy);
-                }
-
-                const animIndex = role === 'master' ? (config?.animationIndex || 0) : (parseInt(swarmClient.animationIndex, 10) || 0);
-                if (gltf.animations && gltf.animations.length > 0) {
-                    console.log(`[useRenderPipeline] 🎞️ Model has animations. Setting up AnimationMixer for index ${animIndex}...`);
-                    mixerRef.current = new THREE.AnimationMixer(sceneRef.current);
-                    if (gltf.animations[animIndex]) {
-                        mixerRef.current.clipAction(gltf.animations[animIndex]).play();
-                    }
-                } else {
-                    console.log("[useRenderPipeline] 🎞️ No animations found in GLB.");
-                    mixerRef.current = null;
-                }
-
-                const fps = role === 'master' ? (config?.fps || 30) : (parseInt(swarmClient.fps, 10) || 30);
-                const width = role === 'master' ? (config?.width || 1920) : parseInt(swarmClient.width, 10);
-                const height = role === 'master' ? (config?.height || 1080) : parseInt(swarmClient.height, 10);
-                
-                const startFrame = role === 'master' ? (config?.startFrame || 0) : 0;
-                if (mixerRef.current) {
-                    mixerRef.current.setTime(startFrame / fps);
-                }
-                currentRenderedFrameRef.current = startFrame;
-
-                console.log("[useRenderPipeline] 🎥 Syncing camera and passing scene to PathTracer...");
-                syncCamera(sceneRef.current, cameraRef.current, width, height);
-                
-                // Speed up BVH generation by using the CENTER split strategy (0) instead of SAH (2)
-                if (pathTracerRef.current._generator) {
-                    pathTracerRef.current._generator.bvhOptions = { strategy: 0 };
-                }
-
-                if (setStatus) setStatus("Generating BVH (This may take a while)...");
-                await new Promise(r => setTimeout(r, 100)); // Yield to browser to paint status
-                
-                pathTracerRef.current.setScene(sceneRef.current, cameraRef.current);
-                
-                ensurePathTracerEnvironment(pathTracerRef.current);
-                isSceneReadyRef.current = true;
-                console.log("[useRenderPipeline] 🎉 Scene setup complete! Resuming render task queue.");
-
-                taskQueue.resume();
-
-                if (role === 'worker') {
-                    console.log("[useRenderPipeline] 🙋 Worker requesting initial tasks...");
-                    swarmClient.socketManager.emit('REQUEST_TASK');
-                }
-            } catch (err) {
-                console.error("[useRenderPipeline] ❌ Setup Scene error:", err);
-                if (setStatus) setStatus("Error setting up scene.");
-            }
+            const sceneConfig = role === 'master' ? {
+                animIndex: config?.animationIndex || 0,
+                width: config?.width || 1920,
+                height: config?.height || 1080,
+                startFrame: config?.startFrame || 0,
+                fps: config?.fps || 30
+            } : {
+                animIndex: parseInt(swarmClient.animationIndex, 10) || 0,
+                width: parseInt(swarmClient.width, 10),
+                height: parseInt(swarmClient.height, 10),
+                startFrame: 0,
+                fps: parseInt(swarmClient.fps, 10) || 30
+            };
+            
+            worker.postMessage({
+                type: 'SETUP_SCENE',
+                payload: { buffer, ...sceneConfig }
+            });
         };
 
         swarmClient.on('status', (msg) => {
             if (!isSubscribed) return;
-            console.log(`[useRenderPipeline] ℹ️ Status update: ${msg}`);
             if (setStatus) setStatus(msg);
         });
 
         swarmClient.on('newTask', (task) => {
             if (!isSubscribed) return;
-            console.log(`[useRenderPipeline] 📥 Received newTask via socket:`, task.id || `${task.startX}_x_${task.startY}`);
-
             if (setCurrentFrame) setCurrentFrame(parseInt(task.frame, 10));
             if (setChunkAssigned) setChunkAssigned(task.id || `${task.startX}_x_${task.startY}`);
             if (role === 'worker' && setProgress) setProgress(0);
@@ -267,21 +178,18 @@ export function useRenderPipeline({
 
         if (role === 'master') {
             swarmClient.on('frameComplete', (task) => {
-                console.log(`[useRenderPipeline] 🎞️ Frame ${task.frame} marked as complete by SwarmClient!`);
                 if (onFrameComplete) onFrameComplete(task);
             });
 
             swarmClient.on('tileReceived', ({ metadata, pixelBuffer }) => {
                 if (!isSubscribed) return;
                 
-                swarmClient.socketManager.emit('ACK_TILE', { id: metadata.taskId, task: { frame: metadata.frame } });
-                
                 if (onTileReceived) onTileReceived(metadata, pixelBuffer);
 
                 completedTilesRef.current += 1;
                 const totalFrames = Math.max(1, config.endFrame - config.startFrame + 1);
-                const cols = Math.ceil(config.width / 64);
-                const rows = Math.ceil(config.height / 64);
+                const cols = Math.ceil(config.width / 128);
+                const rows = Math.ceil(config.height / 128);
                 const totalTiles = totalFrames * cols * rows;
 
                 if (totalTiles > 0 && setProgress) {
@@ -381,18 +289,17 @@ export function useRenderPipeline({
                 taskQueueRef.current = null;
             }
 
-            if (pathTracerRef.current) {
-                pathTracerRef.current.dispose();
-                pathTracerRef.current = null;
-            }
-            if (rendererRef.current) {
-                rendererRef.current.dispose();
-                rendererRef.current.forceContextLoss();
-                rendererRef.current = null;
+            if (workerRef.current) {
+                workerRef.current.postMessage({ type: 'ABORT' });
+                workerRef.current = null;
             }
 
             if (swarmClient.socketManager.socket) {
                 swarmClient.socketManager.socket.disconnect();
+            }
+
+            if (renderCanvas && renderCanvas.parentNode) {
+                renderCanvas.parentNode.removeChild(renderCanvas);
             }
         };
     }, [roomId, role, file, fileHash, previewUrl, config]);

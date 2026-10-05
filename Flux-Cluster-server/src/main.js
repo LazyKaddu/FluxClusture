@@ -5,7 +5,11 @@ import { trackTaskStart, trackTaskCompletion, handleEmptyQueue } from './orchest
 
 const PORT = process.env.PORT || 8080;
 
-const io = new Server(PORT, { cors: { origin: "*" } });
+const io = new Server(PORT, { 
+    cors: { origin: "*" },
+    pingTimeout: 120000, // 2 minutes (allows long WebGL shader compilation)
+    pingInterval: 25000
+});
 console.log(`🚀 Master Node running on port ${PORT}`);
 
 // Helper: Broadcasts the live worker map to the room
@@ -198,6 +202,7 @@ io.on('connection', (socket) => {
         if (!payload.roomId) return;
         const ownerId = payload.ownerId || socket.id; // Master's socket ID is the owner
         await initializeJob(payload.roomId, payload.startFrame, payload.endFrame, payload.width, payload.height, payload.fps, payload.glbHash, payload.samples, payload.noiseThreshold, payload.animationIndex, ownerId)
+        console.log("task available for " ,payload.roomId)
         io.to(payload.roomId).emit('TASKS_AVAILABLE');
     });
 });

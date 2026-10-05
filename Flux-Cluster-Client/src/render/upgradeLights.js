@@ -1,6 +1,9 @@
 import { 
     Color,
-    DirectionalLight 
+    DirectionalLight,
+    Mesh,
+    PlaneGeometry,
+    MeshPhysicalMaterial
 } from 'three';
 import { 
     ShapedAreaLight, 
@@ -17,7 +20,7 @@ export function upgradeSceneLights(scene) {
     const nodesToRemove = [];
     
     // Default fallback if no World_GI placeholder is found
-    let globalIllumination = { intensity: 1.0, color: 0xffffff };
+    let globalIllumination = { intensity: 0.0, color: 0x000000 };
     
 
     scene.updateMatrixWorld(true);
@@ -37,10 +40,20 @@ export function upgradeSceneLights(scene) {
 
             if (name.includes('area')) {
                 // Area lights use the placeholder's scale for physical dimensions
-                const width = child.scale.x;
-                const height = child.scale.y;
-                newLight = new ShapedAreaLight(hexColor, intensity, width, height);
-                newLight.isCircular = false;
+                const width = Math.max(child.scale.x || 1, 0.0001);
+                const height = Math.max(child.scale.y || 1, 0.0001);
+                const geometry = new PlaneGeometry(width, height);
+                const material = new MeshPhysicalMaterial({
+                    emissive: hexColor !== undefined ? hexColor : 0xffffff,
+                    emissiveIntensity: intensity !== undefined ? intensity : 1,
+                    transmission: 1.0,
+                    opacity: 1.0,
+                    transparent: true,
+                    ior: 1.0,
+                    roughness: 0.0,
+                    side: 2 // DoubleSide, just in case the plane is facing backwards
+                });
+                newLight = new Mesh(geometry, material);
                 child.getWorldPosition(newLight.position);
                 child.getWorldQuaternion(newLight.quaternion);
             } 
@@ -140,6 +153,14 @@ export function ensurePathTracerEnvironment(pathTracer) {
             colorBg.update();
             if (pathTracer._pathTracer?.material) {
                 pathTracer._pathTracer.material.backgroundMap = colorBg;
+                pathTracer._pathTracer.material.envMapInfo.updateFrom(colorBg);
+                pathTracer._pathTracer.material.environmentIntensity = scene.backgroundIntensity !== undefined ? scene.backgroundIntensity : 1.0;
+            }
+        } else {
+            // Even if the data was already generated, ensure it's used for the environment GI too
+            if (pathTracer._pathTracer?.material) {
+                pathTracer._pathTracer.material.envMapInfo.updateFrom(colorBg);
+                pathTracer._pathTracer.material.environmentIntensity = scene.backgroundIntensity !== undefined ? scene.backgroundIntensity : 1.0;
             }
         }
     }
