@@ -117,10 +117,10 @@ const UploadBefore = () => {
 
 
     return (
-        <div className="h-6/8 text-white font-mono w-full flex flex-col">
+        <div className="h-full lg:h-[80%] max-h-screen w-full md:w-[90%] lg:w-[85%] xl:w-3/5 text-white font-mono flex flex-col pt-8 lg:pt-0">
 
             {/* HEADER: Flexbox for spacing between ends */}
-            <header className="flex justify-between items-center mb-6">
+            <header className="flex justify-between items-center mb-6 shrink-0">
                 <div className="text-sm font-bold">&gt;_ upload</div>
                 <div className="flex items-center gap-3">
                     <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
@@ -128,18 +128,22 @@ const UploadBefore = () => {
                 </div>
             </header>
 
-            <div className='flex justify-between gap-10 w-full h-full'>
-                <div className='flex flex-col justify-between h-full w-full'>
-                    <div className='flex gap-4 h-4/7'>
-                        <div className='border w-4/7'>
-                            <div className='border-b p-2'>
+            <div className='flex flex-col lg:flex-row justify-between gap-8 lg:gap-10 w-full h-full overflow-y-auto lg:overflow-visible pb-10 lg:pb-0 scrollbar-thin pr-2 lg:pr-0'>
+                {/* Left Controls Section */}
+                <div className='flex flex-col justify-between h-full w-full lg:w-[55%] gap-8 lg:gap-0'>
+                    
+                    {/* Animations and Quality Settings */}
+                    <div className='flex flex-col md:flex-row gap-4 h-auto lg:h-[55%]'>
+                        
+                        <div className='border w-full md:w-[60%] h-48 md:h-full flex flex-col'>
+                            <div className='border-b p-2 shrink-0'>
                                 Animations
                             </div>
-                            <div className='overflow-scroll h-[87%] scrollbar-thin'>
+                            <div className='overflow-y-auto flex-1 scrollbar-thin'>
                                 {
                                     (Animations.length ? Animations.map((anim, index) => {
                                         return (
-                                            <p className={`pl-4 my-2  text-[#606060] ${RenderAnimation === index ? 'text-black bg-white' : 'hover:text-white'}`} onClick={() => setRenderAnimation(index)}
+                                            <p className={`pl-4 my-2 text-[#606060] cursor-pointer ${RenderAnimation === index ? 'text-black bg-white' : 'hover:text-white'}`} onClick={() => setRenderAnimation(index)}
                                             key={index}
                                             >
                                                 {anim}
@@ -152,10 +156,10 @@ const UploadBefore = () => {
                                 }
                             </div>
                         </div>
-                        <div className='flex flex-col justify-between'>
 
-                            <div className='border h-3/7 flex gap-5 items-center flex-col'>
-                                <div className='p-2 w-full'>
+                        <div className='flex flex-row md:flex-col justify-between w-full md:w-[40%] gap-4 md:gap-4'>
+                            <div className='border flex-1 flex flex-col gap-2 items-center justify-center py-4'>
+                                <div className='p-2 w-full text-center'>
                                     samples
                                 </div>
                                 <input
@@ -166,8 +170,8 @@ const UploadBefore = () => {
                                     onChange={(e)=> setSamples(e.target.value)}
                                 />
                             </div>
-                            <div className='border h-3/7 gap-5 flex items-center flex-col'>
-                                <div className='p-2 w-full'>
+                            <div className='border flex-1 flex flex-col gap-2 items-center justify-center py-4'>
+                                <div className='p-2 w-full text-center text-sm lg:text-base'>
                                     noise Threshold
                                 </div>
                                 <input
@@ -178,21 +182,17 @@ const UploadBefore = () => {
                                     onChange={(e)=>setNoiseThreshold(e.target.value)}
                                     />
                             </div>
-
-
                         </div>
                     </div>
-                    <div className=''>
-                        <p>render from range</p>
-                        <div className="w-[80%] mb-4">
+
+                    {/* Rendering Range and Settings */}
+                    <div className='w-full'>
+                        <p className='mb-4'>render from range</p>
+                        <div className="w-[80%] mb-8">
 
                             {/* Slider */}
                             <div className="relative h-6">
-
-                                {/* Track */}
                                 <div className="absolute top-1/2 left-0 w-full h-0.5 -translate-y-1/2 bg-white/20" />
-
-                                {/* Selected range */}
                                 <div
                                     className="absolute top-1/2 h-0.5 -translate-y-1/2 bg-white"
                                     style={{
@@ -200,8 +200,6 @@ const UploadBefore = () => {
                                         right: `${100 - (end / max) * 100}%`,
                                     }}
                                 />
-
-                                {/* Start */}
                                 <input
                                     type="range"
                                     min={min}
@@ -213,8 +211,6 @@ const UploadBefore = () => {
                                     }}
                                     className="range-input"
                                 />
-
-                                {/* End */}
                                 <input
                                     type="range"
                                     min={min}
@@ -226,9 +222,7 @@ const UploadBefore = () => {
                                     }}
                                     className="range-input"
                                 />
-
                             </div>
-
                             <div className="flex justify-between text-sm text-white/60">
                                 <span>{start}</span>
                                 <span>{end}</span>
@@ -236,25 +230,26 @@ const UploadBefore = () => {
 
                         </div>
 
-                        <div className="flex">
-                            <div>
-                                <div className='flex gap-4'>
-                                    <p className='w-10'>start</p>
-                                    <input className='appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center w-[20%]'
+                        <div className="flex flex-col md:flex-row gap-6 lg:gap-4">
+                            <div className="flex-1 flex flex-col gap-4">
+                                <div className='flex items-center gap-4'>
+                                    <p className='w-12'>start</p>
+                                    <input className='appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center flex-1'
                                         type="number"
                                         placeholder={start}
+                                        value={start}
                                         onChange={(e) => {
-
                                             const value = Math.min(Number(e.target.value), end);
                                             setStart(value);
                                         }}
                                     />
                                 </div>
-                                <div className='flex gap-4'>
-                                    <p className='w-10'>end</p>
-                                    <input className="appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center w-[20%]"
+                                <div className='flex items-center gap-4'>
+                                    <p className='w-12'>end</p>
+                                    <input className="appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center flex-1"
                                         type='number'
                                         placeholder={end}
+                                        value={end}
                                         onChange={(e) => {
                                             const value = Math.max(Number(e.target.value), start);
                                             setEnd(value);
@@ -262,63 +257,67 @@ const UploadBefore = () => {
                                     />
                                 </div>
                             </div>
-                            <div>
-                                <div className="flex gap-4">
-                                    <p className='w-10'>Fps</p>
-                                    <input className="appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center w-[20%]"
+                            
+                            <div className="flex-1 flex flex-col gap-4">
+                                <div className="flex items-center gap-4">
+                                    <p className='w-14'>Fps</p>
+                                    <input className="appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center flex-1"
                                         type='number'
                                         placeholder={30}
                                         value={Fps}
                                         onChange={(e) => (setFps(e.target.value))}
                                     />
                                 </div>
-                                <div>
-                                    <div className="flex gap-4">
-                                        <p>Width</p>
-                                        <input className="appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center w-[30%]"
-                                            type='number'
-                                            value={width}
-                                            placeholder="1900"
-                                            onChange={(e) => setWidth(e.target.value)}
-                                        />
-                                    </div >
-                                    <div className="flex gap-4">
-                                            <p>Height</p>
-                                            <input className="appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center w-[30%]"
-                                                type='number'
-                                                placeholder="1400"
-                                                value={height}
-                                                onChange={(e) => setHeight(e.target.value)}
-                                            />
-                                    </div>
+                                <div className="flex items-center gap-4">
+                                    <p className='w-14'>Width</p>
+                                    <input className="appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center flex-1"
+                                        type='number'
+                                        value={width}
+                                        placeholder="1900"
+                                        onChange={(e) => setWidth(e.target.value)}
+                                    />
+                                </div >
+                                <div className="flex items-center gap-4">
+                                    <p className='w-14'>Height</p>
+                                    <input className="appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center flex-1"
+                                        type='number'
+                                        placeholder="1400"
+                                        value={height}
+                                        onChange={(e) => setHeight(e.target.value)}
+                                    />
                                 </div>
                             </div>
                         </div>
                     </div>
-                    
                 </div>
-                <div className=' w-5/9'>
-                        <div className='border aspect-square relative mb-3'>
-                            <p className='border-b p-2 w-full'>asset model preview</p>
-                            <div className='w-full h-[90%] flex items-center justify-center'>
-                                <UploadBox file={file} setFile={setFile} loading={loading} setLoading={setLoading} previewUrl={previewUrl} setPreviewUrl={setPreviewUrl} />
-                            </div>
+
+                {/* Right Preview Section */}
+                <div className='w-full lg:w-[40%] flex flex-col justify-end'>
+                    <div className='border aspect-square relative mb-4 flex flex-col'>
+                        <p className='border-b p-2 w-full shrink-0'>asset model preview</p>
+                        <div className='w-full flex-1 flex items-center justify-center overflow-hidden bg-black/50'>
+                            <UploadBox file={file} setFile={setFile} loading={loading} setLoading={setLoading} previewUrl={previewUrl} setPreviewUrl={setPreviewUrl} />
                         </div>
-                        <div className="flex items-center gap-2 mb-3">
-                            <input
-                                type="checkbox"
-                                id="masterRender"
-                                className="w-4 h-4 cursor-pointer"
-                                checked={masterWillRender}
-                                onChange={(e) => setMasterWillRender(e.target.checked)}
-                            />
-                            <label htmlFor="masterRender" className="text-sm cursor-pointer hover:text-gray-300">
-                                I also want to render the chunk
-                            </label>
-                        </div>
-                        <button className='border w-full aspect-6/1' onClick={createRoom}>start Rendering</button>
                     </div>
-            </div >
+                    
+                    <div className="flex items-center gap-2 mb-4">
+                        <input
+                            type="checkbox"
+                            id="masterRender"
+                            className="w-4 h-4 cursor-pointer"
+                            checked={masterWillRender}
+                            onChange={(e) => setMasterWillRender(e.target.checked)}
+                        />
+                        <label htmlFor="masterRender" className="text-sm cursor-pointer hover:text-gray-300">
+                            I also want to render the chunk
+                        </label>
+                    </div>
+                    
+                    <button className='border w-full py-4 uppercase tracking-widest hover:bg-white hover:text-black transition-colors shrink-0' onClick={createRoom}>
+                        start Rendering
+                    </button>
+                </div>
+            </div>
         </div>
     )
 }

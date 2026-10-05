@@ -132,25 +132,26 @@ const UploadAfter = () => {
     };
 
     return (
-        <div className='w-[84%] h-[90%] geist-mono-regular'>
-            <div className='text-sm text-[#606060]'>
-                <div className='flex justify-between items-center mb-2'>
-                    <p className='text-white'>Room : {roomId}</p>
+        <div className='w-full md:w-[90%] lg:w-[80%] xl:w-[70%] max-w-5xl h-auto lg:h-[90%] max-h-screen geist-mono-regular flex flex-col justify-center pt-8 lg:pt-0'>
+            <div className='text-sm text-[#606060] flex flex-col gap-2 mb-4'>
+                <div className='flex flex-col sm:flex-row justify-between sm:items-center'>
+                    <p className='text-white font-bold'>Room : {roomId}</p>
                     <span className='text-xs text-gray-400'>Status: {status}</span>
                 </div>
-                <div className='mb-2'>
-                    <div className='flex justify-between'>
-                        <p>Rendering : {file?.name || 'Model'}</p>
-                        <p>/ Frame : {currentFrame}/{endFrame}</p>
-                        <p>/ Chunk Assigned : {chunkAssigned}</p>
+                <div>
+                    <div className='flex flex-col sm:flex-row justify-between gap-1 sm:gap-4'>
+                        <p className='truncate'>Rendering : {file?.name || 'Model'}</p>
+                        <p className='whitespace-nowrap'>/ Frame : {currentFrame}/{endFrame}</p>
+                        <p className='whitespace-nowrap truncate'>/ Chunk : {chunkAssigned}</p>
                     </div>
 
-                    <p>samples: {samples} noise threshold: {noiseThreshold}</p>
+                    <p className='mt-1 text-xs'>samples: {samples} | noise threshold: {noiseThreshold}</p>
                 </div>
             </div>
+            
             <div
                 ref={containerCanvas}
-                className="w-full mb-4 aspect-video bg-white items-center flex justify-center overflow-hidden"
+                className="w-full mb-6 aspect-video bg-black/50 items-center flex justify-center overflow-hidden border border-white/20 shadow-xl"
             >
                 <canvas
                     ref={canvasRef}
@@ -164,23 +165,22 @@ const UploadAfter = () => {
                     }}
                 />
             </div>
+            
             <div className='w-full flex justify-center'>
-
                 {(1 - progress) ?
-                    <div className='w-[90%] border h-7 flex items-center'>
+                    <div className='w-[90%] border border-white/30 h-8 flex items-center bg-black overflow-hidden'>
                         <div
-                            className='h-full bg-white text-black p-1 flex items-center justify-center transition-all duration-150 text-xs font-bold'
+                            className='h-full bg-white text-black p-1 flex items-center justify-center transition-all duration-300 text-xs font-bold'
                             style={{ width: `${Math.max(2, progress * 100)}%` }}
                         >
                             {(progress * 100).toFixed(1)}%
                         </div>
                     </div>
                     :
-                    <button className='h-full aspect-5/1 bg-none border border-white text-white' onClick={handleExportVideo}>
+                    <button className='px-10 py-3 uppercase tracking-widest bg-none border border-white text-white hover:bg-white hover:text-black transition-colors font-bold' onClick={handleExportVideo}>
                         Export video
                     </button>
                 }
-
             </div>
         </div>
     );
