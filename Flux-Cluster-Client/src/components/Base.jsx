@@ -3,6 +3,7 @@ import { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import TextAnimated from './TextAnimated';
+import { useNavigate } from 'react-router-dom';
 
 
 
@@ -16,10 +17,11 @@ const NavLinks = ({ href, text }) => {
 
 const Base = ({ childComponent: RenderPage }) => {
     let currentPage = "start";
+    const navigate = useNavigate();
 
-    if (RenderPage.name === "Join") {
+    if (RenderPage.name === "JoinBefore" || RenderPage.name === "JoinAfter" || RenderPage.name === "Join") {
         currentPage = "end";
-    } else if (RenderPage.name === "Upload") {
+    } else if (RenderPage.name === "UploadBefore" || RenderPage.name === "UploadAfter" || RenderPage.name === "Upload" || RenderPage.name === "Editor") {
         currentPage = "center";
     }
 
@@ -81,16 +83,16 @@ const Base = ({ childComponent: RenderPage }) => {
             <div className='absolute z-10 w-full bg-black flex justify-between min-h-screen' ref={mainRef} >
                 {/* Left Panel */}
                 <div className='flex flex-col justify-between ml-5 md:ml-10 my-5 md:my-10 pointer-events-none z-20'>
-                    <div className='bebas-neue-regular capitalize pointer-events-auto'>
+                    <div className='bebas-neue-regular capitalize pointer-events-auto cursor-pointer' onClick={() => navigate('/')}>
                         <span className=' text-2xl md:text-4xl'>flux</span><br /><span className='text-sm md:text-xl relative bottom-2 md:bottom-3'>cluster</span>
                     </div>
 
-                    <div className={'space-mono-regular hidden md:flex transition-all ' + `items-${currentPage}`}>
+                    <div className={'space-mono-regular hidden md:flex transition-all pointer-events-auto ' + `items-${currentPage}`}>
                         <div className='bg-white w-2 h-2 m-[5.5px]' />
                         <div className='text-sm'>
-                            <div> DESC CLUSTER</div>
-                            <div> UPLOAD TASK</div>
-                            <div> JOIN TASK</div>
+                            <div className='cursor-pointer hover:text-gray-400 transition-colors' onClick={() => navigate('/')}> DESC CLUSTER</div>
+                            <div className='cursor-pointer hover:text-gray-400 transition-colors' onClick={() => navigate('/upload')}> UPLOAD TASK</div>
+                            <div className='cursor-pointer hover:text-gray-400 transition-colors' onClick={() => navigate('/join')}> JOIN TASK</div>
                         </div>
                     </div>
                     <div className='space-mono-regular text-sm hidden md:block'>
