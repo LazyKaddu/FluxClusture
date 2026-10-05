@@ -3,7 +3,7 @@ import {
     DirectionalLight,
     Mesh,
     PlaneGeometry,
-    MeshStandardMaterial
+    MeshPhysicalMaterial
 } from 'three';
 import { 
     ShapedAreaLight, 
@@ -43,11 +43,14 @@ export function upgradeSceneLights(scene) {
                 const width = Math.max(child.scale.x || 1, 0.0001);
                 const height = Math.max(child.scale.y || 1, 0.0001);
                 const geometry = new PlaneGeometry(width, height);
-                const material = new MeshStandardMaterial({
+                const material = new MeshPhysicalMaterial({
                     emissive: hexColor !== undefined ? hexColor : 0xffffff,
                     emissiveIntensity: intensity !== undefined ? intensity : 1,
+                    transmission: 1.0,
+                    opacity: 1.0,
                     transparent: true,
-                    opacity: 0.0,
+                    ior: 1.0,
+                    roughness: 0.0,
                     side: 2 // DoubleSide, just in case the plane is facing backwards
                 });
                 newLight = new Mesh(geometry, material);
