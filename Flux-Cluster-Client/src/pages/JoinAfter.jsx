@@ -52,44 +52,46 @@ const JoinAfter = () => {
     });
 
     return (
-        <div className='w-[80%] h-2/3 flex justify-between flex-col geist-mono-regular'>
-            <div className='flex justify-between items-center text-sm'>
-                <div className='w-1/3'>
-                    <div className='geist-mono-bold mb-10 text-white'>
-                        room : {roomID}
+        <div className='w-full md:w-[90%] lg:w-[80%] xl:w-[70%] max-w-5xl h-auto min-h-[66%] flex justify-between flex-col geist-mono-regular p-6'>
+            <div className='flex flex-col md:flex-row justify-between items-start md:items-center text-sm gap-8 md:gap-4'>
+                
+                <div className='w-full md:w-1/2 lg:w-5/12 flex flex-col gap-6'>
+                    <div>
+                        <div className='geist-mono-bold text-xl text-white mb-2'>
+                            room : {roomID}
+                        </div>
+                        <div className='text-xs text-gray-400'>Status: {status}</div>
                     </div>
 
-                    <div className='text-xs text-gray-400 mb-4'>Status: {status}</div>
-
-                    <div className='text-[#606060] mb-10'>
+                    <div className='text-[#606060] flex flex-col gap-1'>
                         <p>Rendering node active</p>
                         <p>Frame: {currentFrame}</p>
-                        <p>Chunk Assigned: {chunkAssigned}</p>
+                        <p className='break-all'>Chunk Assigned: {chunkAssigned}</p>
                     </div>
 
-                    <div className='border w-full p-4'>
-                        <h3 className='text-white mb-3'>Render Settings</h3>
-                        <div className='grid grid-cols-2 gap-2'>
+                    <div className='border border-white/20 w-full p-4 bg-black/30'>
+                        <h3 className='text-white mb-3 font-bold'>Render Settings</h3>
+                        <div className='grid grid-cols-2 gap-y-3 gap-x-4'>
                             <p className='text-[#606060] text-xs'>
-                                Resolution: {settings.width && settings.height ? `${settings.width}x${settings.height}` : '-'}
+                                Res: {settings.width && settings.height ? `${settings.width}x${settings.height}` : '-'}
                             </p>
                             <p className='text-[#606060] text-xs'>
                                 Samples: {settings.samples || '-'}
                             </p>
                             <p className='text-[#606060] text-xs'>
-                                Noise Threshold: {settings.noiseThreshold || '-'}
+                                Noise: {settings.noiseThreshold || '-'}
                             </p>
                             <p className='text-[#606060] text-xs'>
                                 FPS: {settings.fps || '-'}
                             </p>
-                            <p className='text-[#606060] text-xs'>
-                                Animation Index: {settings.animationIndex !== undefined ? settings.animationIndex : '-'}
+                            <p className='text-[#606060] text-xs col-span-2'>
+                                Anim Index: {settings.animationIndex !== undefined ? settings.animationIndex : '-'}
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <div className='aspect-square w-5/16 bg-[#1a1a1a] flex items-center justify-center overflow-hidden border border-gray-800 rounded'>
+                <div className='w-full sm:w-2/3 md:w-1/2 lg:w-4/12 max-w-[300px] aspect-square bg-[#1a1a1a] flex items-center justify-center overflow-hidden border border-gray-800 rounded-lg mx-auto md:mx-0'>
                     {/* 
                         Size the internal canvas buffer to exactly 64x64 so it matches the chunk, 
                         and let CSS scale it up to fill the container.
@@ -100,14 +102,15 @@ const JoinAfter = () => {
                         width={64}
                         height={64}
                         className="w-full h-full"
+                        style={{ imageRendering: 'pixelated' }}
                     />
                 </div>
             </div>
 
-            <div className='w-full flex justify-center mt-6'>
-                <div className='w-full border h-7'>
+            <div className='w-full flex justify-center mt-12'>
+                <div className='w-full border border-white/30 h-8 bg-black overflow-hidden'>
                     <div
-                        className='h-full bg-white text-black p-1 flex items-center justify-center transition-all duration-150 text-xs font-bold'
+                        className='h-full bg-white text-black p-1 flex items-center justify-center transition-all duration-300 text-xs font-bold'
                         style={{ width: `${Math.max(2, progress * 100)}%` }}
                     >
                         {(progress * 100).toFixed(1)}%
