@@ -2,7 +2,7 @@ import { SocketManager } from './SocketManager.js';
 import { WebRTCManager } from './WebRTCManager.js';
 
 // Vite statically replaces import.meta.env variables during build on Vercel
-const SOCKET_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3001';
+const SOCKET_URL = import.meta.env.VITE_SERVER_URL || 'https://estimate-fender-quirk.ngrok-free.dev';
 
 
 class SwarmClient {
