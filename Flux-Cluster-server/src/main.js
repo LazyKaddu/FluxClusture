@@ -7,9 +7,9 @@ const PORT = process.env.PORT || 8080;
 
 const io = new Server(PORT, {
     cors: {
-        origin: "https://flux-cluster.vercel.app",
+        origin: "*",
         methods: ["GET", "POST", "OPTIONS"],
-        allowedHeaders: ["*"]
+        allowedHeaders: ["*", "ngrok-skip-browser-warning"]
     },
     pingTimeout: 120000, // 2 minutes (allows long WebGL shader compilation)
     pingInterval: 25000
