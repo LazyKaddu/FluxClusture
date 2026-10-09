@@ -173,7 +173,13 @@ export function useRenderPipeline({
                 };
             }
 
-            taskQueue.enqueue(enrichedTask, processTask);
+            taskQueue.enqueue(enrichedTask, processTask).catch((err) => {
+                // Ignore expected cancellation errors during unmount/navigation
+                if (err && (err.message.includes('disposed') || err.message.includes('aborted') || err.message.includes('cancelled'))) {
+                    return;
+                }
+                console.error("Task failed:", err);
+            });
         });
 
         if (role === 'master') {
