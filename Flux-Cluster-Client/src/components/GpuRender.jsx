@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { WebGLPathTracer } from 'three-gpu-pathtracer';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { renderChunk } from '../render/gpuRenderer.js';
+import { GenerateMeshBVHWorker } from 'three-mesh-bvh/src/workers/GenerateMeshBVHWorker.js';
 
 const createScene = () => {
   const scene = new THREE.Scene();
@@ -78,6 +79,7 @@ export default function PathTracerCanvas() {
 
     // 3. Initialize the Path Tracer
     const pathTracer = new WebGLPathTracer(renderer);
+    pathTracer.setBVHWorker(new GenerateMeshBVHWorker());
     
     // Newer versions of three-gpu-pathtracer recommend generating the BVH asynchronously 
     // to prevent freezing the UI thread, but synchronous is fine for small scenes.

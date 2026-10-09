@@ -7,6 +7,7 @@ import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter';
 import { WebGLPathTracer } from 'three-gpu-pathtracer';
 import { generateFileHash } from '../utils/helper.js';
 import { ensurePathTracerEnvironment } from '../render/upgradeLights.js';
+import { GenerateMeshBVHWorker } from 'three-mesh-bvh/src/workers/GenerateMeshBVHWorker.js';
 
 const Editor = () => {
     const location = useLocation();
@@ -64,6 +65,7 @@ const Editor = () => {
         controlsRef.current = controls;
 
         const pathTracer = new WebGLPathTracer(renderer);
+        pathTracer.setBVHWorker(new GenerateMeshBVHWorker());
         pathTracer.rasterizeScene = false;
         pathTracer.renderDelay = 0;
         pathTracerRef.current = pathTracer;
