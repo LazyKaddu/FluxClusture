@@ -81,7 +81,22 @@ export default function PathTracerCanvas() {
     
     // Newer versions of three-gpu-pathtracer recommend generating the BVH asynchronously 
     // to prevent freezing the UI thread, but synchronous is fine for small scenes.
-    pathTracer.setScene(scene, camera);
+    let isSized = false;
+    let isReady = false;
+
+    const initTracer = async () => {
+      if (typeof pathTracer.setSceneAsync === 'function') {
+        await pathTracer.setSceneAsync(scene, camera);
+      } else {
+        pathTracer.setScene(scene, camera);
+      }
+
+      if (typeof pathTracer.compileAsync === 'function') {
+        await pathTracer.compileAsync();
+      }
+      isReady = true;
+    };
+    initTracer();
 
     // 4. Controls
     const controls = new OrbitControls(camera, renderer.domElement);
@@ -91,13 +106,12 @@ export default function PathTracerCanvas() {
 
     // 5. Safe Render Loop
     let animationId;
-    let isSized = false;
 
     const renderLoop = () => {
       animationId = requestAnimationFrame(renderLoop);
       
-      // ONLY render if we have a valid framebuffer size > 0
-      if (isSized) {
+      // ONLY render if we have a valid framebuffer size > 0 and tracer is ready
+      if (isSized && isReady) {
         pathTracer.renderSample();
       }
     };
