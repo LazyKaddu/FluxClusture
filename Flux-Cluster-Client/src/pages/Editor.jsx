@@ -131,8 +131,15 @@ const Editor = () => {
                 }
 
                 setLights(extractedLights);
-                pathTracer.setScene(scene, camera);
+                if (typeof pathTracer.setSceneAsync === 'function') {
+                    await pathTracer.setSceneAsync(scene, camera);
+                } else {
+                    pathTracer.setScene(scene, camera);
+                }
                 ensurePathTracerEnvironment(pathTracer);
+                if (typeof pathTracer.compileAsync === 'function') {
+                    await pathTracer.compileAsync();
+                }
                 setIsLoading(false);
             } catch (error) {
                 console.error("Failed to load GLB", error);
@@ -214,6 +221,9 @@ const Editor = () => {
         if (previewMode === 'pathtracer' && pathTracerRef.current) {
             pathTracerRef.current.updateScene();
             pathTracerRef.current.updateCamera();
+            if (typeof pathTracerRef.current.compileAsync === 'function') {
+                pathTracerRef.current.compileAsync();
+            }
         }
     };
 
