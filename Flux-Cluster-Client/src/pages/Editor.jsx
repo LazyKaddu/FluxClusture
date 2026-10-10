@@ -7,6 +7,7 @@ import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter';
 import { WebGLPathTracer } from 'three-gpu-pathtracer';
 import { generateFileHash } from '../utils/helper.js';
 import { ensurePathTracerEnvironment } from '../render/upgradeLights.js';
+import { GenerateMeshBVHWorker } from 'three-mesh-bvh/src/workers/GenerateMeshBVHWorker.js';
 
 const Editor = () => {
     const location = useLocation();
@@ -64,6 +65,7 @@ const Editor = () => {
         controlsRef.current = controls;
 
         const pathTracer = new WebGLPathTracer(renderer);
+        pathTracer.setBVHWorker(new GenerateMeshBVHWorker());
         pathTracer.rasterizeScene = false;
         pathTracer.renderDelay = 0;
         pathTracerRef.current = pathTracer;
@@ -131,8 +133,15 @@ const Editor = () => {
                 }
 
                 setLights(extractedLights);
-                pathTracer.setScene(scene, camera);
+                if (typeof pathTracer.setSceneAsync === 'function') {
+                    await pathTracer.setSceneAsync(scene, camera);
+                } else {
+                    pathTracer.setScene(scene, camera);
+                }
                 ensurePathTracerEnvironment(pathTracer);
+                if (typeof pathTracer.compileAsync === 'function') {
+                    await pathTracer.compileAsync();
+                }
                 setIsLoading(false);
             } catch (error) {
                 console.error("Failed to load GLB", error);
@@ -214,6 +223,9 @@ const Editor = () => {
         if (previewMode === 'pathtracer' && pathTracerRef.current) {
             pathTracerRef.current.updateScene();
             pathTracerRef.current.updateCamera();
+            if (typeof pathTracerRef.current.compileAsync === 'function') {
+                pathTracerRef.current.compileAsync();
+            }
         }
     };
 
