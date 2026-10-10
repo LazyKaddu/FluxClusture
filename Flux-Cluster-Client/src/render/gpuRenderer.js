@@ -437,7 +437,7 @@ export function renderChunk(
                         return;
                     }
 
-                    if (pathTracer.samples > samplesBefore) {
+                    if (pathTracer.samples > samplesBefore || pathTracer.isCompiling) {
                         lastProgressAt = now();
                     } else if (now() - lastProgressAt > stallTimeoutMs) {
                         finish(new Error(`Path tracer stopped accumulating samples [chunk: ${chunkWidth}x${chunkHeight}, start: (${startX}, ${startY}), samples: ${pathTracer.samples}/${targetSamples}]`));
