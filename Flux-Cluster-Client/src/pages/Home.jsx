@@ -4,7 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import { ReactLenis } from 'lenis/react';
 import ImageFade from '../components/ImageFade';
-import ModelCanvas from '../components/Model';
+import HeroNetwork3D from '../components/HeroNetwork3D';
 
 
 gsap.registerPlugin(ScrollTrigger);
@@ -48,8 +48,8 @@ const Home = () => {
                         <span className='text-white'>NEW</span> ERA OF</span>COMPUTING
                 </section>
 
-                <section className="snap-panel h-screen w-full">
-                    <ModelCanvas url={"/mobiusStrip.glb"}/>
+                <section className="snap-panel relative h-screen w-full bg-[#050505] overflow-hidden">
+                    <HeroNetwork3D />
                 </section>
                 
                 <section className="snap-panel h-screen w-full flex flex-col md:flex-row items-center justify-center px-6">
