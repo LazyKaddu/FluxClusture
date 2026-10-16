@@ -107,10 +107,14 @@ varying vec3 vWorldPosition;
 varying float vDistToCenter;
 
 void main() {
-  float wave = sin(vDistToCenter * 0.16 - uTime * 3.5);
-  float pulse = smoothstep(0.2, 0.9, wave);
-  vec3 color = mix(uLineColor, uAccentColor, pulse * 0.7);
-  float alpha = 0.2 + 0.6 * pulse;
+  // Animated energy wave flowing through space
+  float wave = sin(vDistToCenter * 0.18 - uTime * 3.5);
+  float pulse = smoothstep(0.3, 1.0, wave);
+
+  // Dynamic blend between subtle tether color and high-energy accent pulse
+  vec3 color = mix(uLineColor, uAccentColor, pulse * 0.85);
+  float alpha = 0.25 + 0.65 * pulse;
+
   gl_FragColor = vec4(color, alpha);
 }
 `;
@@ -201,7 +205,7 @@ export const NodeMesh = ({
         if (materialRef.current) {
           gsap.to(materialRef.current.uniforms.uMix, {
             value: 0,
-            duration: 0.6,
+            duration: 0.3,
             ease: 'sine.out',
           });
         }
@@ -258,8 +262,8 @@ const NetworkLines = ({
   const lineUniforms = useMemo(
     () => ({
       uTime: { value: 0 },
-      uLineColor: { value: new THREE.Color(0x555555) },
-      uAccentColor: { value: new THREE.Color(0x38bdf8) },
+      uLineColor: { value: new THREE.Color(0x444444) },
+      uAccentColor: { value: new THREE.Color(0xaf3240) },
     }),
     []
   );
