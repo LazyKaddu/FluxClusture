@@ -14,15 +14,15 @@ export { roseVertexShader, roseFragmentShader };
  */
 const RoseMesh = ({
   modelPath = '/Rose.glb',
-  scale = 6.0,
+  scale = 1.0,
   position = [0, 0, 0],
   rotation = [0, 0, 0],
   glowStrength = 1.4,
   glowPower = 2.8,
-  opacity = 0.95,
+  opacity = 0.25,
   mix = 0.0,
   autoRotate = true,
-  autoRotateSpeed = 0.25,
+  autoRotateSpeed = 0.1,
   customVertexShader,
   customFragmentShader,
 }) => {
