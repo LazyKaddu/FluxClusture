@@ -16,31 +16,94 @@ import {
 export { DEFAULT_NODE_COUNT, DEFAULT_MAX_CONNECTIONS, DEFAULT_BOUNDARY, DEFAULT_PROXIMITY_THRESHOLD };
 
 /**
- * Default custom vertex shader chunk injected into MeshStandardMaterial via onBeforeCompile.
- * Adds a subtle autonomous breathing pulse to the cube vertices.
+ * Custom GLSL vertex shader for the cube nodes.
  */
-export const defaultNodeVertexShaderChunk = `
-  // Custom vertex shader chunk: subtle vertex expansion pulse
+export const nodeVertexShader = `
+varying vec2 vUv;
+varying vec3 vWorldPos;
+varying vec3 vWorldNormal;
+
+uniform float uXval;
+uniform float uMix;
+
+void main() {
+  vUv = uv;
+
+  vec3 uPosition = position;
+  uPosition.x = abs(sin((uPosition.x * 0.05) + uXval) * uPosition.y);
+  uPosition.z = sin(uPosition.y * 5.5) * uPosition.z;
+
+  vec3 fPosition = mix(position, uPosition, uMix);
+
   #ifdef USE_INSTANCING
-    float nodePhase = float(gl_InstanceID) * 0.45;
+    vec4 worldPos = modelMatrix * instanceMatrix * vec4(fPosition, 1.0);
+    vWorldNormal = normalize(mat3(modelMatrix * instanceMatrix) * normal);
   #else
-    float nodePhase = 0.0;
+    vec4 worldPos = modelMatrix * vec4(fPosition, 1.0);
+    vWorldNormal = normalize(mat3(modelMatrix) * normal);
   #endif
-  float pulse = sin(uTime * 2.5 + nodePhase) * 0.06;
-  transformed += normal * pulse;
+  vWorldPos = worldPos.xyz;
+
+  gl_Position = projectionMatrix * viewMatrix * worldPos;
+}
 `;
 
 /**
- * Default custom fragment shader chunk injected into MeshStandardMaterial via onBeforeCompile.
- * Adds a glowing Fresnel rim and cybernetic energy highlights while preserving PBR lighting.
+ * Custom GLSL fragment shader for the cube nodes.
  */
-export const defaultNodeFragmentShaderChunk = `
-  // Custom fragment shader chunk: Fresnel rim glow & cybernetic emission
-  vec3 viewDir = normalize(vViewPosition);
-  float fresnel = pow(1.0 - clamp(abs(dot(viewDir, normal)), 0.0, 1.0), 3.0);
-  vec3 rimGlow = uGlowColor * fresnel * 0.9;
-  gl_FragColor.rgb += rimGlow;
+export const nodeFragmentShader = `
+precision highp float;
+
+varying vec2 vUv;
+varying vec3 vWorldPos;
+varying vec3 vWorldNormal;
+
+uniform float uTime;
+uniform vec3 uCameraPos;
+
+uniform float uGlowStrength;
+uniform float uGlowPower;
+uniform float uOpacity;
+
+void main() {
+  vec3 normal = normalize(vWorldNormal);
+  vec3 viewDir = normalize(uCameraPos - vWorldPos);
+
+  /* Your original animated color */
+  vec3 baseColor =
+    0.5 + 0.5 * cos(uTime + vUv.xyx + vec3(0.0, 2.0, 4.0));
+
+  /* Fresnel term */
+  float fresnel =
+    pow(1.0 - max(dot(viewDir, normal), 0.0), uGlowPower);
+
+  /* Specular highlight */
+  vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
+  vec3 halfDir = normalize(lightDir + viewDir);
+  float spec =
+    pow(max(dot(normal, halfDir), 0.0), 120.0);
+
+  /* Blue → White glow */
+  vec3 glowBlue = vec3(0.2, 0.6, 1.0);
+  vec3 glowWhite = vec3(1.0);
+
+  vec3 glow =
+    mix(glowBlue, glowWhite, fresnel) *
+    fresnel * uGlowStrength;
+
+  /* Final color composition */
+  vec3 finalColor =
+    baseColor * 0.35 +     // glass interior
+    spec * vec3(1.0) +     // glossy highlights
+    glow;                  // emissive glow
+
+  gl_FragColor = vec4(finalColor, uOpacity);
+}
 `;
+
+// Backward-compatibility aliases
+export const defaultNodeVertexShaderChunk = nodeVertexShader;
+export const defaultNodeFragmentShaderChunk = nodeFragmentShader;
 
 /**
  * Default custom GLSL vertex shader for the LineSegments connection tethers.
@@ -89,13 +152,50 @@ const HeroNetwork3D = ({
   speed = DEFAULT_NODE_SPEED,
   className = 'w-full h-full relative overflow-hidden',
   enableParallax = true,
-  // Custom GLSL shader injection slots:
-  customNodeVertexChunk = defaultNodeVertexShaderChunk,
-  customNodeFragmentChunk = defaultNodeFragmentShaderChunk,
+  // Custom GLSL shader injection slots (default to user's custom node shaders):
+  nodeVertexShader: customNodeVertexShader = nodeVertexShader,
+  nodeFragmentShader: customNodeFragmentShader = nodeFragmentShader,
+  // Variables loaded through JS with default value of 1 as requested:
+  uXval = 1.0,
+  uMix = 1.0,
+  uGlowStrength = 1.0,
+  uGlowPower = 1.0,
+  uOpacity = 1.0,
+  // Custom line shader props:
   customLineVertexShader = defaultLineVertexShader,
   customLineFragmentShader = defaultLineFragmentShader,
+  onFrame,
+  materialRef: externalMaterialRef,
+  uniformsRef: externalUniformsRef,
 }) => {
   const mountRef = useRef(null);
+  const nodeMaterialRef = useRef(null);
+
+  // Shader uniforms loaded through JS initialized to default 1.0
+  const nodeUniformsRef = useRef({
+    uTime: { value: 0.0 },
+    uCameraPos: { value: new THREE.Vector3() },
+    uXval: { value: uXval },
+    uMix: { value: uMix },
+    uGlowStrength: { value: uGlowStrength },
+    uGlowPower: { value: uGlowPower },
+    uOpacity: { value: uOpacity },
+  });
+
+  // Expose refs externally if props are provided
+  if (externalMaterialRef) externalMaterialRef.current = nodeMaterialRef.current;
+  if (externalUniformsRef) externalUniformsRef.current = nodeUniformsRef.current;
+
+  // Sync prop changes into uniforms ref
+  useEffect(() => {
+    if (nodeUniformsRef.current) {
+      nodeUniformsRef.current.uXval.value = uXval;
+      nodeUniformsRef.current.uMix.value = uMix;
+      nodeUniformsRef.current.uGlowStrength.value = uGlowStrength;
+      nodeUniformsRef.current.uGlowPower.value = uGlowPower;
+      nodeUniformsRef.current.uOpacity.value = uOpacity;
+    }
+  }, [uXval, uMix, uGlowStrength, uGlowPower, uOpacity]);
 
   useEffect(() => {
     const container = mountRef.current;
@@ -143,48 +243,16 @@ const HeroNetwork3D = ({
     accentPointLight.position.set(0, 0, 30);
     scene.add(accentPointLight);
 
-    // 4. Custom MeshStandardMaterial with onBeforeCompile for Cube Nodes
-    const customUniforms = {
-      uTime: { value: 0 },
-      uGlowColor: { value: new THREE.Color(0xaf3240) },
-    };
-
-    const nodeMaterial = new THREE.MeshStandardMaterial({
-      color: 0xefefef,
-      roughness: 0.22,
-      metalness: 0.88,
+    // 4. Custom ShaderMaterial for Cube Nodes using user shaders and uniforms
+    const nodeMaterial = new THREE.ShaderMaterial({
+      vertexShader: customNodeVertexShader || nodeVertexShader,
+      fragmentShader: customNodeFragmentShader || nodeFragmentShader,
+      uniforms: nodeUniformsRef.current,
+      transparent: true,
+      depthWrite: true,
     });
-
-    nodeMaterial.onBeforeCompile = (shader) => {
-      // Expose uniforms
-      shader.uniforms.uTime = customUniforms.uTime;
-      shader.uniforms.uGlowColor = customUniforms.uGlowColor;
-
-      // Inject custom vertex chunk
-      if (customNodeVertexChunk && customNodeVertexChunk.trim().length > 0) {
-        shader.vertexShader = `
-          uniform float uTime;
-          ${shader.vertexShader}
-        `;
-        shader.vertexShader = shader.vertexShader.replace(
-          '#include <begin_vertex>',
-          `#include <begin_vertex>\n${customNodeVertexChunk}`
-        );
-      }
-
-      // Inject custom fragment chunk
-      if (customNodeFragmentChunk && customNodeFragmentChunk.trim().length > 0) {
-        shader.fragmentShader = `
-          uniform float uTime;
-          uniform vec3 uGlowColor;
-          ${shader.fragmentShader}
-        `;
-        shader.fragmentShader = shader.fragmentShader.replace(
-          '#include <dithering_fragment>',
-          `#include <dithering_fragment>\n${customNodeFragmentChunk}`
-        );
-      }
-    };
+    nodeMaterialRef.current = nodeMaterial;
+    if (externalMaterialRef) externalMaterialRef.current = nodeMaterial;
 
     // 5. InstancedMesh for Cube Nodes
     const cubeGeometry = new THREE.BoxGeometry(1.6, 1.6, 1.6);
@@ -270,8 +338,25 @@ const HeroNetwork3D = ({
       lastTime = currentTime;
 
       const elapsedTime = currentTime * 0.001;
-      customUniforms.uTime.value = elapsedTime;
+
+      // useFrame frame-update pattern: update shader uniforms via refs
+      if (nodeUniformsRef.current) {
+        nodeUniformsRef.current.uTime.value = elapsedTime;
+        nodeUniformsRef.current.uCameraPos.value.copy(camera.position);
+      }
       lineUniforms.uTime.value = elapsedTime;
+
+      // Optional user per-frame callback
+      if (onFrame) {
+        onFrame({
+          time: elapsedTime,
+          deltaTime,
+          camera,
+          scene,
+          material: nodeMaterialRef.current,
+          uniforms: nodeUniformsRef.current,
+        });
+      }
 
       // Update node physics, targets, rotational tumbling & connection constraints
       updateNetworkStep(nodes, {
@@ -343,10 +428,11 @@ const HeroNetwork3D = ({
     maxConnections,
     speed,
     enableParallax,
-    customNodeVertexChunk,
-    customNodeFragmentChunk,
+    customNodeVertexShader,
+    customNodeFragmentShader,
     customLineVertexShader,
     customLineFragmentShader,
+    onFrame,
   ]);
 
   return <div ref={mountRef} className={className} />;
