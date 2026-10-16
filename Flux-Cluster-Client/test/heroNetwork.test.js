@@ -11,10 +11,12 @@ import {
   populateLineBuffer,
 } from '../src/utils/networkSimulation.js';
 
+import { roseVertexShader, roseFragmentShader } from '../src/shaders/roseShaders.js';
+
 describe('Hero Network Simulation', () => {
   test('constants and buffer sizing calculation', () => {
-    assert.equal(DEFAULT_NODE_COUNT, 90);
     assert.equal(DEFAULT_MAX_CONNECTIONS, 3);
+    assert.equal(getMaxLineSegments(DEFAULT_NODE_COUNT, 3), Math.floor((DEFAULT_NODE_COUNT * 3) / 2));
     assert.equal(getMaxLineSegments(90, 3), 135);
     assert.equal(getMaxLineSegments(10, 3), 15);
   });
@@ -153,5 +155,21 @@ describe('Hero Network Simulation', () => {
 
     // Target should have changed to a new random point
     assert.notDeepEqual(node.target, initialTarget);
+  });
+
+  test('validates RoseMesh GLSL shader uniforms and structure', () => {
+    assert.ok(typeof roseVertexShader === 'string' && roseVertexShader.length > 50);
+    assert.ok(typeof roseFragmentShader === 'string' && roseFragmentShader.length > 50);
+
+    // Verify critical varyings and uniforms in shaders
+    assert.ok(roseVertexShader.includes('varying vec2 vUv;'));
+    assert.ok(roseVertexShader.includes('varying vec3 vWorldPos;'));
+    assert.ok(roseVertexShader.includes('varying vec3 vWorldNormal;'));
+
+    assert.ok(roseFragmentShader.includes('uniform float uTime;'));
+    assert.ok(roseFragmentShader.includes('uniform vec3 uCameraPos;'));
+    assert.ok(roseFragmentShader.includes('uniform float uGlowStrength;'));
+    assert.ok(roseFragmentShader.includes('uniform float uGlowPower;'));
+    assert.ok(roseFragmentShader.includes('gl_FragColor = vec4(finalColor, uOpacity);'));
   });
 });

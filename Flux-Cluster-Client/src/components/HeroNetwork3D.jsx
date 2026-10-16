@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { Suspense, useEffect, useMemo, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import { gsap } from 'gsap';
+import RoseMesh from './RoseMesh';
 
 import {
   DEFAULT_NODE_COUNT,
@@ -396,6 +397,8 @@ const NetworkScene = ({
   maxConnections = DEFAULT_MAX_CONNECTIONS,
   bounds = BOUNDS,
   mix = 1.0,
+  showRose = true,
+  roseScale = 6.0,
   customNodeVertexShader,
   customNodeFragmentShader,
   customLineVertexShader,
@@ -447,6 +450,13 @@ const NetworkScene = ({
 
       {/* Network constellation group reacting to cursor parallax */}
       <group ref={parallaxGroupRef}>
+        {/* Central Rose Mesh with custom fragment shader */}
+        {showRose && (
+          <Suspense fallback={null}>
+            <RoseMesh scale={roseScale} position={[0, 0, 0]} />
+          </Suspense>
+        )}
+
         {/* Autonomous Node Meshes */}
         {initialNodes.map((node) => (
           <NodeMesh
@@ -489,6 +499,8 @@ const HeroNetwork3D = ({
   maxConnections = DEFAULT_MAX_CONNECTIONS,
   bounds = BOUNDS,
   mix = 1.0,
+  showRose = true,
+  roseScale = 6.0,
   className = 'w-full h-full relative overflow-hidden',
   cameraPosition = [0, 0, 110],
   customNodeVertexShader = nodeVertexShader,
@@ -512,6 +524,8 @@ const HeroNetwork3D = ({
           maxConnections={maxConnections}
           bounds={bounds}
           mix={mix}
+          showRose={showRose}
+          roseScale={roseScale}
           customNodeVertexShader={customNodeVertexShader}
           customNodeFragmentShader={customNodeFragmentShader}
           customLineVertexShader={customLineVertexShader}
@@ -522,4 +536,5 @@ const HeroNetwork3D = ({
   );
 };
 
+export { RoseMesh };
 export default HeroNetwork3D;
