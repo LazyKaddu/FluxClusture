@@ -4,7 +4,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
 import { ReactLenis } from 'lenis/react';
 import ImageFade from '../components/ImageFade';
-import ModelCanvas from '../components/Model';
+import HeroNetwork3D from '../components/HeroNetwork3D';
 
 
 gsap.registerPlugin(ScrollTrigger);
@@ -48,10 +48,10 @@ const Home = () => {
                         <span className='text-white'>NEW</span> ERA OF</span>COMPUTING
                 </section>
 
-                <section className="snap-panel h-screen w-full">
-                    <ModelCanvas url={"/mobiusStrip.glb"}/>
+                <section className="snap-panel relative h-screen w-full bg-[#000000] overflow-hidden">
+                    <HeroNetwork3D />
                 </section>
-                
+
                 <section className="snap-panel h-screen w-full flex flex-col md:flex-row items-center justify-center px-6">
                     <div className='w-full max-w-[250px] md:max-w-none md:w-[21vw] h-[350px] md:h-[28vw] mb-10 md:mb-0 md:mr-10 relative'>
                         <ImageFade image={'/fluximage2Render.png'} />
@@ -61,8 +61,8 @@ const Home = () => {
                         <p className='text-xs md:text-sm text-[#606060] text-center md:text-left'>
                             FluxCluster is a fault-tolerant, hybrid distributed computing architecture that pools the idle GPU and CPU resources of standard browser tabs into a unified high-performance computing (HPC) cluster.
                             <br />
-                            <br className="hidden md:block"/>
-                            <br className="hidden md:block"/>
+                            <br className="hidden md:block" />
+                            <br className="hidden md:block" />
 
                             Designed to bypass the limitations of single-device rendering and central server bandwidth bottlenecks, it offloads heavy data distribution to a peer-to-peer swarm while maintaining precise task orchestration via a lightweight centralized control plane.
                         </p>
