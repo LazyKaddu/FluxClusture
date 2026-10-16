@@ -5,9 +5,9 @@ import { useGSAP } from '@gsap/react';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const ImageFade = ({ image }) => {
+const ImageFade = ({ image, fallback }) => {
     const containerRef = useRef(null); 
-    const gridRef = useRef(null);
+    const gridRef = useRef(null); 
 
     useGSAP(() => {
         const cells = gsap.utils.toArray(".grid-cell", gridRef.current);
@@ -39,14 +39,10 @@ const ImageFade = ({ image }) => {
         const scrollerElement = document.querySelector(".my-inner-scroller");
         ScrollTrigger.create({
             trigger: containerRef.current,
-            
-            // CRITICAL: If this is inside your Lenis inner scroller, you MUST uncomment the line below and target its class/ID!
             scroller: scrollerElement, 
 
             start: "top 80%",
             end: "bottom 20%",
-            
-            // Turn this on temporarily! It will draw lines on your screen so you can see if the trigger is actually firing
 
             onEnter: disappear, 
             onLeave: reset,     
@@ -57,15 +53,29 @@ const ImageFade = ({ image }) => {
 
     return (
         <div ref={containerRef} className="relative w-full h-full">
-            <img className="absolute inset-0 w-full h-full object-cover" src={image} alt="Reveal" />
+            <picture className="absolute inset-0 w-full h-full">
+                {image && image.endsWith('.webp') && (
+                    <source srcSet={image} type="image/webp" />
+                )}
+                {fallback && (
+                    <source srcSet={fallback} type="image/png" />
+                )}
+                <img
+                    className="w-full h-full object-cover"
+                    src={fallback || image}
+                    alt="Flux Cluster presentation"
+                    loading="lazy"
+                    decoding="async"
+                />
+            </picture>
             
-            <div ref={gridRef} className="absolute inset-0 z-10 grid grid-cols-9 grid-rows-12 w-full h-full">
+            <div ref={gridRef} className="absolute inset-0 z-10 grid grid-cols-9 grid-rows-12 w-full h-full pointer-events-none">
                 {Array.from({ length: 108 }).map((_, index) => (
                     <div key={index} className="bg-black grid-cell" />
                 ))}
             </div>
         </div>
     );
-}
+};
 
 export default ImageFade;

@@ -54,7 +54,7 @@ const Home = () => {
 
                 <section className="snap-panel h-screen w-full flex flex-col md:flex-row items-center justify-center px-6">
                     <div className='w-full max-w-[250px] md:max-w-none md:w-[21vw] h-[350px] md:h-[28vw] mb-10 md:mb-0 md:mr-10 relative'>
-                        <ImageFade image={'/fluximage2Render.png'} />
+                        <ImageFade image={'/fluximage2Render.webp'} fallback={'/fluximage2Render.png'} />
                     </div>
                     <div className='w-full md:w-2/5'>
                         <h2 className='text-3xl md:text-4xl mb-3 md:mb-5 text-center md:text-left'>FLUX <span className='text-xl md:text-2xl'>CLUSTRE</span></h2>
@@ -81,7 +81,7 @@ const Home = () => {
                         </div>
 
                         <div className='w-full max-w-[250px] md:max-w-none md:w-[21vw] h-[350px] md:h-[28vw] relative'>
-                            <ImageFade image={'/fluximageRender.png'} />
+                            <ImageFade image={'/fluximageRender.webp'} fallback={'/fluximageRender.png'} />
                         </div>
                     </div>
                     <div className='w-full md:w-3/5 h-auto py-4 md:h-15 bg-white flex justify-center items-center text-black mt-8 text-xs md:text-sm text-center px-2'>
