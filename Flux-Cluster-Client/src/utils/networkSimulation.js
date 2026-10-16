@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-export const DEFAULT_NODE_COUNT = 90;
+export const DEFAULT_NODE_COUNT = 500;
 export const DEFAULT_MAX_CONNECTIONS = 3;
 export const DEFAULT_BOUNDARY = 45;
 export const DEFAULT_PROXIMITY_THRESHOLD = 20;
@@ -12,6 +12,37 @@ export const DEFAULT_NODE_SPEED = 6.0;
  */
 export function getMaxLineSegments(nodeCount, maxConnections = DEFAULT_MAX_CONNECTIONS) {
   return Math.floor((nodeCount * maxConnections) / 2);
+}
+
+export const BOUNDS = {
+  x: [0, 100],
+  y: [0, 100],
+  z: [0, 100],
+};
+
+export function randomInRange(min, max) {
+  const val = THREE.MathUtils.randFloat(min, max);
+  return Math.random() < 0.5 ? -val : val;
+}
+
+export function generateInitialNodeTransforms(nodeCount, bounds = BOUNDS) {
+  const list = [];
+  for (let i = 0; i < nodeCount; i++) {
+    list.push({
+      id: i,
+      position: [
+        randomInRange(bounds.x[0], bounds.x[1]),
+        randomInRange(bounds.y[0], bounds.y[1]),
+        randomInRange(bounds.z[0], bounds.z[1]),
+      ],
+      rotation: [
+        Math.random() * Math.PI * 2,
+        Math.random() * Math.PI * 2,
+        Math.random() * Math.PI * 2,
+      ],
+    });
+  }
+  return list;
 }
 
 /**
