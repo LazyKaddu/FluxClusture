@@ -187,11 +187,17 @@ export const NodeMesh = ({
     materialRef.current.uniforms.uMix.value = mix;
   }, [mix]);
 
-  useFrame((state) => {
+  useFrame((state, delta) => {
     if (!materialRef.current) return;
     materialRef.current.uniforms.uTime.value = state.clock.elapsedTime;
     materialRef.current.uniforms.uXval.value = state.clock.elapsedTime * 10.0;
     materialRef.current.uniforms.uCameraPos.value.copy(state.camera.position);
+
+    // Subtle individual cube rotation towards mouse movement direction (inverted Y)
+    if (meshRef.current) {
+      meshRef.current.rotation.x += -state.pointer.y * delta * 0.4;
+      meshRef.current.rotation.y += -state.pointer.x * delta * 0.4;
+    }
   });
 
   return (
@@ -411,6 +417,27 @@ const NetworkScene = ({
     [nodeCount, bounds]
   );
 
+  const parallaxGroupRef = useRef();
+
+  // Smooth parallax rotation towards cursor position (with inverted mouse Y)
+  useFrame((state, delta) => {
+    if (!parallaxGroupRef.current) return;
+    const targetRotX = -state.pointer.y * 0.28;
+    const targetRotY = state.pointer.x * 0.38;
+
+    const damping = Math.min(delta * 4.0, 0.1);
+    parallaxGroupRef.current.rotation.x = THREE.MathUtils.lerp(
+      parallaxGroupRef.current.rotation.x,
+      targetRotX,
+      damping
+    );
+    parallaxGroupRef.current.rotation.y = THREE.MathUtils.lerp(
+      parallaxGroupRef.current.rotation.y,
+      targetRotY,
+      damping
+    );
+  });
+
   return (
     <>
       <ambientLight intensity={0.7} />
@@ -418,32 +445,36 @@ const NetworkScene = ({
       <directionalLight position={[-60, -40, -50]} intensity={1.2} />
       <pointLight position={[0, 0, 30]} intensity={2.5} distance={120} color="#af3240" />
 
-      {/* Autonomous Node Meshes */}
-      {initialNodes.map((node) => (
-        <NodeMesh
-          key={node.id}
-          index={node.id}
-          mix={mix}
-          position={node.position}
-          rotation={node.rotation}
-          bounds={bounds}
-          onRegisterNode={handleRegisterNode}
-          onUnregisterNode={handleUnregisterNode}
-          customVertexShader={customNodeVertexShader}
-          customFragmentShader={customNodeFragmentShader}
+      {/* Network constellation group reacting to cursor parallax */}
+      <group ref={parallaxGroupRef}>
+        {/* Autonomous Node Meshes */}
+        {initialNodes.map((node) => (
+          <NodeMesh
+            key={node.id}
+            index={node.id}
+            mix={mix}
+            position={node.position}
+            rotation={node.rotation}
+            bounds={bounds}
+            onRegisterNode={handleRegisterNode}
+            onUnregisterNode={handleUnregisterNode}
+            customVertexShader={customNodeVertexShader}
+            customFragmentShader={customNodeFragmentShader}
+          />
+        ))}
+
+        {/* Dynamic Network Connection Tethers */}
+        <NetworkLines
+          nodeCount={nodeCount}
+          nodesRef={nodesRef}
+          proximityThreshold={proximityThreshold}
+          maxConnections={maxConnections}
+          customLineVertexShader={customLineVertexShader}
+          customLineFragmentShader={customLineFragmentShader}
         />
-      ))}
+      </group>
 
-      {/* Dynamic Network Connection Tethers */}
-      <NetworkLines
-        nodeCount={nodeCount}
-        nodesRef={nodesRef}
-        proximityThreshold={proximityThreshold}
-        maxConnections={maxConnections}
-        customLineVertexShader={customLineVertexShader}
-        customLineFragmentShader={customLineFragmentShader}
-      />
-
+      {/* Preserved OrbitControls for manual camera rotation */}
       <OrbitControls enableZoom={false} enablePan={false} dampingFactor={0.05} />
     </>
   );
