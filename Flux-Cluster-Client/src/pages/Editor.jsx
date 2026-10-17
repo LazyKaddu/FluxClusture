@@ -264,7 +264,7 @@ const Editor = () => {
         : '—';
 
     return (
-        <div className="font-mono bg-black text-white h-full w-full flex flex-col overflow-hidden border border-white">
+        <div className="font-mono bg-black text-white h-full max-h-[86vh] w-full md:w-[94%] lg:w-[88%] xl:w-3/5 max-w-5xl flex flex-col overflow-hidden border border-white shadow-2xl my-auto">
 
             {/* ── Header ── */}
             <header className="flex items-center justify-between px-4 py-2.5 border-b border-white shrink-0">
