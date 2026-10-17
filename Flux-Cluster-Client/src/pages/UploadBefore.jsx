@@ -1,55 +1,61 @@
 import React, { useState, useEffect } from 'react'
 import UploadBox from '../components/UploadBox';
-import * as THREE from 'three'
 import { loadGLB } from '../render/modelLoader.js';
 import { useNavigate } from "react-router-dom";
-import { generateSecureShortId, generateFileHash} from '../utils/helper.js'
+import { generateSecureShortId, generateFileHash } from '../utils/helper.js'
 
+const RESOLUTION_PRESETS = [
+    { label: '1080P', width: 1920, height: 1080 },
+    { label: '1440P', width: 2560, height: 1440 },
+    { label: '4K', width: 3840, height: 2160 },
+    { label: '1:1', width: 1080, height: 1080 },
+];
+
+const SAMPLE_PRESETS = [256, 512, 1024, 2048];
+const NOISE_PRESETS = [0.05, 0.1, 0.2];
 
 const UploadBefore = () => {
-
     const navigate = useNavigate();
 
     const [file, setFile] = useState(null);
     const [loading, setLoading] = useState(false);
     const [previewUrl, setPreviewUrl] = useState(null);
-
     const [glbHash, setGlbHash] = useState(null);
-
     const [roomId, setRoomId] = useState(null);
-    
 
-    const [Animations, setAnimations] = useState([])
-    const [animDurations, setAnimDurations] = useState([])
-    const [Fps, setFps] = useState(30)
-    const [RenderAnimation, setRenderAnimation] = useState(0)
-    const [samples, setSamples] = useState(1024)
-    const [noiseThreshold, setNoiseThreshold] = useState(0.1)
+    const [Animations, setAnimations] = useState([]);
+    const [animDurations, setAnimDurations] = useState([]);
+    const [Fps, setFps] = useState(30);
+    const [RenderAnimation, setRenderAnimation] = useState(0);
+    const [samples, setSamples] = useState(1024);
+    const [noiseThreshold, setNoiseThreshold] = useState(0.1);
 
     const [width, setWidth] = useState(1920);
     const [height, setHeight] = useState(1080);
-
     const [masterWillRender, setMasterWillRender] = useState(true);
 
-    const [min, setMin] = useState(0);
+    const min = 0;
     const [max, setMax] = useState(120);
+    const [start, setStart] = useState(0);
+    const [end, setEnd] = useState(120);
 
-    const [start, setStart] = useState(min);
-    const [end, setEnd] = useState(max);
+    // Compute Distributed Swarm Grid Telemetry
+    const TILE_SIZE = 256;
+    const tilesX = Math.max(1, Math.ceil(width / TILE_SIZE));
+    const tilesY = Math.max(1, Math.ceil(height / TILE_SIZE));
+    const tilesPerFrame = tilesX * tilesY;
+    const totalFrames = Math.max(1, end - start + 1);
+    const totalChunks = totalFrames * tilesPerFrame;
 
     useEffect(() => {
         async function extractMetadata() {
             if (file) {
                 try {
-                    // Convert the raw File object directly into an ArrayBuffer
                     const buffer = await file.arrayBuffer();
-
                     const hash = await generateFileHash(buffer);
                     setGlbHash(hash);
+                    setRoomId(generateSecureShortId());
 
-                    setRoomId(generateSecureShortId())
-
-                    // Pass it to your robust loader (which handles Draco if needed)
                     const gltf = await loadGLB(buffer);
 
                     if (gltf.animations && gltf.animations.length > 0) {
@@ -72,11 +78,9 @@ const UploadBefore = () => {
         extractMetadata();
     }, [file]);
 
-
     useEffect(() => {
         if (animDurations.length > 0 && animDurations[RenderAnimation] !== undefined) {
             const durationInSeconds = animDurations[RenderAnimation];
-            // Duration * FPS = Total Frames
             const calculatedMax = Math.floor(durationInSeconds * Fps);
 
             setMax(calculatedMax);
@@ -85,12 +89,14 @@ const UploadBefore = () => {
         }
     }, [RenderAnimation, Fps, animDurations]);
 
-    
+    const handleApplyResolution = (w, h) => {
+        setWidth(w);
+        setHeight(h);
+    };
 
+    const isPresetActive = (pW, pH) => width === pW && height === pH;
 
     const createRoom = () => {
-        console.log("clicked REnder")
-
         if (!file) {
             alert("Please upload a GLB file first!");
             return;
@@ -104,222 +110,376 @@ const UploadBefore = () => {
             animationIndex: RenderAnimation,
             startFrame: start,
             endFrame: end,
-            fps: Fps,
-            samples: samples,
-            noiseThreshold: noiseThreshold,
-            width: width,
-            height: height,
+            fps: Number(Fps),
+            samples: Number(samples),
+            noiseThreshold: Number(noiseThreshold),
+            width: Number(width),
+            height: Number(height),
             masterWillRender: masterWillRender
         };
 
-        navigate(`/editor`, { state: renderConfig })
-    }
-
+        navigate(`/editor`, { state: renderConfig });
+    };
 
     return (
-        <div className="h-full lg:h-[80%] max-h-screen w-full md:w-[90%] lg:w-[85%] xl:w-3/5 text-white font-mono flex flex-col pt-8 lg:pt-0">
-
-            {/* HEADER: Flexbox for spacing between ends */}
-            <header className="flex justify-between items-center mb-6 shrink-0">
-                <div className="text-sm font-bold">&gt;_ upload</div>
-                <div className="flex items-center gap-3">
-                    <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-sm text-gray-400">CLUSTER_READY</span>
+        <div className="h-full max-h-[92vh] w-full md:w-[94%] lg:w-[90%] xl:w-3/5 text-white font-mono flex flex-col justify-start select-none py-2 my-auto">
+            {/* TERMINAL HEADER */}
+            <header className="flex justify-between items-center mb-3 shrink-0 border-b border-white/20 pb-2.5">
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold tracking-wider">&gt;_ FLUX_GRID // STAGING_CONSOLE</span>
+                    <span className="text-[10px] text-gray-500 hidden sm:inline">v2.4_HPC</span>
+                </div>
+                <div className="flex items-center gap-4 text-xs">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                        <span className="text-gray-400 tracking-wider">SWARM_READY</span>
+                    </div>
+                    <span className="text-gray-600 hidden sm:inline">|</span>
+                    <span className="text-gray-500 hidden sm:inline">WEBRTC_SCTP</span>
                 </div>
             </header>
 
-            <div className='flex flex-col lg:flex-row justify-between gap-8 lg:gap-10 w-full h-full overflow-y-auto lg:overflow-visible pb-10 lg:pb-0 scrollbar-thin pr-2 lg:pr-0'>
-                {/* Left Controls Section */}
-                <div className='flex flex-col justify-between h-full w-full lg:w-[55%] gap-8 lg:gap-0'>
-                    
-                    {/* Animations and Quality Settings */}
-                    <div className='flex flex-col md:flex-row gap-4 h-auto lg:h-[55%]'>
-                        
-                        <div className='border w-full md:w-[60%] h-48 md:h-full flex flex-col'>
-                            <div className='border-b p-2 shrink-0'>
-                                Animations
-                            </div>
-                            <div className='overflow-y-auto flex-1 scrollbar-thin'>
-                                {
-                                    (Animations.length ? Animations.map((anim, index) => {
-                                        return (
-                                            <p className={`pl-4 my-2 text-[#606060] cursor-pointer ${RenderAnimation === index ? 'text-black bg-white' : 'hover:text-white'}`} onClick={() => setRenderAnimation(index)}
-                                            key={index}
-                                            >
-                                                {anim}
-                                            </p>
-                                        )
-                                    })
-                                        : (
-                                            <p className="pl-4 my-2 text-gray-500">Upload Glb First</p>
-                                        ))
-                                }
-                            </div>
-                        </div>
+            {/* MAIN TWO-COLUMN WORKSTATION WITH AUTO SCROLL */}
+            <div className="flex flex-col lg:flex-row justify-between gap-5 lg:gap-6 w-full flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-white/40 scrollbar-track-black/0 pr-1.5 pb-4">
 
-                        <div className='flex flex-row md:flex-col justify-between w-full md:w-[40%] gap-4 md:gap-4'>
-                            <div className='border flex-1 flex flex-col gap-2 items-center justify-center py-4'>
-                                <div className='p-2 w-full text-center'>
-                                    samples
-                                </div>
-                                <input
-                                    type="number"
-                                    placeholder='1024'
-                                    className="appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center w-[80%]"
-                                    value = {samples}
-                                    onChange={(e)=> setSamples(e.target.value)}
-                                />
-                            </div>
-                            <div className='border flex-1 flex flex-col gap-2 items-center justify-center py-4'>
-                                <div className='p-2 w-full text-center text-sm lg:text-base'>
-                                    noise Threshold
-                                </div>
-                                <input
-                                    type="number"
-                                    placeholder='0.1'
-                                    className="appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center w-[80%]"
-                                    value={noiseThreshold}
-                                    onChange={(e)=>setNoiseThreshold(e.target.value)}
-                                    />
-                            </div>
+                {/* LEFT COLUMN: 3D VIEWPORT & RIG METRICS */}
+                <div className="w-full lg:w-[48%] flex flex-col gap-3">
+                    {/* 3D Model Viewport */}
+                    <div className="border border-white/20 flex flex-col bg-black/40 relative">
+                        <div className="border-b border-white/20 px-3 py-1.5 flex items-center justify-between text-xs tracking-wider">
+                            <span className="font-bold flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 bg-white inline-block" />
+                                ASSET_VIEWPORT
+                            </span>
+                            <span className={`text-[10px] uppercase tracking-widest ${file ? 'text-green-500' : 'text-gray-500'}`}>
+                                {file ? 'MODEL_LOADED' : 'AWAITING_PAYLOAD'}
+                            </span>
+                        </div>
+                        <div className="w-full h-[250px] md:h-[280px] relative flex items-center justify-center overflow-hidden">
+                            <UploadBox
+                                file={file}
+                                setFile={setFile}
+                                loading={loading}
+                                setLoading={setLoading}
+                                previewUrl={previewUrl}
+                                setPreviewUrl={setPreviewUrl}
+                            />
                         </div>
                     </div>
 
-                    {/* Rendering Range and Settings */}
-                    <div className='w-full'>
-                        <p className='mb-4'>render from range</p>
-                        <div className="w-[80%] mb-8">
-
-                            {/* Slider */}
-                            <div className="relative h-6">
-                                <div className="absolute top-1/2 left-0 w-full h-0.5 -translate-y-1/2 bg-white/20" />
-                                <div
-                                    className="absolute top-1/2 h-0.5 -translate-y-1/2 bg-white"
-                                    style={{
-                                        left: `${(start / max) * 100}%`,
-                                        right: `${100 - (end / max) * 100}%`,
-                                    }}
-                                />
-                                <input
-                                    type="range"
-                                    min={min}
-                                    max={max}
-                                    value={start}
-                                    onChange={(e) => {
-                                        const value = Math.min(Number(e.target.value), end);
-                                        setStart(value);
-                                    }}
-                                    className="range-input"
-                                />
-                                <input
-                                    type="range"
-                                    min={min}
-                                    max={max}
-                                    value={end}
-                                    onChange={(e) => {
-                                        const value = Math.max(Number(e.target.value), start);
-                                        setEnd(value);
-                                    }}
-                                    className="range-input"
-                                />
-                            </div>
-                            <div className="flex justify-between text-sm text-white/60">
-                                <span>{start}</span>
-                                <span>{end}</span>
-                            </div>
-
+                    {/* Animation Sequences Card */}
+                    <div className="border border-white/20 flex-1 min-h-[110px] max-h-[150px] flex flex-col bg-black/30">
+                        <div className="border-b border-white/20 px-3 py-1.5 flex items-center justify-between text-xs tracking-wider">
+                            <span className="text-gray-400">ANIMATION_TRACKS</span>
+                            <span className="text-[10px] text-gray-500">[{Animations.length} DISCOVERED]</span>
                         </div>
-
-                        <div className="flex flex-col md:flex-row gap-6 lg:gap-4">
-                            <div className="flex-1 flex flex-col gap-4">
-                                <div className='flex items-center gap-4'>
-                                    <p className='w-12'>start</p>
-                                    <input className='appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center flex-1'
-                                        type="number"
-                                        placeholder={start}
-                                        value={start}
-                                        onChange={(e) => {
-                                            const value = Math.min(Number(e.target.value), end);
-                                            setStart(value);
-                                        }}
-                                    />
+                        <div className="overflow-y-auto flex-1 scrollbar-thin p-1 max-h-[150px]">
+                            {Animations.length > 0 ? (
+                                Animations.map((anim, index) => (
+                                    <div
+                                        key={index}
+                                        onClick={() => setRenderAnimation(index)}
+                                        className={`flex items-center justify-between px-3 py-1.5 my-0.5 text-xs cursor-pointer transition-colors ${RenderAnimation === index
+                                            ? 'bg-white text-black font-bold'
+                                            : 'text-gray-400 hover:text-white hover:bg-white/5'
+                                            }`}
+                                    >
+                                        <div className="flex items-center gap-2 truncate">
+                                            <span className="text-[10px] font-mono opacity-50">#{String(index + 1).padStart(2, '0')}</span>
+                                            <span className="truncate">{anim}</span>
+                                        </div>
+                                        <span className="text-[10px] font-mono opacity-80 shrink-0 ml-2">
+                                            {animDurations[index] ? `${animDurations[index].toFixed(1)}s` : '0.0s'}
+                                        </span>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="h-full min-h-[80px] flex flex-col items-center justify-center text-center p-4">
+                                    <span className="text-xs text-gray-600 tracking-wider uppercase">
+                                        No Rig Animations Detected
+                                    </span>
+                                    <span className="text-[10px] text-gray-700 mt-1">
+                                        Static scene frame mode active
+                                    </span>
                                 </div>
-                                <div className='flex items-center gap-4'>
-                                    <p className='w-12'>end</p>
-                                    <input className="appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center flex-1"
-                                        type='number'
-                                        placeholder={end}
-                                        value={end}
-                                        onChange={(e) => {
-                                            const value = Math.max(Number(e.target.value), start);
-                                            setEnd(value);
-                                        }}
-                                    />
-                                </div>
-                            </div>
-                            
-                            <div className="flex-1 flex flex-col gap-4">
-                                <div className="flex items-center gap-4">
-                                    <p className='w-14'>Fps</p>
-                                    <input className="appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center flex-1"
-                                        type='number'
-                                        placeholder={30}
-                                        value={Fps}
-                                        onChange={(e) => (setFps(e.target.value))}
-                                    />
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <p className='w-14'>Width</p>
-                                    <input className="appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center flex-1"
-                                        type='number'
-                                        value={width}
-                                        placeholder="1900"
-                                        onChange={(e) => setWidth(e.target.value)}
-                                    />
-                                </div >
-                                <div className="flex items-center gap-4">
-                                    <p className='w-14'>Height</p>
-                                    <input className="appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center flex-1"
-                                        type='number'
-                                        placeholder="1400"
-                                        value={height}
-                                        onChange={(e) => setHeight(e.target.value)}
-                                    />
-                                </div>
-                            </div>
+                            )}
                         </div>
                     </div>
                 </div>
 
-                {/* Right Preview Section */}
-                <div className='w-full lg:w-[40%] flex flex-col justify-end'>
-                    <div className='border aspect-square relative mb-4 flex flex-col'>
-                        <p className='border-b p-2 w-full shrink-0'>asset model preview</p>
-                        <div className='w-full flex-1 flex items-center justify-center overflow-hidden bg-black/50'>
-                            <UploadBox file={file} setFile={setFile} loading={loading} setLoading={setLoading} previewUrl={previewUrl} setPreviewUrl={setPreviewUrl} />
+                {/* RIGHT COLUMN: RENDER PIPELINE & SWARM DISPATCH */}
+                <div className="w-full lg:w-[48%] flex flex-col gap-3">
+
+                    {/* SECTION 1: RAYTRACING ENGINE QUALITY */}
+                    <div className="border border-white/20 flex flex-col bg-black/30">
+                        <div className="border-b border-white/20 px-3 py-1.5 flex items-center justify-between text-xs tracking-wider text-gray-400">
+                            <span>01 // ENGINE SAMPLING</span>
+                            <span className="text-[10px] text-gray-500">MIS_PATHTRACER</span>
+                        </div>
+                        <div className="grid grid-cols-2 divide-x divide-white/20">
+                            {/* Samples Cell */}
+                            <div className="p-3 flex flex-col justify-between gap-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[11px] text-gray-400 uppercase tracking-wider">SAMPLES</span>
+                                    <span className="text-[10px] text-gray-500">SPP</span>
+                                </div>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="8192"
+                                    value={samples}
+                                    onChange={(e) => setSamples(e.target.value)}
+                                    className="bg-transparent border-0 border-b border-white/40 focus:border-white outline-none text-white text-base text-center font-bold py-1 w-full"
+                                />
+                                <div className="flex gap-1 justify-center mt-1">
+                                    {SAMPLE_PRESETS.map((s) => (
+                                        <button
+                                            key={s}
+                                            type="button"
+                                            onClick={() => setSamples(s)}
+                                            className={`text-[9px] px-1.5 py-0.5 border transition-colors ${Number(samples) === s
+                                                ? 'border-white bg-white text-black font-bold'
+                                                : 'border-white/20 text-gray-500 hover:text-white hover:border-white/40'
+                                                }`}
+                                        >
+                                            {s}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Noise Threshold Cell */}
+                            <div className="p-3 flex flex-col justify-between gap-2">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-[11px] text-gray-400 uppercase tracking-wider">NOISE</span>
+                                    <span className="text-[10px] text-gray-500">RMS</span>
+                                </div>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0.001"
+                                    max="1.0"
+                                    value={noiseThreshold}
+                                    onChange={(e) => setNoiseThreshold(e.target.value)}
+                                    className="bg-transparent border-0 border-b border-white/40 focus:border-white outline-none text-white text-base text-center font-bold py-1 w-full"
+                                />
+                                <div className="flex gap-1 justify-center mt-1">
+                                    {NOISE_PRESETS.map((n) => (
+                                        <button
+                                            key={n}
+                                            type="button"
+                                            onClick={() => setNoiseThreshold(n)}
+                                            className={`text-[9px] px-1.5 py-0.5 border transition-colors ${Number(noiseThreshold) === n
+                                                ? 'border-white bg-white text-black font-bold'
+                                                : 'border-white/20 text-gray-500 hover:text-white hover:border-white/40'
+                                                }`}
+                                        >
+                                            {n}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div className="flex items-center gap-2 mb-4">
-                        <input
-                            type="checkbox"
-                            id="masterRender"
-                            className="w-4 h-4 cursor-pointer"
-                            checked={masterWillRender}
-                            onChange={(e) => setMasterWillRender(e.target.checked)}
-                        />
-                        <label htmlFor="masterRender" className="text-sm cursor-pointer hover:text-gray-300">
-                            I also want to render the chunk
-                        </label>
+
+                    {/* SECTION 2: TIMELINE RANGE & FRAMERATE */}
+                    <div className="border border-white/20 p-3 flex flex-col gap-3 bg-black/30">
+                        <div className="flex items-center justify-between text-xs tracking-wider">
+                            <span className="text-gray-400">02 // TIMELINE DURATION</span>
+                            <span className="text-white font-bold">{totalFrames} FRAMES</span>
+                        </div>
+
+                        {/* Slider Track */}
+                        <div className="relative h-6 mt-1">
+                            <div className="absolute top-1/2 left-0 w-full h-0.5 -translate-y-1/2 bg-white/20" />
+                            <div
+                                className="absolute top-1/2 h-0.5 -translate-y-1/2 bg-white"
+                                style={{
+                                    left: `${(start / max) * 100}%`,
+                                    right: `${100 - (end / max) * 100}%`,
+                                }}
+                            />
+                            <input
+                                type="range"
+                                min={min}
+                                max={max}
+                                value={start}
+                                onChange={(e) => {
+                                    const value = Math.min(Number(e.target.value), end);
+                                    setStart(value);
+                                }}
+                                className="range-input"
+                            />
+                            <input
+                                type="range"
+                                min={min}
+                                max={max}
+                                value={end}
+                                onChange={(e) => {
+                                    const value = Math.max(Number(e.target.value), start);
+                                    setEnd(value);
+                                }}
+                                className="range-input"
+                            />
+                        </div>
+
+                        {/* Numeric Start/End/FPS Bar */}
+                        <div className="grid grid-cols-3 gap-2 border-t border-white/10 pt-2 text-xs">
+                            <div className="flex items-center justify-between px-2 py-1 bg-white/5 border border-white/10">
+                                <span className="text-gray-500 text-[10px]">START</span>
+                                <input
+                                    type="number"
+                                    value={start}
+                                    min={min}
+                                    max={end}
+                                    onChange={(e) => setStart(Math.max(min, Math.min(Number(e.target.value), end)))}
+                                    className="w-12 bg-transparent text-right font-bold outline-none text-white"
+                                />
+                            </div>
+                            <div className="flex items-center justify-between px-2 py-1 bg-white/5 border border-white/10">
+                                <span className="text-gray-500 text-[10px]">END</span>
+                                <input
+                                    type="number"
+                                    value={end}
+                                    min={start}
+                                    max={max}
+                                    onChange={(e) => setEnd(Math.max(start, Math.min(Number(e.target.value), max)))}
+                                    className="w-12 bg-transparent text-right font-bold outline-none text-white"
+                                />
+                            </div>
+                            <div className="flex items-center justify-between px-2 py-1 bg-white/5 border border-white/10">
+                                <span className="text-gray-500 text-[10px]">FPS</span>
+                                <input
+                                    type="number"
+                                    value={Fps}
+                                    min={1}
+                                    max={120}
+                                    onChange={(e) => setFps(Number(e.target.value))}
+                                    className="w-10 bg-transparent text-right font-bold outline-none text-white"
+                                />
+                            </div>
+                        </div>
                     </div>
-                    
-                    <button className='border w-full py-4 uppercase tracking-widest hover:bg-white hover:text-black transition-colors shrink-0' onClick={createRoom}>
-                        start Rendering
-                    </button>
+
+                    {/* SECTION 3: RESOLUTION & SWARM TILE MATRIX */}
+                    <div className="border border-white/20 p-3 flex flex-col gap-3 bg-black/30">
+                        <div className="flex items-center justify-between text-xs tracking-wider">
+                            <span className="text-gray-400">03 // OUTPUT MATRIX</span>
+                            <div className="flex gap-1">
+                                {RESOLUTION_PRESETS.map((p) => (
+                                    <button
+                                        key={p.label}
+                                        type="button"
+                                        onClick={() => handleApplyResolution(p.width, p.height)}
+                                        className={`text-[9px] px-1.5 py-0.5 border transition-colors ${isPresetActive(p.width, p.height)
+                                            ? 'border-white bg-white text-black font-bold'
+                                            : 'border-white/20 text-gray-500 hover:text-white hover:border-white/40'
+                                            }`}
+                                    >
+                                        {p.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Custom Resolution Inputs */}
+                        <div className="flex items-center justify-between gap-3 text-xs border border-white/10 bg-white/5 p-2">
+                            <div className="flex items-center gap-2 flex-1">
+                                <span className="text-gray-500 text-[10px]">WIDTH</span>
+                                <input
+                                    type="number"
+                                    value={width}
+                                    onChange={(e) => setWidth(Number(e.target.value))}
+                                    className="w-full bg-transparent font-bold outline-none text-white border-b border-white/30 text-center"
+                                />
+                                <span className="text-gray-600 text-[10px]">PX</span>
+                            </div>
+                            <span className="text-gray-500">×</span>
+                            <div className="flex items-center gap-2 flex-1">
+                                <span className="text-gray-500 text-[10px]">HEIGHT</span>
+                                <input
+                                    type="number"
+                                    value={height}
+                                    onChange={(e) => setHeight(Number(e.target.value))}
+                                    className="w-full bg-transparent font-bold outline-none text-white border-b border-white/30 text-center"
+                                />
+                                <span className="text-gray-600 text-[10px]">PX</span>
+                            </div>
+                        </div>
+
+                        {/* Swarm Grid Matrix Readout */}
+                        <div className="flex items-center justify-between p-2 bg-black border border-white/10 text-[10px] tracking-wider text-gray-400">
+                            <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-1.5 bg-blue-500" />
+                                <span>SWARM GRID: {tilesX}×{tilesY} TILES</span>
+                            </div>
+                            <span className="text-white font-bold">{totalChunks.toLocaleString()} COMPUTE CHUNKS</span>
+                        </div>
+                    </div>
+
+                    {/* SECTION 4: MASTER WORKER ROLE & DISPATCH CTA */}
+                    <div className="flex flex-col gap-3">
+                        <label
+                            htmlFor="masterRender"
+                            className="flex items-center gap-3 cursor-pointer select-none group border border-white/10 hover:border-white/30 p-2.5 transition-colors bg-black/20"
+                        >
+                            <input
+                                type="checkbox"
+                                id="masterRender"
+                                className="sr-only"
+                                checked={masterWillRender}
+                                onChange={(e) => setMasterWillRender(e.target.checked)}
+                            />
+                            <div
+                                className={`w-4 h-4 border flex items-center justify-center transition-colors shrink-0 ${masterWillRender
+                                    ? 'border-white bg-white'
+                                    : 'border-white/40 group-hover:border-white bg-transparent'
+                                    }`}
+                            >
+                                {masterWillRender && (
+                                    <svg
+                                        className="w-3 h-3 text-black"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="3.5"
+                                        strokeLinecap="square"
+                                        strokeLinejoin="miter"
+                                    >
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                )}
+                            </div>
+                            <span
+                                className={`text-[11px] uppercase tracking-wider transition-colors flex-1 ${masterWillRender ? 'text-white' : 'text-gray-400 group-hover:text-white'
+                                    }`}
+                            >
+                                I also want to render the chunk (Master Compute)
+                            </span>
+                            <span className={`text-[9px] tracking-widest font-mono uppercase ${masterWillRender ? 'text-green-500' : 'text-gray-600'
+                                }`}>
+                                {masterWillRender ? 'ACTIVE' : 'OFF'}
+                            </span>
+                        </label>
+
+                        {/* START RENDERING CTA BUTTON */}
+                        <button
+                            type="button"
+                            onClick={createRoom}
+                            disabled={!file}
+                            className={`border w-full py-3.5 uppercase tracking-widest text-xs font-bold transition-all shrink-0 flex items-center justify-center gap-3 ${file
+                                ? 'border-white bg-black text-white hover:bg-white hover:text-black cursor-pointer shadow-lg'
+                                : 'border-white/20 bg-black/50 text-gray-600 cursor-not-allowed opacity-60'
+                                }`}
+                        >
+                            <span>&gt;_ START CLUSTER RENDERING</span>
+                        </button>
+                    </div>
+
                 </div>
             </div>
         </div>
-    )
-}
+    );
+};
 
-export default UploadBefore
+export default UploadBefore;
