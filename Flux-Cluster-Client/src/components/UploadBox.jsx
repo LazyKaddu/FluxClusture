@@ -5,7 +5,7 @@ import ModelCanvas from './Model';
 
 
 
-const UploadBox = ({file, setFile, loading, setLoading, previewUrl, setPreviewUrl}) => {
+const UploadBox = ({ file, setFile, loading, setLoading, previewUrl, setPreviewUrl }) => {
 
     const handleFile = async (e) => {
         const selectedFile = e.target.files?.[0];
@@ -28,21 +28,21 @@ const UploadBox = ({file, setFile, loading, setLoading, previewUrl, setPreviewUr
     };
 
     const resetUpload = () => {
-  // Remove the GLB object URL from the browser
-  if (previewUrl) {
-    URL.revokeObjectURL(previewUrl);
-  }
+        // Remove the GLB object URL from the browser
+        if (previewUrl) {
+            URL.revokeObjectURL(previewUrl);
+        }
 
-  // Reset everything
-  setPreviewUrl(null);
-  setFile(null);
-  setLoading(false);
+        // Reset everything
+        setPreviewUrl(null);
+        setFile(null);
+        setLoading(false);
 
-  // Optional: reset the file input
-  if (fileInputRef.current) {
-    fileInputRef.current.value = "";
-  }
-};
+        // Optional: reset the file input
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    };
 
     return (
         <div className="w-full h-full">
@@ -51,7 +51,7 @@ const UploadBox = ({file, setFile, loading, setLoading, previewUrl, setPreviewUr
             {!loading && !previewUrl && (
                 <div className="w-full h-full flex items-center justify-center">
 
-                    <label className="cursor-pointer">
+                    <label className="cursor-pointer flex flex-col items-center">
                         <input
                             type="file"
                             accept=".glb"
@@ -59,9 +59,12 @@ const UploadBox = ({file, setFile, loading, setLoading, previewUrl, setPreviewUr
                             onChange={handleFile}
                         />
 
-                        <div className="border border-white p-10">
+                        <img src="/upload.png" alt="upload--v1" className='w-10 h-10 invert' />
+                        <div className="">
                             Upload GLB
+
                         </div>
+
                     </label>
 
                 </div>
@@ -85,7 +88,20 @@ const UploadBox = ({file, setFile, loading, setLoading, previewUrl, setPreviewUr
                 <div className="w-full h-full">
 
                     <ModelCanvas url={previewUrl} />
-                    <div className='absolute bottom-0 right-0 p-2' onClick={resetUpload}>delete</div>
+                    <div
+                        className="absolute bottom-0 right-0 cursor-pointer"
+                        style={{
+                            filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.8))'
+                        }}
+                        onClick={resetUpload}
+                    >
+                        <div
+                            className="p-1 pl-10 bg-black text-white"
+                            style={{ clipPath: 'polygon(40% 0%, 100% 0%, 100% 100%, 0% 100%)' }}
+                        >
+                            delete
+                        </div>
+                    </div>
 
                 </div>
             )}
