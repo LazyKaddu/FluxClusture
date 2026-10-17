@@ -3,7 +3,7 @@ import UploadBox from '../components/UploadBox';
 import * as THREE from 'three'
 import { loadGLB } from '../render/modelLoader.js';
 import { useNavigate } from "react-router-dom";
-import { generateSecureShortId, generateFileHash} from '../utils/helper.js'
+import { generateSecureShortId, generateFileHash } from '../utils/helper.js'
 
 
 const UploadBefore = () => {
@@ -17,7 +17,7 @@ const UploadBefore = () => {
     const [glbHash, setGlbHash] = useState(null);
 
     const [roomId, setRoomId] = useState(null);
-    
+
 
     const [Animations, setAnimations] = useState([])
     const [animDurations, setAnimDurations] = useState([])
@@ -85,7 +85,7 @@ const UploadBefore = () => {
         }
     }, [RenderAnimation, Fps, animDurations]);
 
-    
+
 
 
     const createRoom = () => {
@@ -131,10 +131,10 @@ const UploadBefore = () => {
             <div className='flex flex-col lg:flex-row justify-between gap-8 lg:gap-10 w-full h-full overflow-y-auto lg:overflow-visible pb-10 lg:pb-0 scrollbar-thin pr-2 lg:pr-0'>
                 {/* Left Controls Section */}
                 <div className='flex flex-col justify-between h-full w-full lg:w-[55%] gap-8 lg:gap-0'>
-                    
+
                     {/* Animations and Quality Settings */}
                     <div className='flex flex-col md:flex-row gap-4 h-auto lg:h-[55%]'>
-                        
+
                         <div className='border w-full md:w-[60%] h-48 md:h-full flex flex-col'>
                             <div className='border-b p-2 shrink-0'>
                                 Animations
@@ -144,7 +144,7 @@ const UploadBefore = () => {
                                     (Animations.length ? Animations.map((anim, index) => {
                                         return (
                                             <p className={`pl-4 my-2 text-[#606060] cursor-pointer ${RenderAnimation === index ? 'text-black bg-white' : 'hover:text-white'}`} onClick={() => setRenderAnimation(index)}
-                                            key={index}
+                                                key={index}
                                             >
                                                 {anim}
                                             </p>
@@ -166,8 +166,8 @@ const UploadBefore = () => {
                                     type="number"
                                     placeholder='1024'
                                     className="appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center w-[80%]"
-                                    value = {samples}
-                                    onChange={(e)=> setSamples(e.target.value)}
+                                    value={samples}
+                                    onChange={(e) => setSamples(e.target.value)}
                                 />
                             </div>
                             <div className='border flex-1 flex flex-col gap-2 items-center justify-center py-4'>
@@ -179,8 +179,8 @@ const UploadBefore = () => {
                                     placeholder='0.1'
                                     className="appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center w-[80%]"
                                     value={noiseThreshold}
-                                    onChange={(e)=>setNoiseThreshold(e.target.value)}
-                                    />
+                                    onChange={(e) => setNoiseThreshold(e.target.value)}
+                                />
                             </div>
                         </div>
                     </div>
@@ -230,11 +230,11 @@ const UploadBefore = () => {
 
                         </div>
 
-                        <div className="flex flex-col md:flex-row gap-6 lg:gap-4">
-                            <div className="flex-1 flex flex-col gap-4">
+                        <div className="flex flex-col md:flex-row lg:gap-4">
+                            <div className="flex-1 flex flex-col gap-1">
                                 <div className='flex items-center gap-4'>
                                     <p className='w-12'>start</p>
-                                    <input className='appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center flex-1'
+                                    <input className='appearance-none bg-transparent border-0 w-[50%] underline outline-none text-white text-center'
                                         type="number"
                                         placeholder={start}
                                         value={start}
@@ -246,7 +246,7 @@ const UploadBefore = () => {
                                 </div>
                                 <div className='flex items-center gap-4'>
                                     <p className='w-12'>end</p>
-                                    <input className="appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center flex-1"
+                                    <input className="appearance-none bg-transparent border-0 w-[50%] underline outline-none text-white text-center"
                                         type='number'
                                         placeholder={end}
                                         value={end}
@@ -257,11 +257,11 @@ const UploadBefore = () => {
                                     />
                                 </div>
                             </div>
-                            
-                            <div className="flex-1 flex flex-col gap-4">
+
+                            <div className="flex-1 flex flex-col gap-1">
                                 <div className="flex items-center gap-4">
                                     <p className='w-14'>Fps</p>
-                                    <input className="appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center flex-1"
+                                    <input className="appearance-none bg-transparent border-0 w-[50%] underline outline-none text-white text-center"
                                         type='number'
                                         placeholder={30}
                                         value={Fps}
@@ -270,7 +270,7 @@ const UploadBefore = () => {
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <p className='w-14'>Width</p>
-                                    <input className="appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center flex-1"
+                                    <input className="appearance-none bg-transparent border-0 w-[50%] underline outline-none text-white text-center"
                                         type='number'
                                         value={width}
                                         placeholder="1900"
@@ -279,7 +279,7 @@ const UploadBefore = () => {
                                 </div >
                                 <div className="flex items-center gap-4">
                                     <p className='w-14'>Height</p>
-                                    <input className="appearance-none bg-transparent border-0 border-b border-white outline-none text-white text-center flex-1"
+                                    <input className="appearance-none bg-transparent border-0 w-[50%] underline outline-none text-white text-center"
                                         type='number'
                                         placeholder="1400"
                                         value={height}
@@ -292,27 +292,55 @@ const UploadBefore = () => {
                 </div>
 
                 {/* Right Preview Section */}
-                <div className='w-full lg:w-[40%] flex flex-col justify-end'>
+                <div className='w-full lg:w-[40%] flex flex-col justify-between'>
                     <div className='border aspect-square relative mb-4 flex flex-col'>
                         <p className='border-b p-2 w-full shrink-0'>asset model preview</p>
                         <div className='w-full flex-1 flex items-center justify-center overflow-hidden bg-black/50'>
                             <UploadBox file={file} setFile={setFile} loading={loading} setLoading={setLoading} previewUrl={previewUrl} setPreviewUrl={setPreviewUrl} />
                         </div>
                     </div>
-                    
-                    <div className="flex items-center gap-2 mb-4">
+
+                    <label
+                        htmlFor="masterRender"
+                        className="flex items-center gap-3 mb-4 cursor-pointer select-none group"
+                    >
                         <input
                             type="checkbox"
                             id="masterRender"
-                            className="w-4 h-4 cursor-pointer"
+                            className="sr-only"
                             checked={masterWillRender}
                             onChange={(e) => setMasterWillRender(e.target.checked)}
                         />
-                        <label htmlFor="masterRender" className="text-sm cursor-pointer hover:text-gray-300">
+                        <div
+                            className={`w-4 h-4 border flex items-center justify-center transition-colors shrink-0 ${masterWillRender
+                                    ? 'border-white bg-white'
+                                    : 'border-white/40 group-hover:border-white bg-transparent'
+                                }`}
+                        >
+                            {masterWillRender && (
+                                <svg
+                                    className="w-3 h-3 text-black"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="3.5"
+                                    strokeLinecap="square"
+                                    strokeLinejoin="miter"
+                                >
+                                    <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                            )}
+                        </div>
+                        <span
+                            className={`text-xs uppercase tracking-wider transition-colors ${masterWillRender
+                                    ? 'text-white'
+                                    : 'text-gray-400 group-hover:text-white'
+                                }`}
+                        >
                             I also want to render the chunk
-                        </label>
-                    </div>
-                    
+                        </span>
+                    </label>
+
                     <button className='border w-full py-4 uppercase tracking-widest hover:bg-white hover:text-black transition-colors shrink-0' onClick={createRoom}>
                         start Rendering
                     </button>
