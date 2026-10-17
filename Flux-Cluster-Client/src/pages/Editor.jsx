@@ -33,6 +33,17 @@ const Editor = () => {
     const setPreviewMode = (mode) => {
         previewModeRef.current = mode;
         setPreviewModeState(mode);
+
+        if (mode === 'pathtracer') {
+            if (rendererRef.current && sceneRef.current) {
+                rendererRef.current.setClearColor(sceneRef.current.background || 0x050505, 1);
+                rendererRef.current.clear(true, true, true);
+            }
+            if (pathTracerRef.current) {
+                pathTracerRef.current.reset();
+                pathTracerRef.current.updateCamera();
+            }
+        }
     };
     const [isLoading, setIsLoading] = useState(true);
     const [isExporting, setIsExporting] = useState(false);
@@ -70,6 +81,9 @@ const Editor = () => {
         pathTracer.setBVHWorker(new GenerateMeshBVHWorker());
         pathTracer.rasterizeScene = false;
         pathTracer.renderDelay = 0;
+        pathTracer.fadeDuration = 0;
+        pathTracer.minSamples = 1;
+        pathTracer.dynamicLowRes = false;
         pathTracerRef.current = pathTracer;
 
         controls.addEventListener('change', () => {
@@ -186,6 +200,11 @@ const Editor = () => {
     // Sync previewMode changes to reset pathtracer if needed
     useEffect(() => {
         if (previewMode === 'pathtracer' && pathTracerRef.current) {
+            if (rendererRef.current && sceneRef.current) {
+                rendererRef.current.setClearColor(sceneRef.current.background || 0x050505, 1);
+                rendererRef.current.clear(true, true, true);
+            }
+            pathTracerRef.current.reset();
             pathTracerRef.current.updateCamera();
         }
     }, [previewMode]);
@@ -215,6 +234,11 @@ const Editor = () => {
 
         // If path tracer is running, update the scene to reflect light changes
         if (previewMode === 'pathtracer' && pathTracerRef.current) {
+            if (rendererRef.current && sceneRef.current) {
+                rendererRef.current.setClearColor(sceneRef.current.background || 0x050505, 1);
+                rendererRef.current.clear(true, true, true);
+            }
+            pathTracerRef.current.reset();
             pathTracerRef.current.updateScene();
             pathTracerRef.current.updateCamera();
             if (typeof pathTracerRef.current.compileAsync === 'function') {
