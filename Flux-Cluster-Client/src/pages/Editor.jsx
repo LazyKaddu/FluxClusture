@@ -9,6 +9,8 @@ import { generateFileHash } from '../utils/helper.js';
 import { ensurePathTracerEnvironment } from '../render/upgradeLights.js';
 import { GenerateMeshBVHWorker } from 'three-mesh-bvh/src/workers/GenerateMeshBVHWorker.js';
 
+const LIGHT_ICONS = { area: '▣', spot: '◎', directional: '☀', ambient: '◉', point: '●' };
+
 const Editor = () => {
     const location = useLocation();
     const navigate = useNavigate();
@@ -56,7 +58,7 @@ const Editor = () => {
         cameraRef.current = camera;
 
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x222222);
+        scene.background = new THREE.Color(0x050505);
         sceneRef.current = scene;
 
         const controls = new OrbitControls(camera, renderer.domElement);
@@ -81,7 +83,7 @@ const Editor = () => {
                 const gltf = await loadGLB(buffer);
                 scene.add(gltf.scene);
                 gltfAnimationsRef.current = gltf.animations || [];
-                
+
                 // Sync camera from GLB if available
                 const glbCamera = scene.getObjectByProperty('isPerspectiveCamera', true);
                 if (glbCamera) {
@@ -91,8 +93,6 @@ const Editor = () => {
                     camera.near = glbCamera.near;
                     camera.far = glbCamera.far;
                     camera.updateProjectionMatrix();
-
-                    // Update OrbitControls target to look along the camera's forward axis
                     const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
                     const targetPos = new THREE.Vector3().copy(camera.position).add(direction.multiplyScalar(10));
                     controls.target.copy(targetPos);
@@ -102,18 +102,17 @@ const Editor = () => {
                     const box = new THREE.Box3().setFromObject(scene);
                     const center = box.getCenter(new THREE.Vector3());
                     const size = box.getSize(new THREE.Vector3());
-
                     const maxDim = Math.max(size.x, size.y, size.z);
                     if (maxDim > 0) {
                         const fov = camera.fov * (Math.PI / 180);
                         let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
-                        cameraZ *= 1.5; 
+                        cameraZ *= 1.5;
                         camera.position.set(center.x, center.y, center.z + cameraZ);
                         controls.target.copy(center);
                         controls.update();
                     }
                 }
-                
+
                 // Extract lights
                 const extractedLights = [];
                 gltf.scene.traverse((child) => {
@@ -124,10 +123,10 @@ const Editor = () => {
                     }
                 });
 
-                // If no lights found, maybe add a default so user can see something?
+                // If no lights found, add a default so user can see something
                 if (extractedLights.length === 0) {
                     const ambient = new THREE.PointLight(0xffffff, 0.5);
-                    ambient.name = "World_GI"; // Default to World_GI naming so it becomes Ambient on the cluster
+                    ambient.name = 'World_GI'; // Default to World_GI naming so it becomes Ambient on the cluster
                     scene.add(ambient);
                     extractedLights.push(ambient);
                 }
@@ -144,7 +143,7 @@ const Editor = () => {
                 }
                 setIsLoading(false);
             } catch (error) {
-                console.error("Failed to load GLB", error);
+                console.error('Failed to load GLB', error);
             }
         };
         loadModel();
@@ -153,10 +152,7 @@ const Editor = () => {
         const resizeObserver = new ResizeObserver((entries) => {
             for (let entry of entries) {
                 const { width, height } = entry.contentRect;
-                if (width === 0 || height === 0) {
-                    isSized = false;
-                    continue;
-                }
+                if (width === 0 || height === 0) { isSized = false; continue; }
                 isSized = true;
                 camera.aspect = width / height;
                 camera.updateProjectionMatrix();
@@ -170,7 +166,6 @@ const Editor = () => {
         const animate = () => {
             reqFrameRef.current = requestAnimationFrame(animate);
             if (!isSized) return;
-            
             if (previewModeRef.current === 'pathtracer') {
                 pathTracer.renderSample();
             } else {
@@ -204,7 +199,6 @@ const Editor = () => {
             light.color.set(value);
         } else if (property === 'type') {
             // We just rename the light so that the `upgradeLights.js` logic on the cluster node will handle it correctly!
-            // 'world_gi', 'area', 'spot', 'sun'
             const nameMap = {
                 'area': 'AreaLight',
                 'spot': 'SpotLight',
@@ -219,7 +213,7 @@ const Editor = () => {
         // Force a state update to re-render UI
         setLights([...lights]);
 
-        // If path tracer is running, we need to update the scene to reflect light changes
+        // If path tracer is running, update the scene to reflect light changes
         if (previewMode === 'pathtracer' && pathTracerRef.current) {
             pathTracerRef.current.updateScene();
             pathTracerRef.current.updateCamera();
@@ -241,31 +235,22 @@ const Editor = () => {
     const handleContinue = () => {
         setIsExporting(true);
         const exporter = new GLTFExporter();
-        
         exporter.parse(
             sceneRef.current,
             async (gltfArrayBuffer) => {
                 try {
-                    // The GLTFExporter wraps the scene inside a root object, we want to export only the first child if it's the imported scene, 
-                    // but actually exporting the whole scene works since the cluster node loads whatever we export.
                     const newFile = new File([gltfArrayBuffer], renderConfig.file.name, { type: 'model/gltf-binary' });
                     const newHash = await generateFileHash(gltfArrayBuffer);
-                    
-                    const updatedConfig = {
-                        ...renderConfig,
-                        file: newFile,
-                        fileHash: newHash
-                    };
-
+                    const updatedConfig = { ...renderConfig, file: newFile, fileHash: newHash };
                     setIsExporting(false);
                     navigate('/render', { state: updatedConfig });
                 } catch (err) {
-                    console.error("Export error:", err);
+                    console.error('Export error:', err);
                     setIsExporting(false);
                 }
             },
             (error) => {
-                console.error("GLTFExporter failed:", error);
+                console.error('GLTFExporter failed:', error);
                 setIsExporting(false);
             },
             { binary: true, animations: gltfAnimationsRef.current }
@@ -273,20 +258,41 @@ const Editor = () => {
     };
 
     const selectedLight = lights.find(l => l.uuid === selectedLightId);
+    const fileName = renderConfig?.file?.name ?? '—';
+    const fileSize = renderConfig?.file
+        ? (renderConfig.file.size / 1024 / 1024).toFixed(2) + ' MB'
+        : '—';
 
     return (
-        <div className="h-full text-white font-mono w-full flex flex-col">
-            <header className="flex justify-between items-center mb-6">
-                <div className="text-sm font-bold">&gt;_ 3D Viewport Editor</div>
-                <div className="flex items-center gap-3">
-                    <button 
-                        className={`px-3 py-1 border text-xs ${previewMode === 'normal' ? 'bg-white text-black' : ''}`}
+        <div className="font-mono bg-black text-white h-full w-full flex flex-col overflow-hidden border border-white">
+
+            {/* ── Header ── */}
+            <header className="flex items-center justify-between px-4 py-2.5 border-b border-white shrink-0">
+                <div className="flex items-center gap-2.5">
+                    <span className="text-[9px] font-bold tracking-[0.15em] border border-white px-2 py-0.5 uppercase">
+                        FluxCluster
+                    </span>
+                    <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-white">
+                        &gt;_ Light Editor
+                    </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                    <button
+                        className={`text-[9px] font-bold tracking-widest uppercase border px-2.5 py-1 cursor-pointer transition-colors ${
+                            previewMode === 'normal'
+                                ? 'bg-white text-black border-white'
+                                : 'border-neutral-600 bg-transparent text-neutral-400 hover:border-white hover:text-white'
+                        }`}
                         onClick={() => setPreviewMode('normal')}
                     >
-                        Normal Renderer
+                        Normal
                     </button>
-                    <button 
-                        className={`px-3 py-1 border text-xs ${previewMode === 'pathtracer' ? 'bg-white text-black' : ''}`}
+                    <button
+                        className={`text-[9px] font-bold tracking-widest uppercase border px-2.5 py-1 cursor-pointer transition-colors ${
+                            previewMode === 'pathtracer'
+                                ? 'bg-white text-black border-white'
+                                : 'border-neutral-600 bg-transparent text-neutral-400 hover:border-white hover:text-white'
+                        }`}
                         onClick={() => setPreviewMode('pathtracer')}
                     >
                         PathTracer
@@ -294,77 +300,197 @@ const Editor = () => {
                 </div>
             </header>
 
-            <div className='flex gap-6 w-full h-[85%]'>
-                <div className='flex-1 border relative' ref={containerRef}>
-                    {isLoading && <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-10">Loading Model...</div>}
-                    <canvas ref={canvasRef} className="w-full h-full block" />
-                </div>
-                
-                <div className='w-1/4 border flex flex-col'>
-                    <div className='border-b p-3 font-bold'>Scene Lights</div>
-                    <div className='flex-1 overflow-y-auto p-2'>
-                        {lights.map(light => (
-                            <div 
-                                key={light.uuid}
-                                className={`p-2 cursor-pointer border mb-2 text-sm ${selectedLightId === light.uuid ? 'bg-white text-black' : 'border-gray-700 hover:border-gray-500'}`}
-                                onClick={() => setSelectedLightId(light.uuid)}
-                            >
-                                {light.name || light.type}
-                            </div>
-                        ))}
+            {/* ── Body ── */}
+            <div className="flex flex-1 overflow-hidden min-h-0">
+
+                {/* LEFT: 3D Viewport */}
+                <div className="flex-1 min-w-0 flex flex-col border-r border-white relative overflow-hidden">
+                    <div className="flex items-center gap-2 px-3 py-1.5 border-b border-neutral-800 shrink-0 bg-black">
+                        <span className={`text-[9px] font-bold tracking-[0.12em] uppercase ${previewMode === 'normal' ? 'text-white' : 'text-neutral-500'}`}>
+                            {previewMode === 'normal' ? '●' : '○'} RASTERIZER
+                        </span>
+                        <span className="text-neutral-700 text-[9px]">/</span>
+                        <span className={`text-[9px] font-bold tracking-[0.12em] uppercase ${previewMode === 'pathtracer' ? 'text-white' : 'text-neutral-500'}`}>
+                            {previewMode === 'pathtracer' ? '●' : '○'} PATH TRACER
+                        </span>
                     </div>
-                    
-                    {selectedLight && (
-                        <div className='border-t p-4 flex flex-col gap-3 text-sm'>
-                            <div className='font-bold mb-2'>Properties</div>
-                            
-                            <div className='flex justify-between items-center'>
-                                <span>Type</span>
-                                <select 
-                                    className="bg-transparent border-b border-white outline-none w-1/2 text-right"
-                                    value={getLightTypeFromTitle(selectedLight.name)}
-                                    onChange={(e) => handleLightPropertyChange('type', e.target.value)}
-                                >
-                                    <option value="point" className="text-black">Point</option>
-                                    <option value="area" className="text-black">Area</option>
-                                    <option value="spot" className="text-black">Spot</option>
-                                    <option value="directional" className="text-black">Directional (Sun)</option>
-                                    <option value="ambient" className="text-black">World GI</option>
-                                </select>
-                            </div>
 
-                            <div className='flex justify-between items-center'>
-                                <span>Intensity</span>
-                                <input 
-                                    type="number" step="0.1"
-                                    className="bg-transparent border-b border-white outline-none w-1/3 text-right"
-                                    value={selectedLight.intensity}
-                                    onChange={(e) => handleLightPropertyChange('intensity', e.target.value)}
-                                />
+                    <div className="flex-1 relative overflow-hidden" ref={containerRef}>
+                        {isLoading && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 z-10 gap-4">
+                                <div className="w-8 h-8 border-2 border-neutral-700 border-t-white rounded-full animate-spin" />
+                                <span className="text-[10px] font-bold tracking-[0.2em] text-neutral-400 uppercase">
+                                    Loading Scene…
+                                </span>
                             </div>
+                        )}
+                        <canvas ref={canvasRef} className="w-full h-full block" />
+                    </div>
 
-                            <div className='flex justify-between items-center'>
-                                <span>Color</span>
-                                <input 
-                                    type="color"
-                                    className="bg-transparent border-none outline-none w-8 h-8"
-                                    value={"#" + selectedLight.color.getHexString()}
-                                    onChange={(e) => handleLightPropertyChange('color', e.target.value)}
-                                />
-                            </div>
+                    <div className="flex items-center justify-between px-3 py-1.5 border-t border-neutral-900 shrink-0 bg-black">
+                        <span className="text-[9px] tracking-wider text-neutral-500 uppercase flex items-center">
+                            <span className={`w-1.5 h-1.5 rounded-full inline-block mr-1.5 ${!isLoading ? 'bg-white shadow-[0_0_6px_rgba(255,255,255,0.6)]' : 'bg-neutral-700'}`} />
+                            {isLoading ? 'COMPILING BVH' : 'SCENE READY'}
+                        </span>
+                        <span className="text-[9px] tracking-wider text-neutral-500 uppercase flex items-center">
+                            {lights.length} LIGHT{lights.length !== 1 ? 'S' : ''} DETECTED
+                        </span>
+                        <span className="text-[9px] tracking-wider text-white uppercase flex items-center">
+                            ORBIT — DRAG TO ROTATE
+                        </span>
+                    </div>
+                </div>
+
+                {/* RIGHT: Inspector */}
+                <div className="w-[280px] shrink-0 flex flex-col overflow-hidden bg-black">
+
+                    {/* Scene lights list */}
+                    <div className="border-b border-neutral-900 shrink-0">
+                        <div className="flex items-center justify-between px-3 py-2 border-b border-neutral-900 bg-black">
+                            <span className="text-[9px] font-bold tracking-[0.15em] uppercase text-neutral-500">Scene Lights</span>
+                            <span className="text-[9px] text-neutral-600">{lights.length} OBJ</span>
                         </div>
-                    )}
+                        <div className="overflow-y-auto max-h-40 scrollbar-thin">
+                            {lights.map(light => {
+                                const lType = getLightTypeFromTitle(light.name);
+                                const isSelected = selectedLightId === light.uuid;
+                                return (
+                                    <div
+                                        key={light.uuid}
+                                        className={`flex items-center gap-2 px-3 py-1.5 cursor-pointer transition-colors ${
+                                            isSelected ? 'bg-white text-black' : 'hover:bg-neutral-900 text-white'
+                                        }`}
+                                        onClick={() => setSelectedLightId(light.uuid)}
+                                    >
+                                        <span className="text-[10px] w-4 text-center shrink-0">{LIGHT_ICONS[lType] ?? '●'}</span>
+                                        <span className="text-[10px] tracking-wider flex-1 truncate">{light.name || light.type}</span>
+                                        <span className="text-[8px] tracking-wider uppercase px-1 py-px border border-current opacity-60">
+                                            {lType}
+                                        </span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
 
-                    <div className='p-3 border-t'>
-                        <button 
-                            className='w-full py-2 bg-white text-black font-bold disabled:opacity-50'
+                    {/* Properties */}
+                    <div className="flex-1 flex flex-col overflow-hidden border-b border-neutral-900">
+                        <div className="flex items-center justify-between px-3 py-2 border-b border-neutral-900 bg-black">
+                            <span className="text-[9px] font-bold tracking-[0.15em] uppercase text-neutral-500">
+                                {selectedLight ? `// ${selectedLight.name || 'Light'}` : 'Properties'}
+                            </span>
+                        </div>
+
+                        {selectedLight ? (
+                            <div className="overflow-y-auto flex-1 scrollbar-thin">
+                                <div className="flex items-center justify-between px-3 py-2 border-b border-neutral-900/60 gap-2">
+                                    <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-neutral-500 shrink-0">Type</span>
+                                    <div className="flex items-center gap-1.5">
+                                        <select
+                                            className="font-mono text-[10px] bg-transparent border-0 border-b border-neutral-700 hover:border-white focus:border-white text-white outline-none px-1 py-0.5 text-right cursor-pointer transition-colors [&>option]:bg-neutral-950 [&>option]:text-white"
+                                            value={getLightTypeFromTitle(selectedLight.name)}
+                                            onChange={(e) => handleLightPropertyChange('type', e.target.value)}
+                                        >
+                                            <option value="point">Point</option>
+                                            <option value="area">Area</option>
+                                            <option value="spot">Spot</option>
+                                            <option value="directional">Sun (Directional)</option>
+                                            <option value="ambient">World GI</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-between px-3 py-2 border-b border-neutral-900/60 gap-2">
+                                    <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-neutral-500 shrink-0">Intensity</span>
+                                    <div className="flex items-center gap-1.5">
+                                        <input
+                                            type="number"
+                                            step="0.1"
+                                            className="font-mono text-[10px] bg-transparent border-0 border-b border-neutral-700 hover:border-white focus:border-white text-white outline-none w-16 text-right px-1 py-0.5 transition-colors"
+                                            value={selectedLight.intensity}
+                                            onChange={(e) => handleLightPropertyChange('intensity', e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-between px-3 py-2 border-b border-neutral-900/60 gap-2">
+                                    <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-neutral-500 shrink-0">Color</span>
+                                    <div className="flex items-center gap-2">
+                                        <div className="relative w-7 h-5 border border-neutral-700 hover:border-white overflow-hidden cursor-pointer transition-colors shrink-0">
+                                            <div
+                                                className="w-full h-full pointer-events-none"
+                                                style={{ backgroundColor: '#' + selectedLight.color.getHexString() }}
+                                            />
+                                            <input
+                                                type="color"
+                                                className="absolute -inset-1 w-[calc(100%+8px)] h-[calc(100%+8px)] opacity-0 cursor-pointer"
+                                                value={'#' + selectedLight.color.getHexString()}
+                                                onChange={(e) => handleLightPropertyChange('color', e.target.value)}
+                                            />
+                                        </div>
+                                        <span className="text-[9px] text-neutral-500 tracking-wider font-mono">
+                                            #{selectedLight.color.getHexString().toUpperCase()}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {getLightTypeFromTitle(selectedLight.name) === 'spot' && selectedLight.angle !== undefined && (
+                                    <div className="flex items-center justify-between px-3 py-2 border-b border-neutral-900/60 gap-2">
+                                        <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-neutral-500 shrink-0">Angle</span>
+                                        <div className="flex items-center gap-1.5">
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                className="font-mono text-[10px] bg-transparent border-0 border-b border-neutral-700 hover:border-white focus:border-white text-white outline-none w-16 text-right px-1 py-0.5 transition-colors"
+                                                value={selectedLight.angle?.toFixed(3) ?? ''}
+                                                onChange={(e) => handleLightPropertyChange('angle', e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="p-5 text-center">
+                                <p className="text-[9px] tracking-[0.12em] uppercase text-neutral-600 leading-relaxed">
+                                    Select a light<br />to inspect properties
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Telemetry strip */}
+                    <div className="border-t border-neutral-900 px-3 py-2 flex flex-col gap-1 shrink-0">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[8px] tracking-widest uppercase text-neutral-600">FILE</span>
+                            <span className="text-[8px] tracking-wider text-neutral-400 max-w-[160px] truncate text-right">{fileName}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-[8px] tracking-widest uppercase text-neutral-600">SIZE</span>
+                            <span className="text-[8px] tracking-wider text-neutral-400">{fileSize}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="text-[8px] tracking-widest uppercase text-neutral-600">RENDERER</span>
+                            <span className="text-[8px] tracking-wider text-neutral-400">{previewMode === 'pathtracer' ? 'PATHTRACER' : 'RASTERIZER'}</span>
+                        </div>
+                    </div>
+
+                    {/* Export footer */}
+                    <div className="border-t border-white p-3 shrink-0 bg-black">
+                        <div className="flex items-center justify-between mb-2.5">
+                            <span className="text-[9px] tracking-widest uppercase text-neutral-500">Target</span>
+                            <span className="text-[9px] tracking-wider text-neutral-400 truncate max-w-[140px] text-right">/render → cluster</span>
+                        </div>
+                        <button
+                            className="font-mono text-[10px] font-bold tracking-[0.15em] uppercase w-full p-2.5 bg-white text-black border-none cursor-pointer hover:bg-neutral-200 disabled:opacity-35 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                             onClick={handleContinue}
                             disabled={isExporting || isLoading}
                         >
-                            {isExporting ? "Exporting..." : "Continue to Render"}
+                            <span>▶</span>
+                            {isExporting ? 'Exporting…' : 'Continue to Render'}
                         </button>
                     </div>
                 </div>
+
             </div>
         </div>
     );
