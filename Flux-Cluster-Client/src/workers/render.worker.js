@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import '../render/patchThreeGpuPathTracer.js';
 import { WebGLPathTracer } from 'three-gpu-pathtracer';
 import { loadGLB } from '../render/modelLoader.js';
 import { upgradeSceneLights, worldBackgroundColor, ensurePathTracerEnvironment } from '../render/upgradeLights.js';
@@ -125,9 +126,9 @@ self.onmessage = async (e) => {
             const samples = config.samples || 1024;
 
             if (task.frame !== undefined && task.frame !== currentRenderedFrame) {
-                syncCamera(scene, camera, width, height);
                 if (mixer) {
                     mixer.setTime(task.frame / fps);
+                    syncCamera(scene, camera, width, height);
                     self.postMessage({ type: 'STATUS', payload: `Updating BVH for Frame ${task.frame}...` });
                     
                     pathTracer.setScene(scene, camera);
@@ -136,6 +137,8 @@ self.onmessage = async (e) => {
                     if (typeof pathTracer.compileAsync === 'function') {
                         await pathTracer.compileAsync();
                     }
+                } else {
+                    syncCamera(scene, camera, width, height);
                 }
                 currentRenderedFrame = task.frame;
             }

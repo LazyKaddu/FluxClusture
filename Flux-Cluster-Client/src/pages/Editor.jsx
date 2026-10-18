@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { loadGLB } from '../render/modelLoader.js';
 import { GLTFExporter } from 'three/examples/jsm/exporters/GLTFExporter';
+import '../render/patchThreeGpuPathTracer.js';
 import { WebGLPathTracer } from 'three-gpu-pathtracer';
 import { generateFileHash } from '../utils/helper.js';
 import { ensurePathTracerEnvironment } from '../render/upgradeLights.js';
