@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "oxlint",
     "test": "node --test",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "node scripts/patch-three-gpu-pathtracer.cjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
