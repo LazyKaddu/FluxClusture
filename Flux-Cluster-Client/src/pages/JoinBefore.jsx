@@ -1,51 +1,160 @@
-import React, { useState } from 'react'
+import React, { useState } from 'react';
 import { useNavigate } from "react-router-dom";
 
 const JoinBefore = () => {
     const navigate = useNavigate();
     const [RoomID, setRoomID] = useState("");
+    const [error, setError] = useState("");
 
-    const joinRoom = ()=>{
-        navigate(`/joined?roomId=${RoomID}`)
-    }
+    const joinRoom = (e) => {
+        if (e) e.preventDefault();
+        const cleanId = RoomID.trim();
+        if (!cleanId) {
+            setError("Room ID is required to initiate connection.");
+            return;
+        }
+        setError("");
+        navigate(`/joined?roomId=${encodeURIComponent(cleanId)}`);
+    };
 
+    const handlePaste = async () => {
+        try {
+            const text = await navigator.clipboard.readText();
+            if (text) {
+                setRoomID(text.trim());
+                setError("");
+            }
+        } catch (err) {
+            console.warn("Clipboard access denied or unavailable:", err);
+        }
+    };
 
     return (
-        <div className='border border-white/20 w-[95%] md:w-[70%] lg:w-[50%] xl:w-[40%] flex justify-center h-auto min-h-[50%] items-center geist-mono-regular p-8 lg:p-12 shadow-2xl bg-black/40'>
-            <div className='flex justify-between flex-col w-full h-full gap-10'>
-                <div className='flex justify-between items-center text-xs'>
-                    <p className='geist-mono-bold text-lg'>&gt;_ JOIN ROOM</p>
-                    <p className='text-xs text-[#606060] flex items-center gap-2'>
-                        <span className='w-2 h-2 rounded-full inline-block bg-green-500 animate-pulse'></span> CLUSTER_READY
-                    </p>
+        <div className="font-mono bg-black text-white w-[95%] sm:w-[85%] md:w-[70%] lg:w-[50%] xl:w-[42%] max-w-xl flex flex-col overflow-hidden border border-white shadow-2xl my-auto select-none">
+            {/* ── Terminal HUD Header ── */}
+            <header className="flex items-center justify-between px-4 py-2.5 border-b border-white shrink-0 bg-black">
+                <div className="flex items-center gap-2.5">
+                    <span className="text-[9px] font-bold tracking-[0.15em] border border-white px-2 py-0.5 uppercase">
+                        FluxCluster
+                    </span>
+                    <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-white">
+                        &gt;_ Swarm Join
+                    </span>
                 </div>
 
-                <div className='flex flex-col gap-4'>
-                    <input 
-                        placeholder='Enter Room Code ...' 
-                        className='border border-white/40 bg-transparent w-full py-4 px-4 text-center text-sm outline-none focus:border-white transition-colors tracking-widest' 
-                        value={RoomID} 
-                        onChange={(e) => (setRoomID(e.target.value))} 
-                    />
-                    <button 
-                        className='border border-white w-full py-4 flex items-center justify-center text-sm geist-mono-bold hover:bg-white hover:text-black transition-colors uppercase tracking-widest'
-                        onClick={joinRoom}
-                    >
-                        [ EXECUTE_JOIN ]
-                    </button>
+                <div className="flex items-center gap-3">
+                    <div className="hidden sm:flex items-center gap-2 border border-neutral-800 px-2 py-0.5 bg-neutral-950">
+                        <span className="text-[8px] text-neutral-500 uppercase tracking-widest">NET:</span>
+                        <span className="text-[9px] text-neutral-300 font-bold tracking-wider">WEBRTC_SCTP</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 border border-neutral-800 bg-neutral-950">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_6px_rgba(34,197,94,0.8)]" />
+                        <span className="text-[9px] font-bold tracking-wider uppercase text-neutral-300">
+                            CLUSTER_READY
+                        </span>
+                    </div>
                 </div>
-                
-                <div className='flex justify-between text-xs mt-4'>
-                    <p className='text-[#606060]'>
-                        connection: stable//secured
+            </header>
+
+            {/* ── Section 01: Peering & Session Credentials ── */}
+            <div className="border-b border-neutral-900 bg-black relative">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-neutral-900 bg-black">
+                    <span className="text-[9px] font-bold tracking-[0.15em] uppercase text-neutral-500">
+                        01 // Peering & Session Credentials
+                    </span>
+                    <span className="text-[9px] text-neutral-600 font-mono">PORT: 443 // SECURE</span>
+                </div>
+
+                <div className="p-4 sm:p-6 relative overflow-hidden">
+                    {/* Technical grid backdrop */}
+                    <div className="absolute inset-0 opacity-15 pointer-events-none bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px]" />
+
+                    <p className="text-[10px] text-neutral-400 uppercase tracking-wider mb-5 leading-relaxed relative z-10">
+                        Connect local GPU/CPU compute resources to an active distributed render cluster. Enter the session room code generated by the orchestrator.
                     </p>
-                    <p className='text-indigo-700'>
-                        v1.2.0-flux
-                    </p>
+
+                    <form onSubmit={joinRoom} className="flex flex-col gap-3 relative z-10">
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[9px] tracking-widest uppercase text-neutral-500 flex justify-between">
+                                <span>SESSION ROOM CODE</span>
+                                <span className="text-neutral-600">REQUIRED</span>
+                            </label>
+                            <div className="relative flex items-center">
+                                <input
+                                    placeholder="ENTER ROOM ID …"
+                                    className="border border-neutral-700 bg-neutral-950/80 w-full py-3 pl-4 pr-18 text-center text-sm font-bold font-mono tracking-widest text-white outline-none focus:border-white focus:bg-neutral-900 transition-colors uppercase placeholder:text-neutral-600 placeholder:normal-case placeholder:font-normal"
+                                    value={RoomID}
+                                    onChange={(e) => {
+                                        setRoomID(e.target.value);
+                                        if (error) setError("");
+                                    }}
+                                    autoFocus
+                                />
+                                <button
+                                    type="button"
+                                    onClick={handlePaste}
+                                    className="absolute right-2 text-[9px] font-bold tracking-widest uppercase px-2 py-1 border border-neutral-700 hover:border-white text-neutral-400 hover:text-white bg-black transition-colors cursor-pointer"
+                                    title="Paste from clipboard"
+                                >
+                                    PASTE
+                                </button>
+                            </div>
+                            {error && (
+                                <span className="text-[9px] text-red-400 tracking-wider uppercase mt-0.5">
+                                    [ERROR] {error}
+                                </span>
+                            )}
+                        </div>
+
+                        <button
+                            type="submit"
+                            className="mt-2 font-mono text-[10px] sm:text-[11px] font-bold tracking-[0.15em] uppercase w-full p-3 bg-white text-black border-none cursor-pointer hover:bg-neutral-200 transition-colors flex items-center justify-center gap-2"
+                        >
+                            <span>▶</span>
+                            Execute Join & Peer With Swarm
+                        </button>
+                    </form>
                 </div>
             </div>
-        </div>
-    )
-}
 
-export default JoinBefore
+            {/* ── Section 02: Client Telemetry & Hardware Probe ── */}
+            <div className="border-b border-neutral-900 bg-black">
+                <div className="flex items-center justify-between px-4 py-2 border-b border-neutral-900 bg-black">
+                    <span className="text-[9px] font-bold tracking-[0.15em] uppercase text-neutral-500">
+                        02 // Client Telemetry & Hardware Probe
+                    </span>
+                    <span className="text-[9px] text-neutral-600 font-mono">DIAGNOSTICS</span>
+                </div>
+
+                <div className="p-4 grid grid-cols-2 gap-y-2.5 gap-x-4 text-[9px]">
+                    <div className="flex flex-col gap-0.5">
+                        <span className="text-neutral-500 tracking-widest uppercase text-[8px]">PATH TRACER RUNTIME</span>
+                        <span className="text-white font-bold tracking-wider">WEBGPU / WEBGL2</span>
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                        <span className="text-neutral-500 tracking-widest uppercase text-[8px]">COMPUTE DAEMON</span>
+                        <span className="text-white font-bold tracking-wider">WORKER_NODE</span>
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                        <span className="text-neutral-500 tracking-widest uppercase text-[8px]">PEER PROTOCOL</span>
+                        <span className="text-white font-bold tracking-wider">DIRECT_P2P_DATASHARD</span>
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                        <span className="text-neutral-500 tracking-widest uppercase text-[8px]">DATA ENCRYPTION</span>
+                        <span className="text-green-400 font-bold tracking-wider">DTLS_1.3 // SECURE</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* ── Footer Telemetry ── */}
+            <footer className="px-4 py-2.5 bg-black flex items-center justify-between text-[8px] tracking-wider uppercase text-neutral-500">
+                <span>CONNECTION: STABLE // P2P_DISCOVERABLE</span>
+                <span>FLUX_ENGINE v2.4_HPC</span>
+            </footer>
+        </div>
+    );
+};
+
+export default JoinBefore;
+
