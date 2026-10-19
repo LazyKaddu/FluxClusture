@@ -52,7 +52,7 @@ const Home = () => {
 
                 <section aria-label="Introduction Hero" className="snap-panel flex justify-center flex-col items-center text-5xl md:text-7xl h-screen w-full text-[#606060] text-center px-4">
                     <h1 className="tracking-tight">
-                        <span className='text-white font-bold'>NEW</span> ERA OF COMPUTING
+                        <span className='text-white font-bold'>NEW</span> ERA OF<br />COMPUTING
                     </h1>
                 </section>
 
@@ -62,9 +62,9 @@ const Home = () => {
 
                 <section aria-label="About FluxCluster" className="snap-panel h-screen w-full flex flex-col md:flex-row items-center justify-center px-6">
                     <div className='w-full max-w-[250px] md:max-w-none md:w-[21vw] h-[350px] md:h-[28vw] mb-10 md:mb-0 md:mr-10 relative'>
-                        <ImageFade 
-                            image={'/fluximage2Render.webp'} 
-                            fallback={'/fluximage2Render.png'} 
+                        <ImageFade
+                            image={'/fluximage2Render.webp'}
+                            fallback={'/fluximage2Render.png'}
                             alt="FluxCluster distributed GPU compute architecture and WebGL path tracing"
                         />
                     </div>
@@ -93,9 +93,9 @@ const Home = () => {
                         </div>
 
                         <div className='w-full max-w-[250px] md:max-w-none md:w-[21vw] h-[350px] md:h-[28vw] relative'>
-                            <ImageFade 
-                                image={'/fluximageRender.webp'} 
-                                fallback={'/fluximageRender.png'} 
+                            <ImageFade
+                                image={'/fluximageRender.webp'}
+                                fallback={'/fluximageRender.png'}
                                 alt="Aashish Negi - Creator and Architect of FluxCluster"
                             />
                         </div>
