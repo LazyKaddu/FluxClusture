@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /joined*
+Disallow: /render*
+
+Sitemap: https://flux-cluster.vercel.app/sitemap.xml
