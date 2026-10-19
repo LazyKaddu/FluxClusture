@@ -5,7 +5,7 @@ import { useGSAP } from '@gsap/react';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const ImageFade = ({ image, fallback }) => {
+const ImageFade = ({ image, fallback, alt = "FluxCluster 3D distributed path-tracing visual" }) => {
     const containerRef = useRef(null); 
     const gridRef = useRef(null); 
 
@@ -63,7 +63,7 @@ const ImageFade = ({ image, fallback }) => {
                 <img
                     className="w-full h-full object-cover"
                     src={fallback || image}
-                    alt="Flux Cluster presentation"
+                    alt={alt}
                     loading="lazy"
                     decoding="async"
                 />

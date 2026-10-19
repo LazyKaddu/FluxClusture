@@ -82,25 +82,31 @@ const Base = ({ childComponent: RenderPage }) => {
         <main className='relative text-white bg-[#141414] overflow-hidden w-full h-screen'>
             <div className='absolute z-10 w-full bg-black flex justify-between min-h-screen' ref={mainRef} >
                 {/* Left Panel */}
-                <div className='flex flex-col justify-between ml-5 md:ml-10 my-5 md:my-10 pointer-events-none z-20'>
-                    <div className='bebas-neue-regular capitalize pointer-events-auto cursor-pointer' onClick={() => navigate('/')}>
-                        <span className=' text-2xl md:text-4xl'>flux</span><br /><span className='text-sm md:text-xl relative bottom-2 md:bottom-3'>cluster</span>
-                    </div>
+                <header className='flex flex-col justify-between ml-5 md:ml-10 my-5 md:my-10 pointer-events-none z-20'>
+                    <a href="/" aria-label="FluxCluster Home" className='bebas-neue-regular capitalize pointer-events-auto cursor-pointer block text-white no-underline' onClick={(e) => { e.preventDefault(); navigate('/'); }}>
+                        <span className='text-2xl md:text-4xl'>flux</span><br /><span className='text-sm md:text-xl relative bottom-2 md:bottom-3'>cluster</span>
+                    </a>
 
-                    <div className={'space-mono-regular hidden md:flex transition-all pointer-events-auto ' + `items-${currentPage}`}>
+                    <nav aria-label="Main Navigation" className={'space-mono-regular hidden md:flex transition-all pointer-events-auto ' + `items-${currentPage}`}>
                         <div className='bg-white w-2 h-2 m-[5.5px]' />
-                        <div className='text-sm'>
-                            <div className='cursor-pointer hover:text-gray-400 transition-colors' onClick={() => navigate('/')}> DESC CLUSTER</div>
-                            <div className='cursor-pointer hover:text-gray-400 transition-colors' onClick={() => navigate('/upload')}> UPLOAD TASK</div>
-                            <div className='cursor-pointer hover:text-gray-400 transition-colors' onClick={() => navigate('/join')}> JOIN TASK</div>
-                        </div>
-                    </div>
+                        <ul className='text-sm list-none p-0 m-0'>
+                            <li>
+                                <button type="button" id="nav-desc-cluster-btn" className='cursor-pointer hover:text-gray-400 transition-colors bg-transparent border-0 text-white p-0 text-left font-inherit' onClick={() => navigate('/')}>DESC CLUSTER</button>
+                            </li>
+                            <li>
+                                <button type="button" id="nav-upload-task-btn" className='cursor-pointer hover:text-gray-400 transition-colors bg-transparent border-0 text-white p-0 text-left font-inherit' onClick={() => navigate('/upload')}>UPLOAD TASK</button>
+                            </li>
+                            <li>
+                                <button type="button" id="nav-join-task-btn" className='cursor-pointer hover:text-gray-400 transition-colors bg-transparent border-0 text-white p-0 text-left font-inherit' onClick={() => navigate('/join')}>JOIN TASK</button>
+                            </li>
+                        </ul>
+                    </nav>
                     <div className='space-mono-regular text-sm hidden md:block'>
                         CREATE, BUILD, INNOVATE <br />
                         WHAT THE FUCK IS <br />
                         FLUX CLUSTER
                     </div>
-                </div>
+                </header>
 
                 {/* Center Content */}
                 <div className='absolute inset-0 flex items-center justify-center w-full h-screen z-10'>
@@ -117,10 +123,10 @@ const Base = ({ childComponent: RenderPage }) => {
                 </div>
 
                 {/* Right Panel */}
-                <div className='flex flex-col justify-between items-end mr-5 md:mr-10 my-5 md:my-10 pointer-events-none z-20'>
-                    <div className='bebas-neue-regular capitalize cursor-pointer text-lg md:text-xl pointer-events-auto bg-black bg-opacity-50 p-2 rounded' onClick={() => setIsActive(true)}>
+                <aside aria-label="Status and Controls" className='flex flex-col justify-between items-end mr-5 md:mr-10 my-5 md:my-10 pointer-events-none z-20'>
+                    <button id="nav-open-menu-btn" type="button" aria-label="Open Navigation Menu" className='bebas-neue-regular capitalize cursor-pointer text-lg md:text-xl pointer-events-auto bg-black bg-opacity-50 p-2 rounded border-0 text-white' onClick={() => setIsActive(true)}>
                         <TextAnimated text={"MENU"} />
-                    </div>
+                    </button>
                     <div className='hidden md:flex text-sm'>
                         <div className='mr-1'>
                             <div className='w-3 h-0.5 bg-white rotate-30 relative top-[10.5px] origin-right'></div>
@@ -133,18 +139,18 @@ const Base = ({ childComponent: RenderPage }) => {
                         </div>
                     </div>
                     <div className='hidden md:block'></div>
-                </div>
+                </aside>
             </div>
             <div className={'absolute w-[85%] md:w-1/2 right-0 h-screen flex flex-col items-end justify-between p-6 md:p-10'}>
-                <div className='bebas-neue-regular capitalize cursor-pointer text-lg md:text-xl mt-4 md:mt-0' onClick={() => setIsActive(false)}>
+                <button id="nav-close-menu-btn" type="button" aria-label="Close Navigation Menu" className='bebas-neue-regular capitalize cursor-pointer text-lg md:text-xl mt-4 md:mt-0 border-0 bg-transparent text-white' onClick={() => setIsActive(false)}>
                     <TextAnimated text={"CLOSE"} />
-                </div>
-                <div className='bebas-neue-regular flex flex-col items-end'>
+                </button>
+                <nav aria-label="Drawer Navigation" className='bebas-neue-regular flex flex-col items-end'>
                     <NavLinks text={"ABOUT"} />
                     <NavLinks text={"BLOG"} />
                     <NavLinks text={"CONTACT"} />
                     <NavLinks text={"DESIGN"} />
-                </div>
+                </nav>
                 <div className='text-right text-[10px] md:text-xs space-mono-regular mb-4 md:mb-0'>
                     <div className='mb-2'>FLUX IS OPEN SOURCED UNDER MIT LICENCE <br />@GITHUB/LAZYKADDU</div>
                     <div>@FLUXCLUSTER || CREATING A DIFFERENCE</div>

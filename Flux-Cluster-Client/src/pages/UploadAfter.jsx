@@ -3,8 +3,15 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { encodeFramesToMP4 } from '../render/videoExporter';
 import { useRenderPipeline } from '../hooks/useRenderPipeline';
 import { denoiseManager, downloadImageDataAsPNG } from '../services/DenoiseManager';
+import { useSEO } from '../hooks/useSEO';
 
 const UploadAfter = () => {
+    useSEO({
+        title: 'Live Cluster Render Accumulator',
+        description: 'Live composite viewport for distributed WebGL path-tracing. Monitor swarm worker peering, tile accumulation, real-time Intel OIDN AI denoising, and export MP4 animations.',
+        canonical: '/render'
+    });
+
     const location = useLocation();
     const navigate = useNavigate();
     const config = location.state || {};
@@ -43,6 +50,7 @@ const UploadAfter = () => {
     const canvasRef = useRef(null);
     const completedFramesMap = useRef(new Map());
     const currentFrameRef = useRef(currentFrame);
+    const activeCanvasFrameRef = useRef(null);
 
     const fileName = file?.name || 'Scene Model';
     const fileSize = file?.size
@@ -56,11 +64,35 @@ const UploadAfter = () => {
         setTimeout(() => setCopied(false), 2000);
     };
 
+    const blankCanvas = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        if (!ctx) return;
+        ctx.clearRect(0, 0, width, height);
+    };
+
     function drawTileToCanvas(metadata, pixelBuffer) {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         if (!ctx) return;
+
+        const tileFrame = metadata.frame !== undefined ? parseInt(metadata.frame, 10) : null;
+
+        // Discard stale tiles from an earlier frame that may have arrived late over the network
+        if (tileFrame !== null && activeCanvasFrameRef.current !== null && tileFrame < activeCanvasFrameRef.current) {
+            return;
+        }
+
+        // When a new frame is loaded, blank the canvas before accumulating new tiles
+        if (tileFrame !== null && activeCanvasFrameRef.current !== null && tileFrame !== activeCanvasFrameRef.current) {
+            ctx.clearRect(0, 0, width, height);
+        }
+
+        if (tileFrame !== null) {
+            activeCanvasFrameRef.current = tileFrame;
+        }
 
         const tChunkW = parseInt(metadata.chunkWidth, 10) || 128;
         const tChunkH = parseInt(metadata.chunkHeight, 10) || 128;
@@ -144,6 +176,12 @@ const UploadAfter = () => {
         setProgress,
         setCurrentFrame,
         setChunkAssigned,
+        onFrameLoad: (newFrame) => {
+            if (activeCanvasFrameRef.current !== null && activeCanvasFrameRef.current !== newFrame) {
+                blankCanvas();
+            }
+            activeCanvasFrameRef.current = newFrame;
+        },
         onFrameComplete: (task) => {
             const canvas = canvasRef.current;
             if (!canvas) return;
@@ -165,7 +203,7 @@ const UploadAfter = () => {
                     setIsDenoising(false);
 
                     // If viewer is currently on this frame, blit the clean denoised frame to the viewport
-                    if (currentFrameRef.current === task.frame || completedFramesMap.current.size >= totalFrames) {
+                    if (activeCanvasFrameRef.current === task.frame) {
                         ctx.putImageData(denoisedData, 0, 0);
                     }
 
@@ -251,9 +289,9 @@ const UploadAfter = () => {
                     <span className="text-[9px] font-bold tracking-[0.15em] border border-white px-2 py-0.5 uppercase">
                         FluxCluster
                     </span>
-                    <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-white">
+                    <h1 className="text-[11px] font-bold tracking-[0.12em] uppercase text-white inline-block m-0 p-0 font-inherit">
                         &gt;_ Orchestrator Console
-                    </span>
+                    </h1>
                 </div>
 
                 <div className="flex items-center gap-3">

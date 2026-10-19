@@ -16,7 +16,8 @@ export function useRenderPipeline({
     setChunkAssigned,
     onTileReceived,
     onFrameComplete,
-    onSettingsReceived
+    onSettingsReceived,
+    onFrameLoad
 }) {
     const isSceneReadyRef = useRef(false);
     const hasInitializedMasterRef = useRef(false);
@@ -157,7 +158,11 @@ export function useRenderPipeline({
 
         swarmClient.on('newTask', (task) => {
             if (!isSubscribed) return;
-            if (setCurrentFrame) setCurrentFrame(parseInt(task.frame, 10));
+            const taskFrame = parseInt(task.frame, 10);
+            if (!isNaN(taskFrame)) {
+                if (setCurrentFrame) setCurrentFrame(taskFrame);
+                if (role === 'master' && onFrameLoad) onFrameLoad(taskFrame);
+            }
             if (setChunkAssigned) setChunkAssigned(task.id || `${task.startX}_x_${task.startY}`);
             if (role === 'worker' && setProgress) setProgress(0);
 
@@ -190,6 +195,14 @@ export function useRenderPipeline({
             swarmClient.on('tileReceived', ({ metadata, pixelBuffer }) => {
                 if (!isSubscribed) return;
                 
+                if (metadata && metadata.frame !== undefined) {
+                    const tileFrame = parseInt(metadata.frame, 10);
+                    if (!isNaN(tileFrame)) {
+                        if (setCurrentFrame) setCurrentFrame(tileFrame);
+                        if (onFrameLoad) onFrameLoad(tileFrame);
+                    }
+                }
+
                 if (onTileReceived) onTileReceived(metadata, pixelBuffer);
 
                 completedTilesRef.current += 1;

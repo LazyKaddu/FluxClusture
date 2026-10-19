@@ -4,6 +4,7 @@ import { WebGLPathTracer } from 'three-gpu-pathtracer';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { renderChunk } from '../render/gpuRenderer.js';
 import { GenerateMeshBVHWorker } from 'three-mesh-bvh/src/workers/GenerateMeshBVHWorker.js';
+import { useSEO } from '../hooks/useSEO.js';
 
 const createScene = () => {
   const scene = new THREE.Scene();
@@ -49,6 +50,12 @@ const createScene = () => {
 };
 
 export default function PathTracerCanvas() {
+  useSEO({
+    title: 'Path Tracer Demo & WebGL Engine',
+    description: 'Explore interactive GPU path-tracing in the browser powered by three-gpu-pathtracer, WebGL, and Monte Carlo importance sampling.',
+    canonical: '/demo'
+  });
+
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const sceneRef = useRef(null);
@@ -243,7 +250,7 @@ export default function PathTracerCanvas() {
         style={{ display: 'block', width: '100%', height: '100%' }} 
       />
       <div style={{ position: 'absolute', top: 20, left: 20, color: 'white', fontFamily: 'sans-serif', pointerEvents: 'none' }}>
-        <strong>three-gpu-pathtracer</strong>
+        <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: 0, padding: 0 }}>three-gpu-pathtracer // WebGL Demo</h1>
         <p>Drag to rotate. Image refines dynamically.</p>
         <div style={{ pointerEvents: 'auto', marginTop: 10 }}>
           <button 

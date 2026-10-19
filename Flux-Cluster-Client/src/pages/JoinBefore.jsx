@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from "react-router-dom";
+import { useSEO } from '../hooks/useSEO';
 
 const JoinBefore = () => {
+    useSEO({
+        title: 'Join Distributed Swarm Node',
+        description: 'Contribute your browser idle GPU power to the FluxCluster distributed compute swarm. Connect via WebRTC data channels to crunch path-traced tiles with zero local installation.',
+        canonical: '/join'
+    });
+
     const navigate = useNavigate();
     const [RoomID, setRoomID] = useState("");
     const [error, setError] = useState("");
@@ -37,9 +44,9 @@ const JoinBefore = () => {
                     <span className="text-[9px] font-bold tracking-[0.15em] border border-white px-2 py-0.5 uppercase">
                         FluxCluster
                     </span>
-                    <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-white">
+                    <h1 className="text-[11px] font-bold tracking-[0.12em] uppercase text-white inline-block m-0 p-0 font-inherit">
                         &gt;_ Swarm Join
-                    </span>
+                    </h1>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -76,12 +83,16 @@ const JoinBefore = () => {
 
                     <form onSubmit={joinRoom} className="flex flex-col gap-3 relative z-10">
                         <div className="flex flex-col gap-1.5">
-                            <label className="text-[9px] tracking-widest uppercase text-neutral-500 flex justify-between">
+                            <label htmlFor="session-room-id" className="text-[9px] tracking-widest uppercase text-neutral-500 flex justify-between">
                                 <span>SESSION ROOM CODE</span>
                                 <span className="text-neutral-600">REQUIRED</span>
                             </label>
                             <div className="relative flex items-center">
                                 <input
+                                    id="session-room-id"
+                                    name="roomId"
+                                    aria-label="Session Room Code"
+                                    autoComplete="off"
                                     placeholder="ENTER ROOM ID …"
                                     className="border border-neutral-700 bg-neutral-950/80 w-full py-3 pl-4 pr-18 text-center text-sm font-bold font-mono tracking-widest text-white outline-none focus:border-white focus:bg-neutral-900 transition-colors uppercase placeholder:text-neutral-600 placeholder:normal-case placeholder:font-normal"
                                     value={RoomID}
