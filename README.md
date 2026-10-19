@@ -15,7 +15,7 @@ The system divides network responsibilities between a signaling/control plane an
 - **Control Plane (Signaling & Tasks)**: Node.js, `ws` (WebSockets), Redis (State & Queue Management).
 - **Data Plane (Asset Swarming)**: WebRTC DataChannels (SCTP protocol for reliable chunked delivery), WebTorrent/Simple-Peer for peer discovery and mesh sharing.
 - **Rendering Engine**: `three-gpu-pathtracer` (WebGL 2 / WebGPU compute) for physically based rendering (Principled BSDF, Multiple Importance Sampling) running inside Web Workers via OffscreenCanvas.
-- **Post-Processing**: `oidn-wasm` (OpenImageDenoise WebAssembly port) for AI-driven noise reduction on the Viewer node.
+- **Post-Processing**: Intel Open Image Denoise (`oidn-web`) for AI-driven noise reduction on the Viewer node, utilizing pre-trained OIDN neural network weights (`rt_ldr.tza`) executed via WebGPU WGSL compute pipelines with graceful edge-preserving bilateral filter fallback.
 
 ## The Distributed Pipeline
 
@@ -42,6 +42,12 @@ The system divides network responsibilities between a signaling/control plane an
 - The Worker slices the massive floating-point array into 16KB WebRTC-safe chunks.
 - The chunks are streamed sequentially over a reliable SCTP WebRTC DataChannel directly to the Viewer Node.
 - The Viewer reassembles the array, blits it onto an HTML5 Canvas, and emits an `ACK_TILE` signal to the Master to permanently clear the task from the Redis queue.
+
+### 6. AI Denoising & Video Assembly
+- Once all tiles for a frame are accumulated on the Viewer's canvas, `DenoiseManager` enqueues the frame into an asynchronous FIFO pipeline.
+- The Intel Open Image Denoise (OIDN) neural network (`rt_ldr.tza`) executes on the client GPU via WebGPU compute shaders, resolving Monte Carlo ray-tracing noise into a clean image.
+- The denoised `ImageData` is stored in the frame cache (`completedFramesMap`) and displayed in the live viewport.
+- At render completion, all denoised frames are encoded into a high-bitrate MP4 video using `mp4-muxer` and WebCodecs, or exported as individual PNG frames.
 
 ## Fault Tolerance & Straggler Mitigation
 

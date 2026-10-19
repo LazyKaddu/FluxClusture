@@ -1,7 +1,8 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { encodeFramesToMP4 } from '../render/videoExporter';
 import { useRenderPipeline } from '../hooks/useRenderPipeline';
+import { denoiseManager, downloadImageDataAsPNG } from '../services/DenoiseManager';
 
 const UploadAfter = () => {
     const location = useLocation();
@@ -13,7 +14,8 @@ const UploadAfter = () => {
         file = null,
         fileHash = null,
         previewUrl = null,
-        masterWillRender = true
+        masterWillRender = true,
+        denoiserEnabled = true
     } = config;
 
     const width = parseInt(config.width || 1920, 10);
@@ -34,9 +36,13 @@ const UploadAfter = () => {
     const [isExporting, setIsExporting] = useState(false);
     const [copied, setCopied] = useState(false);
     const [completedFramesCount, setCompletedFramesCount] = useState(0);
+    const [denoisedFramesCount, setDenoisedFramesCount] = useState(0);
+    const [denoiserBackend, setDenoiserBackend] = useState(denoiserEnabled ? 'initializing' : 'disabled');
+    const [isDenoising, setIsDenoising] = useState(false);
 
     const canvasRef = useRef(null);
     const completedFramesMap = useRef(new Map());
+    const currentFrameRef = useRef(currentFrame);
 
     const fileName = file?.name || 'Scene Model';
     const fileSize = file?.size
@@ -85,9 +91,47 @@ const UploadAfter = () => {
         ctx.putImageData(imgData, metadata.startX, metadata.startY, 0, 0, drawWidth, drawHeight);
     }
 
+    useEffect(() => {
+        currentFrameRef.current = currentFrame;
+    }, [currentFrame]);
+
+    useEffect(() => {
+        if (!denoiserEnabled) return;
+
+        denoiseManager.init('/weights/rt_ldr.tza')
+            .then(() => {
+                setDenoiserBackend(denoiseManager.backend);
+            })
+            .catch((err) => {
+                console.warn("[UploadAfter] DenoiseManager init error:", err);
+                setDenoiserBackend('fallback');
+            });
+
+        return () => {
+            denoiseManager.reset();
+        };
+    }, [denoiserEnabled]);
+
+    const handleDownloadCurrentFrame = async () => {
+        let frameData = completedFramesMap.current.get(currentFrame);
+        if (!frameData) {
+            const canvas = canvasRef.current;
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                if (ctx) frameData = ctx.getImageData(0, 0, width, height);
+            }
+        }
+        if (!frameData) return;
+        try {
+            await downloadImageDataAsPNG(frameData, `FluxCluster_${roomId}_frame_${currentFrame}.png`);
+        } catch (e) {
+            console.error("Frame PNG export failed:", e);
+        }
+    };
+
     const configObject = useMemo(() => ({
-        width, height, fps, samples, noiseThreshold, animationIndex, startFrame, endFrame, masterWillRender
-    }), [width, height, fps, samples, noiseThreshold, animationIndex, startFrame, endFrame, masterWillRender]);
+        width, height, fps, samples, noiseThreshold, animationIndex, startFrame, endFrame, masterWillRender, denoiserEnabled
+    }), [width, height, fps, samples, noiseThreshold, animationIndex, startFrame, endFrame, masterWillRender, denoiserEnabled]);
 
     useRenderPipeline({
         role: 'master',
@@ -106,9 +150,33 @@ const UploadAfter = () => {
             const ctx = canvas.getContext('2d', { willReadFrequently: true });
             if (!ctx) return;
             const fullFrameData = ctx.getImageData(0, 0, width, height);
-            completedFramesMap.current.set(task.frame, fullFrameData);
-            setCompletedFramesCount(completedFramesMap.current.size);
-            console.log(`Successfully saved Frame ${task.frame} to memory.`);
+
+            if (denoiserEnabled) {
+                // Immediately cache raw frame so completedFramesMap has continuous data
+                completedFramesMap.current.set(task.frame, fullFrameData);
+                setCompletedFramesCount(completedFramesMap.current.size);
+
+                setIsDenoising(true);
+                setStatus(`Denoising Frame #${task.frame} (OIDN)...`);
+
+                denoiseManager.enqueueFrame(task.frame, fullFrameData, (denoisedData) => {
+                    completedFramesMap.current.set(task.frame, denoisedData);
+                    setDenoisedFramesCount(prev => prev + 1);
+                    setIsDenoising(false);
+
+                    // If viewer is currently on this frame, blit the clean denoised frame to the viewport
+                    if (currentFrameRef.current === task.frame || completedFramesMap.current.size >= totalFrames) {
+                        ctx.putImageData(denoisedData, 0, 0);
+                    }
+
+                    setStatus(`Frame #${task.frame} Denoised (OIDN)`);
+                    console.log(`[UploadAfter] Saved Denoised Frame ${task.frame} to memory.`);
+                });
+            } else {
+                completedFramesMap.current.set(task.frame, fullFrameData);
+                setCompletedFramesCount(completedFramesMap.current.size);
+                console.log(`Successfully saved Frame ${task.frame} to memory.`);
+            }
         },
         onTileReceived: (metadata, pixelBuffer) => {
             drawTileToCanvas(metadata, pixelBuffer);
@@ -118,6 +186,12 @@ const UploadAfter = () => {
     const handleExportVideo = async () => {
         if (isExporting) return;
         setIsExporting(true);
+
+        if (denoiserEnabled) {
+            setStatus("Finalizing frame denoising (OIDN)...");
+            await denoiseManager.waitForAll();
+        }
+
         setStatus("Encoding video... Please wait.");
 
         // Sort frames sequentially in case they finished out of order
@@ -186,6 +260,15 @@ const UploadAfter = () => {
                     <div className="hidden sm:flex items-center gap-2 border border-neutral-800 px-2 py-0.5 bg-neutral-950">
                         <span className="text-[8px] text-neutral-500 uppercase tracking-widest">NET:</span>
                         <span className="text-[9px] text-neutral-300 font-bold tracking-wider">SWARM_HOST</span>
+                    </div>
+
+                    <div className="hidden sm:flex items-center gap-1.5 border border-neutral-800 px-2 py-0.5 bg-neutral-950">
+                        <span className="text-[8px] text-neutral-500 uppercase tracking-widest">DENOISER:</span>
+                        <span className={`text-[9px] font-bold tracking-wider ${
+                            denoiserEnabled ? (denoiserBackend === 'oidn-webgpu' ? 'text-green-400' : 'text-yellow-400') : 'text-neutral-500'
+                        }`}>
+                            {denoiserEnabled ? (denoiserBackend === 'oidn-webgpu' ? 'OIDN_WEBGPU' : 'OIDN_FALLBACK') : 'OFF'}
+                        </span>
                     </div>
 
                     <div className="flex items-center gap-1.5 px-2 py-0.5 border border-neutral-800 bg-neutral-950">
@@ -261,8 +344,10 @@ const UploadAfter = () => {
                         <span className="text-[9px] tracking-wider text-neutral-400 uppercase flex items-center gap-1.5 max-w-[140px] truncate">
                             <span className="text-neutral-600">TILE:</span> {chunkAssigned}
                         </span>
-                        <span className="text-[9px] tracking-wider text-white uppercase hidden sm:flex items-center">
-                            MIS_PATHTRACER
+                        <span className={`text-[9px] tracking-wider uppercase hidden sm:flex items-center ${
+                            isDenoising ? 'text-green-400 font-bold animate-pulse' : 'text-white'
+                        }`}>
+                            {isDenoising ? 'OIDN_DENOISING' : 'MIS_PATHTRACER'}
                         </span>
                     </div>
                 </div>
@@ -364,10 +449,19 @@ const UploadAfter = () => {
                                 </span>
                             </div>
 
-                            <div className="flex items-center justify-between py-1">
+                            <div className="flex items-center justify-between py-1 border-b border-neutral-900/60">
                                 <span className="text-[9px] tracking-wider uppercase text-neutral-500">Animation Track</span>
                                 <span className="text-[10px] font-bold tracking-wider text-white">
                                     #{animationIndex}
+                                </span>
+                            </div>
+
+                            <div className="flex items-center justify-between py-1">
+                                <span className="text-[9px] tracking-wider uppercase text-neutral-500">AI Denoiser</span>
+                                <span className={`text-[10px] font-bold tracking-wider ${
+                                    denoiserEnabled ? 'text-green-400' : 'text-neutral-500'
+                                }`}>
+                                    {denoiserEnabled ? (denoiserBackend === 'oidn-webgpu' ? 'Intel OIDN' : 'OIDN (Fallback)') : 'Disabled'}
                                 </span>
                             </div>
                         </div>
@@ -379,8 +473,19 @@ const UploadAfter = () => {
                             <span className="uppercase tracking-widest">FRAMES READY</span>
                             <span className="text-neutral-300 font-mono">
                                 {completedFramesCount} / {totalFrames}
+                                {denoiserEnabled && ` (${denoisedFramesCount} DENOISED)`}
                             </span>
                         </div>
+
+                        {completedFramesCount > 0 && (
+                            <button
+                                onClick={handleDownloadCurrentFrame}
+                                className="font-mono text-[9px] font-bold tracking-[0.12em] uppercase w-full py-2 px-2.5 bg-neutral-900 border border-neutral-700 text-neutral-300 hover:border-white hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                                title="Download currently displayed frame as PNG"
+                            >
+                                <span>↓</span> Save Frame #{currentFrame} (PNG)
+                            </button>
+                        )}
 
                         {isComplete ? (
                             <button
@@ -438,7 +543,10 @@ const UploadAfter = () => {
                 </div>
 
                 <div className="flex items-center justify-between mt-2 text-[8px] tracking-wider uppercase text-neutral-600">
-                    <span>FRAMES BUFFERED: {completedFramesCount} / {totalFrames}</span>
+                    <span>
+                        FRAMES BUFFERED: {completedFramesCount} / {totalFrames}
+                        {denoiserEnabled && ` | DENOISED: ${denoisedFramesCount} / ${totalFrames}`}
+                    </span>
                     <span>DISTRIBUTED_PATHTRACER // ORCHESTRATOR</span>
                 </div>
             </div>

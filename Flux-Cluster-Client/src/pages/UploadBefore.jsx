@@ -33,6 +33,7 @@ const UploadBefore = () => {
     const [width, setWidth] = useState(1920);
     const [height, setHeight] = useState(1080);
     const [masterWillRender, setMasterWillRender] = useState(true);
+    const [denoiserEnabled, setDenoiserEnabled] = useState(true);
 
     const min = 0;
     const [max, setMax] = useState(120);
@@ -115,7 +116,8 @@ const UploadBefore = () => {
             noiseThreshold: Number(noiseThreshold),
             width: Number(width),
             height: Number(height),
-            masterWillRender: masterWillRender
+            masterWillRender: masterWillRender,
+            denoiserEnabled: denoiserEnabled
         };
 
         navigate(`/editor`, { state: renderConfig });
@@ -459,6 +461,55 @@ const UploadBefore = () => {
                             <span className={`text-[9px] tracking-widest font-mono uppercase ${masterWillRender ? 'text-green-500' : 'text-gray-600'
                                 }`}>
                                 {masterWillRender ? 'ACTIVE' : 'OFF'}
+                            </span>
+                        </label>
+
+                        {/* AI Denoiser (Intel OIDN) Toggle */}
+                        <label
+                            htmlFor="denoiserToggle"
+                            className="flex items-center gap-3 cursor-pointer select-none group border border-white/10 hover:border-white/30 p-2.5 transition-colors bg-black/20"
+                        >
+                            <input
+                                type="checkbox"
+                                id="denoiserToggle"
+                                className="sr-only"
+                                checked={denoiserEnabled}
+                                onChange={(e) => setDenoiserEnabled(e.target.checked)}
+                            />
+                            <div
+                                className={`w-4 h-4 border flex items-center justify-center transition-colors shrink-0 ${denoiserEnabled
+                                    ? 'border-white bg-white'
+                                    : 'border-white/40 group-hover:border-white bg-transparent'
+                                    }`}
+                            >
+                                {denoiserEnabled && (
+                                    <svg
+                                        className="w-3 h-3 text-black"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="3.5"
+                                        strokeLinecap="square"
+                                        strokeLinejoin="miter"
+                                    >
+                                        <polyline points="20 6 9 17 4 12" />
+                                    </svg>
+                                )}
+                            </div>
+                            <div className="flex flex-col flex-1">
+                                <span
+                                    className={`text-[11px] uppercase tracking-wider transition-colors ${denoiserEnabled ? 'text-white' : 'text-gray-400 group-hover:text-white'
+                                        }`}
+                                >
+                                    AI Denoiser (Intel OIDN)
+                                </span>
+                                <span className="text-[9px] text-gray-500">
+                                    Denoise rendered animation frames with Open Image Denoise
+                                </span>
+                            </div>
+                            <span className={`text-[9px] tracking-widest font-mono uppercase ${denoiserEnabled ? 'text-green-500' : 'text-gray-600'
+                                }`}>
+                                {denoiserEnabled ? 'OIDN_ON' : 'OFF'}
                             </span>
                         </label>
 
