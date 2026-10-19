@@ -3,13 +3,13 @@ import { useRef } from "react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
 import TextAnimated from './TextAnimated';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 
 
-const NavLinks = ({ href, text }) => {
+const NavLinks = ({ href, text, onClick }) => {
     return (
-        <div className='text-5xl md:text-8xl cursor-pointer my-2 md:my-0'>
+        <div className='text-5xl md:text-8xl cursor-pointer my-2 md:my-0' onClick={onClick}>
             <TextAnimated text={text} />
         </div>
     )
@@ -18,6 +18,7 @@ const NavLinks = ({ href, text }) => {
 const Base = ({ childComponent: RenderPage }) => {
     let currentPage = "start";
     const navigate = useNavigate();
+    const location = useLocation();
 
     if (RenderPage.name === "JoinBefore" || RenderPage.name === "JoinAfter" || RenderPage.name === "Join") {
         currentPage = "end";
@@ -75,8 +76,9 @@ const Base = ({ childComponent: RenderPage }) => {
         }
     }, [isActive]);
 
-    // Check if the current route is NOT the home page
-    const isHeavyRoute = typeof window !== 'undefined' && window.location.pathname !== '/';
+    // Only block computationally intensive worker/render routes on mobile
+    const heavyPaths = ['/upload', '/render', '/editor', '/join', '/joined', '/demo'];
+    const isHeavyRoute = heavyPaths.includes(location.pathname);
 
     return (
         <main className='relative text-white bg-[#141414] overflow-hidden w-full h-screen'>
@@ -146,10 +148,10 @@ const Base = ({ childComponent: RenderPage }) => {
                     <TextAnimated text={"CLOSE"} />
                 </button>
                 <nav aria-label="Drawer Navigation" className='bebas-neue-regular flex flex-col items-end'>
-                    <NavLinks text={"ABOUT"} />
-                    <NavLinks text={"BLOG"} />
-                    <NavLinks text={"CONTACT"} />
-                    <NavLinks text={"DESIGN"} />
+                    <NavLinks text={"ABOUT"} onClick={() => { setIsActive(false); navigate('/'); }} />
+                    <NavLinks text={"BLOG"} onClick={() => { setIsActive(false); navigate('/blogs'); }} />
+                    <NavLinks text={"CONTACT"} onClick={() => { setIsActive(false); window.open('https://github.com/LazyKaddu', '_blank'); }} />
+                    <NavLinks text={"DESIGN"} onClick={() => { setIsActive(false); navigate('/'); }} />
                 </nav>
                 <div className='text-right text-[10px] md:text-xs space-mono-regular mb-4 md:mb-0'>
                     <div className='mb-2'>FLUX IS OPEN SOURCED UNDER MIT LICENCE <br />@GITHUB/LAZYKADDU</div>
