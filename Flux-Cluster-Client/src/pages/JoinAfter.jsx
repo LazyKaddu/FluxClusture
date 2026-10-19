@@ -1,8 +1,15 @@
 import React, { useRef, useState } from 'react';
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useRenderPipeline } from '../hooks/useRenderPipeline';
+import { useSEO } from '../hooks/useSEO';
 
 const JoinAfter = () => {
+    useSEO({
+        title: 'Active Worker Node Viewport',
+        description: 'Live worker telemetry and GPU chunk compute monitor for FluxCluster peer nodes. Inspect tile rendering progress, WebRTC SCTP streaming, and swarm health.',
+        canonical: '/joined'
+    });
+
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const roomID = searchParams.get("roomId");
@@ -78,9 +85,9 @@ const JoinAfter = () => {
                     <span className="text-[9px] font-bold tracking-[0.15em] border border-white px-2 py-0.5 uppercase">
                         FluxCluster
                     </span>
-                    <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-white">
+                    <h1 className="text-[11px] font-bold tracking-[0.12em] uppercase text-white inline-block m-0 p-0 font-inherit">
                         &gt;_ Worker Node
-                    </span>
+                    </h1>
                 </div>
 
                 <div className="flex items-center gap-3">

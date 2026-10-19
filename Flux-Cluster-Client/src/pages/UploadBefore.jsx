@@ -3,6 +3,7 @@ import UploadBox from '../components/UploadBox';
 import { loadGLB } from '../render/modelLoader.js';
 import { useNavigate } from "react-router-dom";
 import { generateSecureShortId, generateFileHash } from '../utils/helper.js'
+import { useSEO } from '../hooks/useSEO';
 
 const RESOLUTION_PRESETS = [
     { label: '1080P', width: 1920, height: 1080 },
@@ -15,6 +16,12 @@ const SAMPLE_PRESETS = [256, 512, 1024, 2048];
 const NOISE_PRESETS = [0.05, 0.1, 0.2];
 
 const UploadBefore = () => {
+    useSEO({
+        title: 'Stage 3D Render Job',
+        description: 'Upload GLB/glTF 3D models, configure camera and timeline animations, set sampling SPP and noise thresholds, and dispatch distributed path-tracing jobs across the FluxCluster swarm.',
+        canonical: '/upload'
+    });
+
     const navigate = useNavigate();
 
     const [file, setFile] = useState(null);
@@ -128,7 +135,7 @@ const UploadBefore = () => {
             {/* TERMINAL HEADER */}
             <header className="flex justify-between items-center mb-3 shrink-0 border-b border-white/20 pb-2.5">
                 <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold tracking-wider">&gt;_ FLUX_GRID // STAGING_CONSOLE</span>
+                    <h1 className="text-sm font-bold tracking-wider inline-block m-0 p-0 font-inherit">&gt;_ FLUX_GRID // STAGING_CONSOLE</h1>
                     <span className="text-[10px] text-gray-500 hidden sm:inline">v2.4_HPC</span>
                 </div>
                 <div className="flex items-center gap-4 text-xs">

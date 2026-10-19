@@ -5,11 +5,18 @@ import { useGSAP } from '@gsap/react';
 import { ReactLenis } from 'lenis/react';
 import ImageFade from '../components/ImageFade';
 import HeroNetwork3D from '../components/HeroNetwork3D';
+import { useSEO } from '../hooks/useSEO';
 
 
 gsap.registerPlugin(ScrollTrigger);
 
 const Home = () => {
+    useSEO({
+        title: 'Distributed GPU Path-Tracing Swarm & WebGL Render Farm',
+        description: 'FluxCluster pools idle browser GPU compute via WebRTC and WebGL to render heavy 3D scenes with Intel OIDN AI denoising.',
+        canonical: '/'
+    });
+
     const containerRef = useRef(null);
 
     useGSAP(() => {
@@ -43,21 +50,26 @@ const Home = () => {
         >
             <div ref={containerRef} className="relative space-mono-regular">
 
-                <section className="snap-panel flex justify-center flex-col items-center text-5xl md:text-7xl h-screen w-full text-[#606060] text-center px-4">
-                    <span>
-                        <span className='text-white'>NEW</span> ERA OF</span>COMPUTING
+                <section aria-label="Introduction Hero" className="snap-panel flex justify-center flex-col items-center text-5xl md:text-7xl h-screen w-full text-[#606060] text-center px-4">
+                    <h1 className="tracking-tight">
+                        <span className='text-white font-bold'>NEW</span> ERA OF COMPUTING
+                    </h1>
                 </section>
 
-                <section className="snap-panel relative h-screen w-full bg-[#000000] overflow-hidden">
+                <section aria-label="3D Distributed Swarm Network" className="snap-panel relative h-screen w-full bg-[#000000] overflow-hidden">
                     <HeroNetwork3D />
                 </section>
 
-                <section className="snap-panel h-screen w-full flex flex-col md:flex-row items-center justify-center px-6">
+                <section aria-label="About FluxCluster" className="snap-panel h-screen w-full flex flex-col md:flex-row items-center justify-center px-6">
                     <div className='w-full max-w-[250px] md:max-w-none md:w-[21vw] h-[350px] md:h-[28vw] mb-10 md:mb-0 md:mr-10 relative'>
-                        <ImageFade image={'/fluximage2Render.webp'} fallback={'/fluximage2Render.png'} />
+                        <ImageFade 
+                            image={'/fluximage2Render.webp'} 
+                            fallback={'/fluximage2Render.png'} 
+                            alt="FluxCluster distributed GPU compute architecture and WebGL path tracing"
+                        />
                     </div>
                     <div className='w-full md:w-2/5'>
-                        <h2 className='text-3xl md:text-4xl mb-3 md:mb-5 text-center md:text-left'>FLUX <span className='text-xl md:text-2xl'>CLUSTRE</span></h2>
+                        <h2 className='text-3xl md:text-4xl mb-3 md:mb-5 text-center md:text-left'>FLUX <span className='text-xl md:text-2xl'>CLUSTER</span></h2>
                         <p className='text-xs md:text-sm text-[#606060] text-center md:text-left'>
                             FluxCluster is a fault-tolerant, hybrid distributed computing architecture that pools the idle GPU and CPU resources of standard browser tabs into a unified high-performance computing (HPC) cluster.
                             <br />
@@ -69,9 +81,9 @@ const Home = () => {
                     </div>
                 </section>
 
-                <section className="snap-panel h-screen w-full  flex flex-col items-center justify-center px-6">
+                <section aria-label="Creator Profile and Mission" className="snap-panel h-screen w-full  flex flex-col items-center justify-center px-6">
                     <div className='flex flex-col-reverse md:w-3/5 md:flex-row justify-center md:justify-between items-center'>
-                        <div className='w-full w-full md:w-2/5 mt-10 md:mt-0 text-center md:text-left'>
+                        <div className='w-full md:w-2/5 mt-10 md:mt-0 text-center md:text-left'>
                             <p className='text-[#606060] text-xs md:text-xs mb-8 md:mb-15'>
                                 <span className='text-white text-lg md:text-2xl'>I</span> am Aashish Negi a Full stack developer from Uttrakhand Pauri Garhwal. Creating softwares that makes impact in the current world.
                             </p>
@@ -81,7 +93,11 @@ const Home = () => {
                         </div>
 
                         <div className='w-full max-w-[250px] md:max-w-none md:w-[21vw] h-[350px] md:h-[28vw] relative'>
-                            <ImageFade image={'/fluximageRender.webp'} fallback={'/fluximageRender.png'} />
+                            <ImageFade 
+                                image={'/fluximageRender.webp'} 
+                                fallback={'/fluximageRender.png'} 
+                                alt="Aashish Negi - Creator and Architect of FluxCluster"
+                            />
                         </div>
                     </div>
                     <div className='w-full md:w-3/5 h-auto py-4 md:h-15 bg-white flex justify-center items-center text-black mt-8 text-xs md:text-sm text-center px-2'>

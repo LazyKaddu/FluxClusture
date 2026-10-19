@@ -3,8 +3,15 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { encodeFramesToMP4 } from '../render/videoExporter';
 import { useRenderPipeline } from '../hooks/useRenderPipeline';
 import { denoiseManager, downloadImageDataAsPNG } from '../services/DenoiseManager';
+import { useSEO } from '../hooks/useSEO';
 
 const UploadAfter = () => {
+    useSEO({
+        title: 'Live Cluster Render Accumulator',
+        description: 'Live composite viewport for distributed WebGL path-tracing. Monitor swarm worker peering, tile accumulation, real-time Intel OIDN AI denoising, and export MP4 animations.',
+        canonical: '/render'
+    });
+
     const location = useLocation();
     const navigate = useNavigate();
     const config = location.state || {};
@@ -282,9 +289,9 @@ const UploadAfter = () => {
                     <span className="text-[9px] font-bold tracking-[0.15em] border border-white px-2 py-0.5 uppercase">
                         FluxCluster
                     </span>
-                    <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-white">
+                    <h1 className="text-[11px] font-bold tracking-[0.12em] uppercase text-white inline-block m-0 p-0 font-inherit">
                         &gt;_ Orchestrator Console
-                    </span>
+                    </h1>
                 </div>
 
                 <div className="flex items-center gap-3">

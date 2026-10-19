@@ -9,10 +9,17 @@ import { WebGLPathTracer } from 'three-gpu-pathtracer';
 import { generateFileHash } from '../utils/helper.js';
 import { ensurePathTracerEnvironment } from '../render/upgradeLights.js';
 import { GenerateMeshBVHWorker } from 'three-mesh-bvh/src/workers/GenerateMeshBVHWorker.js';
+import { useSEO } from '../hooks/useSEO';
 
 const LIGHT_ICONS = { area: '▣', spot: '◎', directional: '☀', ambient: '◉', point: '●' };
 
 const Editor = () => {
+    useSEO({
+        title: '3D Scene & Lighting Studio',
+        description: 'Interactive 3D viewport and lighting editor for FluxCluster. Position area lights, spotlights, and directional emitters with real-time raster and path-tracing previews.',
+        canonical: '/editor'
+    });
+
     const location = useLocation();
     const navigate = useNavigate();
     const renderConfig = location.state;
@@ -297,9 +304,9 @@ const Editor = () => {
                     <span className="text-[9px] font-bold tracking-[0.15em] border border-white px-2 py-0.5 uppercase">
                         FluxCluster
                     </span>
-                    <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-white">
+                    <h1 className="text-[11px] font-bold tracking-[0.12em] uppercase text-white inline-block m-0 p-0 font-inherit">
                         &gt;_ Light Editor
-                    </span>
+                    </h1>
                 </div>
                 <div className="flex items-center gap-1.5">
                     <button
