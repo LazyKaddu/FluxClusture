@@ -85,7 +85,7 @@ describe('Frontend SEO & Search Discoverability Suite', () => {
         }
     });
 
-    it('favicon.svg exists in public and src/assets with valid SVG', () => {
+    it('favicon.svg exists in public and src/assets with adaptive dark and light theme styles', () => {
         const publicFavicon = path.join(CLIENT_ROOT, 'public', 'favicon.svg');
         const assetsFavicon = path.join(CLIENT_ROOT, 'src', 'assets', 'favicon.svg');
 
@@ -95,6 +95,9 @@ describe('Frontend SEO & Search Discoverability Suite', () => {
         const content = fs.readFileSync(publicFavicon, 'utf-8');
         assert.match(content, /<svg[^>]+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/i);
         assert.match(content, /<path/i);
+        assert.match(content, /@media\s*\(prefers-color-scheme:\s*dark\)/i, 'Favicon must contain prefers-color-scheme: dark media query');
+        assert.match(content, /id="paint0_linear_light"/i, 'Favicon must define light theme gradient');
+        assert.match(content, /id="paint0_linear_dark"/i, 'Favicon must define dark theme inverted gradient');
     });
 
     it('public/site.webmanifest exists with valid JSON and metadata', () => {
