@@ -1,10 +1,85 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>fluxclient</title>
+
+    <!-- Primary Meta Tags -->
+    <title>FluxCluster — Distributed GPU Path-Tracing Swarm &amp; WebGL Render Farm</title>
+    <meta name="title" content="FluxCluster — Distributed GPU Path-Tracing Swarm &amp; WebGL Render Farm" />
+    <meta name="description" content="FluxCluster is a browser-based, peer-to-peer distributed GPU path-tracing cluster and render farm. Pool idle browser GPU compute via WebRTC &amp; WebGL to render heavy 3D scenes with Intel OIDN AI denoising." />
+    <meta name="keywords" content="distributed rendering, GPU path tracing, WebGL, WebRTC, P2P render farm, WebGPU, Intel OIDN, 3D animation, browser cluster, three.js, path tracer" />
+    <meta name="author" content="Aashish Negi" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#000000" />
+    <link rel="canonical" href="https://flux-cluster.vercel.app/" />
+
+    <!-- Favicon & PWA Icons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="FluxCluster" />
+    <meta property="og:url" content="https://flux-cluster.vercel.app/" />
+    <meta property="og:title" content="FluxCluster — Distributed GPU Path-Tracing Swarm" />
+    <meta property="og:description" content="Pool idle browser GPU compute via WebRTC &amp; WebGL to render heavy 3D scenes with Intel OIDN AI denoising." />
+    <meta property="og:image" content="https://flux-cluster.vercel.app/fluximageRender.webp" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="FluxCluster distributed path-tracing cluster telemetry" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://flux-cluster.vercel.app/" />
+    <meta name="twitter:title" content="FluxCluster — Distributed GPU Path-Tracing Swarm" />
+    <meta name="twitter:description" content="Pool idle browser GPU compute via WebRTC &amp; WebGL to render heavy 3D scenes with Intel OIDN AI denoising." />
+    <meta name="twitter:image" content="https://flux-cluster.vercel.app/fluximageRender.webp" />
+    <meta name="twitter:creator" content="@LazyKaddu" />
+
+    <!-- Performance: Preconnect & Asynchronous Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Geist+Mono:ital,wght@0,100..900;1,100..900&amp;family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&amp;display=swap" rel="stylesheet" />
+
+    <!-- Structured Data (JSON-LD) for Search Engines & Rich Snippets -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebApplication",
+          "@id": "https://flux-cluster.vercel.app/#webapp",
+          "name": "FluxCluster",
+          "url": "https://flux-cluster.vercel.app/",
+          "applicationCategory": "MultimediaApplication",
+          "operatingSystem": "All modern browsers with WebGL/WebGPU support",
+          "description": "Browser-based peer-to-peer distributed GPU path-tracing cluster and render farm.",
+          "image": "https://flux-cluster.vercel.app/fluximageRender.webp",
+          "author": {
+            "@type": "Person",
+            "name": "Aashish Negi",
+            "url": "https://github.com/LazyKaddu"
+          },
+          "license": "https://opensource.org/licenses/MIT",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+          },
+          "browserRequirements": "Requires WebGL2 and WebRTC data channels"
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://flux-cluster.vercel.app/#website",
+          "url": "https://flux-cluster.vercel.app/",
+          "name": "FluxCluster",
+          "description": "Distributed GPU Path-Tracing Swarm & WebGL Render Farm",
+          "inLanguage": "en"
+        }
+      ]
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>
