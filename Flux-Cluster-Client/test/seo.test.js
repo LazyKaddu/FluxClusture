@@ -77,7 +77,8 @@ describe('Frontend SEO & Search Discoverability Suite', () => {
             'https://flux-cluster.vercel.app/upload',
             'https://flux-cluster.vercel.app/join',
             'https://flux-cluster.vercel.app/editor',
-            'https://flux-cluster.vercel.app/demo'
+            'https://flux-cluster.vercel.app/demo',
+            'https://flux-cluster.vercel.app/blogs'
         ];
 
         for (const route of expectedRoutes) {
@@ -124,7 +125,8 @@ describe('Frontend SEO & Search Discoverability Suite', () => {
             'src/pages/JoinBefore.jsx',
             'src/pages/JoinAfter.jsx',
             'src/pages/Editor.jsx',
-            'src/components/GpuRender.jsx'
+            'src/components/GpuRender.jsx',
+            'src/pages/Blogs.jsx'
         ];
 
         for (const relPath of pages) {

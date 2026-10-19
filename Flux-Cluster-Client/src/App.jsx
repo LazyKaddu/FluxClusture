@@ -13,6 +13,7 @@ import JoinAfter from "./pages/JoinAfter";
 import UploadAfter from "./pages/UploadAfter";
 import PathTracerCanvas from './components/GpuRender';
 import Editor from './pages/Editor';
+import Blogs from './pages/Blogs';
 
 
 
@@ -48,6 +49,14 @@ const App = () => {
         <Route
           path="/demo"
           element={<Base childComponent={PathTracerCanvas} />}
+        />
+        <Route
+          path="/blogs"
+          element={<Blogs />}
+        />
+        <Route
+          path="/blog"
+          element={<Blogs />}
         />
       </Routes>
     </BrowserRouter>
