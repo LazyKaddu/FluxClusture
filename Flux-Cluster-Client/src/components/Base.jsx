@@ -148,7 +148,7 @@ const Base = ({ childComponent: RenderPage }) => {
                     <TextAnimated text={"CLOSE"} />
                 </button>
                 <nav aria-label="Drawer Navigation" className='bebas-neue-regular flex flex-col items-end'>
-                    <NavLinks text={"ABOUT"} onClick={() => { setIsActive(false); navigate('/'); }} />
+                    <NavLinks text={"ABOUT"} onClick={() => { setIsActive(false); navigate('/about'); }} />
                     <NavLinks text={"BLOG"} onClick={() => { setIsActive(false); navigate('/blogs'); }} />
                     <NavLinks text={"CONTACT"} onClick={() => { setIsActive(false); window.open('https://github.com/LazyKaddu', '_blank'); }} />
                     <NavLinks text={"DESIGN"} onClick={() => { setIsActive(false); navigate('/'); }} />
