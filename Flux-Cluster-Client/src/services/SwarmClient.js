@@ -107,6 +107,7 @@ class SwarmClient {
 
     joinAsWorker(roomId) {
         this.role = 'worker';
+        this.roomId = roomId;
         this.socketManager.connect();
 
         const onConnected = () => {
@@ -197,10 +198,17 @@ class SwarmClient {
 
             await this.webrtcManager.initiateOffer(payload.requester, this.glbBuffer);
         });
+
+        this.socketManager.removeAllListeners('HEARTBEAT_PING');
+        this.socketManager.on('HEARTBEAT_PING', (payload, ack) => {
+            if (typeof ack === 'function') ack();
+            this.socketManager.emit('HEARTBEAT_PONG', { roomId: this.roomId || payload?.roomId });
+        });
     }
 
     joinAsMaster(roomId) {
         this.role = 'master';
+        this.roomId = roomId;
         console.log("joining the room as master");
         
         // Emit JOIN_ROOM immediately so it gets buffered FIRST before INIT_JOB
@@ -258,7 +266,13 @@ class SwarmClient {
         this.socketManager.removeAllListeners('frameComplete');
         this.socketManager.on('frameComplete', (task) => {
             this._trigger('frameComplete', task);
-        })
+        });
+
+        this.socketManager.removeAllListeners('HEARTBEAT_PING');
+        this.socketManager.on('HEARTBEAT_PING', (payload, ack) => {
+            if (typeof ack === 'function') ack();
+            this.socketManager.emit('HEARTBEAT_PONG', { roomId: this.roomId || payload?.roomId });
+        });
     }
 
     startRenderJob(roomId, startFrame, endFrame, width, height, fps, glbHash, samples, noiseThreshold, animationIndex) {
