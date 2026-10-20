@@ -14,6 +14,7 @@ import UploadAfter from "./pages/UploadAfter";
 import PathTracerCanvas from './components/GpuRender';
 import Editor from './pages/Editor';
 import Blogs from './pages/Blogs';
+import About from './pages/About';
 
 
 
@@ -57,6 +58,10 @@ const App = () => {
         <Route
           path="/blog"
           element={<Blogs />}
+        />
+        <Route
+          path="/about"
+          element={<About />}
         />
       </Routes>
     </BrowserRouter>
