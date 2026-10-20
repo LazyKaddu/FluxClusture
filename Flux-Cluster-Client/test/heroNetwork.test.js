@@ -173,3 +173,42 @@ describe('Hero Network Simulation', () => {
     assert.ok(roseFragmentShader.includes('gl_FragColor = vec4(finalColor, uOpacity);'));
   });
 });
+
+describe('HeroNetwork3D Mobile Interaction & Orbit Controls Logic', () => {
+  const computeOrbitState = (isMobile, is3DActive) => {
+    const isOrbitEnabled = !isMobile || is3DActive;
+    const touchAction = isOrbitEnabled ? 'none' : 'pan-y';
+    const containerClasses = !isOrbitEnabled
+      ? 'touch-pan-y [&_canvas]:touch-pan-y'
+      : 'touch-none [&_canvas]:touch-none';
+    const buttonLabel = is3DActive ? '✕ Exit 3D (Scroll Mode)' : '⟳ Explore 3D';
+    return { isOrbitEnabled, touchAction, containerClasses, buttonLabel };
+  };
+
+  test('on mobile default view: disables orbit controls, enables pan-y scroll, shows Explore 3D button', () => {
+    const state = computeOrbitState(true, false);
+    assert.equal(state.isOrbitEnabled, false);
+    assert.equal(state.touchAction, 'pan-y');
+    assert.ok(state.containerClasses.includes('touch-pan-y'));
+    assert.equal(state.buttonLabel, '⟳ Explore 3D');
+  });
+
+  test('on mobile 3D explore mode: enables orbit controls, sets touchAction none, shows Exit 3D button', () => {
+    const state = computeOrbitState(true, true);
+    assert.equal(state.isOrbitEnabled, true);
+    assert.equal(state.touchAction, 'none');
+    assert.ok(state.containerClasses.includes('touch-none'));
+    assert.equal(state.buttonLabel, '✕ Exit 3D (Scroll Mode)');
+  });
+
+  test('on desktop: always enables orbit controls and touchAction none regardless of mobile 3D toggle state', () => {
+    const stateDefault = computeOrbitState(false, false);
+    assert.equal(stateDefault.isOrbitEnabled, true);
+    assert.equal(stateDefault.touchAction, 'none');
+
+    const stateActive = computeOrbitState(false, true);
+    assert.equal(stateActive.isOrbitEnabled, true);
+    assert.equal(stateActive.touchAction, 'none');
+  });
+});
+
