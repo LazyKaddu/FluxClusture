@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useMemo, useRef } from 'react';
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
@@ -399,6 +399,7 @@ const NetworkScene = ({
   mix = 1.0,
   showRose = true,
   roseScale = 6.0,
+  enableOrbit = true,
   customNodeVertexShader,
   customNodeFragmentShader,
   customLineVertexShader,
@@ -484,8 +485,10 @@ const NetworkScene = ({
         />
       </group>
 
-      {/* Preserved OrbitControls for manual camera rotation */}
-      <OrbitControls enableZoom={false} enablePan={false} dampingFactor={0.05} />
+      {/* OrbitControls enabled conditionally (always on desktop, toggled on mobile) */}
+      {enableOrbit && (
+        <OrbitControls enableZoom={false} enablePan={false} dampingFactor={0.05} />
+      )}
     </>
   );
 };
@@ -508,9 +511,35 @@ const HeroNetwork3D = ({
   customLineVertexShader = defaultLineVertexShader,
   customLineFragmentShader = defaultLineFragmentShader,
 }) => {
+  const [isMobile, setIsMobile] = useState(false);
+  const [is3DActive, setIs3DActive] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) {
+        setIs3DActive(false);
+      }
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  const isOrbitEnabled = !isMobile || is3DActive;
+
   return (
-    <div className={className}>
+    <div
+      className={`${className} ${
+        !isOrbitEnabled
+          ? 'touch-pan-y [&_canvas]:touch-pan-y'
+          : 'touch-none [&_canvas]:touch-none'
+      }`}
+    >
       <Canvas
+        style={{ touchAction: isOrbitEnabled ? 'none' : 'pan-y' }}
         camera={{ position: cameraPosition, fov: 50 }}
         gl={{
           antialias: true,
@@ -526,15 +555,42 @@ const HeroNetwork3D = ({
           mix={mix}
           showRose={showRose}
           roseScale={roseScale}
+          enableOrbit={isOrbitEnabled}
           customNodeVertexShader={customNodeVertexShader}
           customNodeFragmentShader={customNodeFragmentShader}
           customLineVertexShader={customLineVertexShader}
           customLineFragmentShader={customLineFragmentShader}
         />
       </Canvas>
+
+      {/* Mobile 3D Interaction Mode Toggle */}
+      {isMobile && (
+        <div className="absolute bottom-6 inset-x-0 flex justify-center z-20 pointer-events-auto md:hidden px-4">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIs3DActive((prev) => !prev);
+            }}
+            className={`px-4 py-2 rounded-full text-xs font-mono tracking-wider flex items-center gap-2 border transition-all duration-300 backdrop-blur-md shadow-lg select-none active:scale-95 cursor-pointer ${
+              is3DActive
+                ? 'bg-[#AF3240]/90 text-white border-[#AF3240] shadow-[#AF3240]/30'
+                : 'bg-black/80 text-white/90 border-white/20 hover:border-white/40'
+            }`}
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                is3DActive ? 'bg-white animate-pulse' : 'bg-[#AF3240]'
+              }`}
+            />
+            {is3DActive ? '✕ Exit 3D (Scroll Mode)' : '⟳ Explore 3D'}
+          </button>
+        </div>
+      )}
     </div>
   );
 };
 
 export { RoseMesh };
 export default HeroNetwork3D;
+
