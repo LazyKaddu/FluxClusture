@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef } from 'react';
 import ModelCanvas from './Model';
 
 const UploadBox = ({ file, setFile, loading, setLoading, previewUrl, setPreviewUrl }) => {
@@ -9,7 +9,7 @@ const UploadBox = ({ file, setFile, loading, setLoading, previewUrl, setPreviewU
         if (!selectedFile) return;
 
         if (!selectedFile.name.toLowerCase().endsWith(".glb")) {
-            alert("Only .glb files are allowed");
+            alert("Only .glb files are supported.");
             return;
         }
 
@@ -64,13 +64,13 @@ const UploadBox = ({ file, setFile, loading, setLoading, previewUrl, setPreviewU
 
     return (
         <div className="w-full h-full relative select-none">
-            {/* UPLOAD / DROPZONE */}
+            {/* Upload dropzone */}
             {!loading && !previewUrl && (
                 <div
-                    className={`w-full h-full flex flex-col items-center justify-center p-6 text-center cursor-pointer transition-all duration-200 border-2 border-dashed ${
+                    className={`w-full h-full flex flex-col items-center justify-center p-6 text-center cursor-pointer transition-colors border border-dashed rounded-lg ${
                         isDragging
-                            ? 'border-white bg-white/10 scale-[0.99]'
-                            : 'border-white/20 hover:border-white/50 bg-black/40'
+                            ? 'border-[#AF3240] bg-[#AF3240]/5'
+                            : 'border-white/[0.12] hover:border-white/[0.24] bg-[#0f0f10]'
                     }`}
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
@@ -85,56 +85,53 @@ const UploadBox = ({ file, setFile, loading, setLoading, previewUrl, setPreviewU
                         onChange={handleFile}
                     />
 
-                    <div className="w-12 h-12 mb-3 border border-white/30 flex items-center justify-center bg-black transition-transform duration-200 group-hover:scale-105">
-                        <img src="/upload.png" alt="upload" className="w-6 h-6 invert opacity-90" />
+                    <div className="w-10 h-10 mb-3 rounded-lg border border-white/[0.08] bg-[#19191b] flex items-center justify-center text-[#85858b]">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                        </svg>
                     </div>
 
-                    <p className="text-xs uppercase tracking-widest text-white font-bold mb-1">
-                        {isDragging ? "Drop .GLB To Stage" : "Drop .GLB or Click to Browse"}
+                    <p className="text-xs font-mono font-medium text-[#ededed] mb-1">
+                        {isDragging ? "Drop .glb model to load" : "Select or drag .glb 3D asset"}
                     </p>
-                    <span className="text-[10px] tracking-wider text-gray-500 uppercase">
-                        glTF 2.0 Binary Payload (Max 150MB)
+                    <span className="text-[11px] font-mono text-[#85858b]">
+                        Binary glTF 2.0 asset (up to 150MB)
                     </span>
                 </div>
             )}
 
-            {/* LOADING */}
+            {/* Loading */}
             {loading && (
-                <div className="w-full h-full flex flex-col items-center justify-center bg-black/60">
-                    <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                    <p className="mt-4 text-xs uppercase tracking-widest text-white/70">
-                        Indexing BVH & Mesh...
+                <div className="w-full h-full flex flex-col items-center justify-center bg-[#0f0f10] rounded-lg">
+                    <div className="w-7 h-7 border-2 border-white/20 border-t-[#AF3240] rounded-full animate-spin" />
+                    <p className="mt-3 text-xs font-mono text-[#a1a1a6]">
+                        Indexing mesh and BVH acceleration...
                     </p>
                 </div>
             )}
 
-            {/* PREVIEW */}
+            {/* 3D Preview */}
             {!loading && previewUrl && (
-                <div className="w-full h-full relative">
+                <div className="w-full h-full relative rounded-lg overflow-hidden bg-[#0f0f10]">
                     <ModelCanvas url={previewUrl} />
 
-                    {/* Model Tag */}
-                    <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/80 border border-white/20 text-[10px] text-gray-400 font-mono tracking-widest uppercase truncate max-w-[60%] pointer-events-none">
-                        {file?.name || "MODEL_LOADED"}
+                    {/* File tag */}
+                    <div className="absolute top-2 left-2 px-2.5 py-1 bg-[#141415]/90 backdrop-blur-sm border border-white/[0.08] rounded text-xs font-mono text-[#a1a1a6] truncate max-w-[70%] pointer-events-none">
+                        {file?.name || "Model loaded"}
                     </div>
 
-                    {/* Delete button with polygon clip-path */}
-                    <div
-                        className="absolute bottom-0 right-0 cursor-pointer z-10 group"
-                        style={{ filter: 'drop-shadow(0 0 2px rgba(255, 255, 255, 0.8))' }}
+                    {/* Clear button */}
+                    <button
+                        type="button"
                         onClick={resetUpload}
+                        className="absolute bottom-2 right-2 px-2.5 py-1 bg-[#141415]/90 hover:bg-[#232325] text-xs font-mono text-[#85858b] hover:text-[#ededed] border border-white/[0.08] rounded transition-colors cursor-pointer"
                     >
-                        <div
-                            className="p-1 pl-8 bg-black text-white text-[11px] uppercase tracking-wider group-hover:bg-white group-hover:text-black transition-colors"
-                            style={{ clipPath: 'polygon(40% 0%, 100% 0%, 100% 100%, 0% 100%)' }}
-                        >
-                            delete
-                        </div>
-                    </div>
+                        Replace model
+                    </button>
                 </div>
             )}
         </div>
-    )
-}
+    );
+};
 
-export default UploadBox
+export default UploadBox;

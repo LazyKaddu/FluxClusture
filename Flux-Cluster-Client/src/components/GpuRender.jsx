@@ -249,16 +249,23 @@ export default function PathTracerCanvas() {
         ref={canvasRef} 
         style={{ display: 'block', width: '100%', height: '100%' }} 
       />
-      <div style={{ position: 'absolute', top: 20, left: 20, color: 'white', fontFamily: 'sans-serif', pointerEvents: 'none' }}>
-        <h1 style={{ fontSize: '1.25rem', fontWeight: 'bold', margin: 0, padding: 0 }}>three-gpu-pathtracer // WebGL Demo</h1>
-        <p>Drag to rotate. Image refines dynamically.</p>
-        <div style={{ pointerEvents: 'auto', marginTop: 10 }}>
+      <div className="absolute top-5 left-5 pointer-events-none z-10">
+        <div className="bg-[#141415]/85 backdrop-blur-md border border-white/[0.08] rounded-xl p-4 shadow-xl max-w-sm pointer-events-auto font-sans antialiased">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#AF3240]" />
+            <h1 className="text-xs font-mono font-medium text-[#ededed] m-0 p-0">
+              WebGL Path Tracer Engine
+            </h1>
+          </div>
+          <p className="text-xs text-[#85858b] leading-relaxed mb-3">
+            Rotate view to sample light transport. Progressive accumulation converges in real-time.
+          </p>
           <button 
             onClick={handleBackgroundRender} 
             disabled={isRendering}
-            style={{ padding: '8px 12px', cursor: 'pointer', background: '#333', color: 'white', border: '1px solid #555', borderRadius: '4px' }}
+            className="w-full py-2 px-3 text-xs font-mono rounded-lg bg-[#AF3240] hover:bg-[#972935] text-white transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {isRendering ? `Rendering... ${renderProgress}%` : 'Start High-Res Background Render'}
+            {isRendering ? `Rendering high-res... ${renderProgress}%` : 'Export High-Res Render (PNG)'}
           </button>
         </div>
       </div>
