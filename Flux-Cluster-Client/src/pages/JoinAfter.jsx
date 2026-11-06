@@ -78,69 +78,56 @@ const JoinAfter = () => {
     });
 
     return (
-        <div className="font-mono bg-black text-white h-full max-h-[86vh] w-full md:w-[94%] lg:w-[88%] xl:w-3/5 max-w-5xl flex flex-col overflow-hidden border border-white shadow-2xl my-auto select-none">
-            {/* ── Terminal HUD Header ── */}
-            <header className="flex items-center justify-between px-4 py-2.5 border-b border-white shrink-0 bg-black">
-                <div className="flex items-center gap-2.5">
-                    <span className="text-[9px] font-bold tracking-[0.15em] border border-white px-2 py-0.5 uppercase">
+        <div className="font-sans antialiased text-[#ededed] bg-[#141415] w-full max-w-5xl max-h-[min(92vh,820px)] flex flex-col overflow-hidden border border-white/[0.08] rounded-xl shadow-2xl my-auto select-none">
+            {/* Header */}
+            <header className="flex items-center justify-between px-5 py-3 border-b border-white/[0.08] bg-[#19191b]/50 shrink-0">
+                <div className="flex items-center gap-3">
+                    <span className="text-xs font-mono font-medium text-[#AF3240] px-2 py-0.5 rounded bg-[#AF3240]/10 border border-[#AF3240]/20">
                         FluxCluster
                     </span>
-                    <h1 className="text-[11px] font-bold tracking-[0.12em] uppercase text-white inline-block m-0 p-0 font-inherit">
-                        &gt;_ Worker Node
+                    <h1 className="text-xs font-mono font-medium text-[#ededed] m-0 p-0">
+                        Worker Node Viewport
                     </h1>
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <div className="hidden sm:flex items-center gap-2 border border-neutral-800 px-2 py-0.5 bg-neutral-950">
-                        <span className="text-[8px] text-neutral-500 uppercase tracking-widest">NET:</span>
-                        <span className="text-[9px] text-neutral-300 font-bold tracking-wider">WEBRTC_SCTP</span>
-                    </div>
+                    <span className="hidden sm:inline-block text-xs font-mono text-[#85858b] border-r border-white/[0.08] pr-3">
+                        WebRTC SCTP
+                    </span>
 
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 border border-neutral-800 bg-neutral-950">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_6px_rgba(34,197,94,0.8)]" />
-                        <span className="text-[9px] font-bold tracking-wider uppercase text-neutral-300 truncate max-w-[120px] sm:max-w-[180px]">
+                    <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#4cc38a]" />
+                        <span className="text-xs font-mono text-[#a1a1a6] truncate max-w-[140px] sm:max-w-[200px]">
                             {status}
                         </span>
                     </div>
                 </div>
             </header>
 
-            {/* ── Main Two-Column Workstation Body ── */}
+            {/* Main Viewport Body */}
             <div className="flex flex-1 overflow-hidden min-h-0 flex-col md:flex-row">
 
-                {/* LEFT: Live Tile Stream Viewport */}
-                <div className="flex-1 min-w-0 flex flex-col border-b md:border-b-0 md:border-r border-white relative overflow-hidden bg-black">
-                    <div className="flex items-center justify-between px-3 py-1.5 border-b border-neutral-800 shrink-0 bg-black">
-                        <div className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 bg-white inline-block shadow-[0_0_6px_rgba(255,255,255,0.7)]" />
-                            <span className="text-[9px] font-bold tracking-[0.12em] uppercase text-white">
-                                Live Tile Stream
+                {/* Left: Live Tile Stream */}
+                <div className="flex-1 min-w-0 flex flex-col border-b md:border-b-0 md:border-r border-white/[0.08] relative overflow-hidden bg-[#0f0f10]">
+                    <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.06] shrink-0 bg-[#141415]">
+                        <span className="text-xs font-mono font-medium text-[#ededed]">
+                            Live tile stream
+                        </span>
+                        <div className="flex items-center gap-2 text-xs font-mono">
+                            <span className="text-[#85858b]">
+                                {tileDimensions.w}×{tileDimensions.h} buffer
                             </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-[9px] text-neutral-500 font-mono">
-                                [{tileDimensions.w}×{tileDimensions.h} BUFFER]
-                            </span>
-                            <span className={`text-[8px] tracking-wider uppercase px-1.5 py-0.5 border ${
-                                hasReceivedTile ? 'border-green-600/60 text-green-400 bg-green-950/20' : 'border-neutral-700 text-neutral-500'
+                            <span className={`px-2 py-0.5 rounded text-[11px] ${
+                                hasReceivedTile ? 'text-[#4cc38a] bg-[#4cc38a]/10' : 'text-[#85858b] bg-[#19191b]'
                             }`}>
-                                {hasReceivedTile ? 'STREAMING' : 'STANDBY'}
+                                {hasReceivedTile ? 'Streaming' : 'Standby'}
                             </span>
                         </div>
                     </div>
 
                     {/* Viewport Canvas Arena */}
-                    <div className="flex-1 relative flex items-center justify-center p-4 bg-neutral-950 overflow-hidden">
-                        {/* Technical grid backdrop */}
-                        <div className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:16px_16px]" />
-
-                        {/* Centered Canvas Container with Corner Brackets */}
-                        <div className="relative max-w-[260px] sm:max-w-[300px] w-full aspect-square border border-neutral-800 bg-black flex items-center justify-center overflow-hidden shadow-[0_0_35px_rgba(0,0,0,0.9)]">
-                            <div className="absolute top-1 left-1 w-2.5 h-2.5 border-t border-l border-white/60 pointer-events-none z-10" />
-                            <div className="absolute top-1 right-1 w-2.5 h-2.5 border-t border-r border-white/60 pointer-events-none z-10" />
-                            <div className="absolute bottom-1 left-1 w-2.5 h-2.5 border-b border-l border-white/60 pointer-events-none z-10" />
-                            <div className="absolute bottom-1 right-1 w-2.5 h-2.5 border-b border-r border-white/60 pointer-events-none z-10" />
-
+                    <div className="flex-1 relative flex items-center justify-center p-4 bg-[#0f0f10] overflow-hidden">
+                        <div className="relative max-w-[260px] sm:max-w-[300px] w-full aspect-square border border-white/[0.08] bg-[#141415] rounded-lg flex items-center justify-center overflow-hidden shadow-lg">
                             <canvas
                                 ref={canvasRef}
                                 width={tileDimensions.w}
@@ -150,12 +137,12 @@ const JoinAfter = () => {
                             />
 
                             {!hasReceivedTile && (
-                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/85 z-10 gap-3 text-center p-4">
-                                    <div className="w-7 h-7 border-2 border-neutral-800 border-t-white rounded-full animate-spin" />
-                                    <span className="text-[10px] font-bold tracking-[0.15em] text-neutral-300 uppercase">
-                                        {status || 'Awaiting Tile Dispatch…'}
+                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#141415]/90 z-10 gap-3 text-center p-4">
+                                    <div className="w-6 h-6 border-2 border-white/20 border-t-[#AF3240] rounded-full animate-spin" />
+                                    <span className="text-xs font-mono text-[#a1a1a6]">
+                                        {status || 'Awaiting tile dispatch...'}
                                     </span>
-                                    <span className="text-[8px] text-neutral-600 uppercase tracking-widest">
+                                    <span className="text-[11px] font-mono text-[#85858b]">
                                         Frame #{currentFrame}
                                     </span>
                                 </div>
@@ -163,132 +150,118 @@ const JoinAfter = () => {
                         </div>
                     </div>
 
-                    {/* Viewport Sub-footer Telemetry */}
-                    <div className="flex items-center justify-between px-3 py-1.5 border-t border-neutral-900 shrink-0 bg-black">
-                        <span className="text-[9px] tracking-wider text-neutral-400 uppercase flex items-center gap-1.5">
-                            <span className="text-neutral-600">FRAME:</span> #{currentFrame}
-                        </span>
-                        <span className="text-[9px] tracking-wider text-neutral-400 uppercase flex items-center gap-1.5 max-w-[140px] truncate">
-                            <span className="text-neutral-600">CHUNK:</span> {chunkAssigned}
-                        </span>
-                        <span className="text-[9px] tracking-wider text-white uppercase hidden sm:flex items-center">
-                            MIS_PATHTRACER
-                        </span>
+                    {/* Viewport Sub-footer */}
+                    <div className="flex items-center justify-between px-4 py-2 border-t border-white/[0.06] shrink-0 bg-[#141415] text-xs font-mono text-[#85858b]">
+                        <span>Frame #{currentFrame}</span>
+                        <span className="truncate max-w-[160px]">Tile: {chunkAssigned}</span>
+                        <span className="hidden sm:inline">Path tracer</span>
                     </div>
                 </div>
 
-                {/* RIGHT: Inspector & Telemetry Panel */}
-                <div className="w-full md:w-[280px] lg:w-[320px] shrink-0 flex flex-col overflow-hidden bg-black">
+                {/* Right: Telemetry & Specs */}
+                <div className="w-full md:w-[280px] lg:w-[320px] shrink-0 flex flex-col overflow-hidden bg-[#141415]">
 
-                    {/* 01 // Node Telemetry */}
-                    <div className="border-b border-neutral-900 shrink-0">
-                        <div className="flex items-center justify-between px-3 py-2 border-b border-neutral-900 bg-black">
-                            <span className="text-[9px] font-bold tracking-[0.15em] uppercase text-neutral-500">
-                                01 // Node Telemetry
+                    {/* 01 · Node Telemetry */}
+                    <div className="border-b border-white/[0.06] p-4">
+                        <div className="flex items-center justify-between mb-3 text-xs font-mono">
+                            <span className="text-[#85858b] uppercase tracking-wider text-[11px]">
+                                01 · Node Telemetry
                             </span>
-                            <span className="text-[9px] text-neutral-600">WORKER</span>
+                            <span className="text-[#85858b]">Worker</span>
                         </div>
 
-                        <div className="p-3 flex flex-col gap-2">
+                        <div className="space-y-2 text-xs font-mono">
                             <div className="flex items-center justify-between">
-                                <span className="text-[9px] tracking-widest uppercase text-neutral-500">ROOM ID</span>
+                                <span className="text-[#85858b]">Room ID</span>
                                 <div className="flex items-center gap-1.5">
-                                    <span className="text-[10px] font-bold tracking-wider text-white font-mono truncate max-w-[120px]">
+                                    <span className="text-[#ededed] font-medium truncate max-w-[120px]">
                                         {roomID || '—'}
                                     </span>
                                     {roomID && (
                                         <button
                                             onClick={handleCopyRoomId}
-                                            className="text-[8px] font-bold tracking-widest uppercase px-1.5 py-0.5 border border-neutral-700 hover:border-white text-neutral-400 hover:text-white transition-colors cursor-pointer"
+                                            className="px-2 py-0.5 rounded text-[11px] border border-white/[0.08] bg-[#19191b] hover:bg-[#232325] text-[#a1a1a6] hover:text-[#ededed] transition-colors cursor-pointer"
                                             title="Copy Room ID"
                                         >
-                                            {copied ? 'COPIED' : 'COPY'}
+                                            {copied ? 'Copied' : 'Copy'}
                                         </button>
                                     )}
                                 </div>
                             </div>
 
                             <div className="flex items-center justify-between">
-                                <span className="text-[9px] tracking-widest uppercase text-neutral-500">DAEMON ROLE</span>
-                                <span className="text-[10px] tracking-wider text-neutral-300">GPU_COMPUTE</span>
+                                <span className="text-[#85858b]">Daemon role</span>
+                                <span className="text-[#ededed]">GPU compute</span>
                             </div>
 
                             <div className="flex items-center justify-between">
-                                <span className="text-[9px] tracking-widest uppercase text-neutral-500">TARGET FRAME</span>
-                                <span className="text-[10px] tracking-wider text-neutral-300">#{currentFrame}</span>
+                                <span className="text-[#85858b]">Target frame</span>
+                                <span className="text-[#ededed]">#{currentFrame}</span>
                             </div>
 
                             <div className="flex items-center justify-between">
-                                <span className="text-[9px] tracking-widest uppercase text-neutral-500">ASSIGNED TILE</span>
-                                <span className="text-[10px] tracking-wider text-neutral-300 truncate max-w-[130px] text-right font-mono">
+                                <span className="text-[#85858b]">Assigned tile</span>
+                                <span className="text-[#ededed] truncate max-w-[130px] text-right">
                                     {chunkAssigned}
                                 </span>
                             </div>
                         </div>
                     </div>
 
-                    {/* 02 // Cluster Specs */}
-                    <div className="flex-1 flex flex-col overflow-y-auto scrollbar-thin border-b border-neutral-900">
-                        <div className="flex items-center justify-between px-3 py-2 border-b border-neutral-900 bg-black">
-                            <span className="text-[9px] font-bold tracking-[0.15em] uppercase text-neutral-500">
-                                02 // Cluster Specs
+                    {/* 02 · Cluster Manifest */}
+                    <div className="flex-1 overflow-y-auto p-4 border-b border-white/[0.06]">
+                        <div className="flex items-center justify-between mb-3 text-xs font-mono">
+                            <span className="text-[#85858b] uppercase tracking-wider text-[11px]">
+                                02 · Cluster Specs
                             </span>
-                            <span className="text-[9px] text-neutral-600">MANIFEST</span>
+                            <span className="text-[#85858b]">Manifest</span>
                         </div>
 
-                        <div className="p-3 flex flex-col gap-2">
-                            <div className="flex items-center justify-between py-1 border-b border-neutral-900/60">
-                                <span className="text-[9px] tracking-wider uppercase text-neutral-500">Resolution</span>
-                                <span className="text-[10px] font-bold tracking-wider text-white">
+                        <div className="space-y-2 text-xs font-mono">
+                            <div className="flex items-center justify-between py-1 border-b border-white/[0.04]">
+                                <span className="text-[#85858b]">Resolution</span>
+                                <span className="text-[#ededed] font-medium">
                                     {settings.width && settings.height ? `${settings.width} × ${settings.height}` : '—'}
                                 </span>
                             </div>
 
-                            <div className="flex items-center justify-between py-1 border-b border-neutral-900/60">
-                                <span className="text-[9px] tracking-wider uppercase text-neutral-500">Samples</span>
-                                <span className="text-[10px] font-bold tracking-wider text-white">
+                            <div className="flex items-center justify-between py-1 border-b border-white/[0.04]">
+                                <span className="text-[#85858b]">Samples</span>
+                                <span className="text-[#ededed] font-medium">
                                     {settings.samples ? `${settings.samples} SPP` : '—'}
                                 </span>
                             </div>
 
-                            <div className="flex items-center justify-between py-1 border-b border-neutral-900/60">
-                                <span className="text-[9px] tracking-wider uppercase text-neutral-500">Noise Threshold</span>
-                                <span className="text-[10px] font-bold tracking-wider text-white">
+                            <div className="flex items-center justify-between py-1 border-b border-white/[0.04]">
+                                <span className="text-[#85858b]">Noise threshold</span>
+                                <span className="text-[#ededed] font-medium">
                                     {settings.noiseThreshold !== undefined ? `${settings.noiseThreshold} RMS` : '—'}
                                 </span>
                             </div>
 
-                            <div className="flex items-center justify-between py-1 border-b border-neutral-900/60">
-                                <span className="text-[9px] tracking-wider uppercase text-neutral-500">Framerate</span>
-                                <span className="text-[10px] font-bold tracking-wider text-white">
+                            <div className="flex items-center justify-between py-1 border-b border-white/[0.04]">
+                                <span className="text-[#85858b]">Framerate</span>
+                                <span className="text-[#ededed] font-medium">
                                     {settings.fps ? `${settings.fps} FPS` : '—'}
                                 </span>
                             </div>
 
                             <div className="flex items-center justify-between py-1">
-                                <span className="text-[9px] tracking-wider uppercase text-neutral-500">Animation Track</span>
-                                <span className="text-[10px] font-bold tracking-wider text-white">
+                                <span className="text-[#85858b]">Animation track</span>
+                                <span className="text-[#ededed] font-medium">
                                     {settings.animationIndex !== undefined ? `#${settings.animationIndex}` : '—'}
                                 </span>
                             </div>
                         </div>
                     </div>
 
-                    {/* 03 // Session Actions & Disconnect */}
-                    <div className="border-t border-white p-3 shrink-0 bg-black flex flex-col gap-2">
-                        <div className="flex items-center justify-between text-[9px] text-neutral-500">
-                            <span className="uppercase tracking-widest">STATUS</span>
-                            <span className="text-neutral-400 font-mono truncate max-w-[160px] text-right">
-                                {status}
-                            </span>
-                        </div>
-
+                    {/* Disconnect Action */}
+                    <div className="p-4 bg-[#141415] shrink-0">
                         <button
                             onClick={handleDisconnect}
-                            className="font-mono text-[10px] font-bold tracking-[0.15em] uppercase w-full p-2.5 bg-transparent border border-neutral-700 text-neutral-300 hover:border-white hover:text-white hover:bg-neutral-900 cursor-pointer transition-colors flex items-center justify-center gap-2"
+                            className="w-full py-2 px-3 text-xs font-mono rounded-lg border border-white/[0.08] hover:border-white/[0.16] bg-[#19191b] hover:bg-[#232325] text-[#a1a1a6] hover:text-[#ededed] transition-colors cursor-pointer flex items-center justify-center gap-2"
                         >
-                            <span>✕</span>
-                            Disconnect / Leave Swarm
+                            <span>Leave swarm</span>
                         </button>
                     </div>
 
@@ -296,34 +269,29 @@ const JoinAfter = () => {
 
             </div>
 
-            {/* ── Footer Progress Bar ── */}
-            <div className="border-t border-white p-3 shrink-0 bg-black">
-                <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-[9px] tracking-widest uppercase text-neutral-500">
-                        Tile Pass Sampling Progress
-                    </span>
-                    <span className="text-[10px] font-bold font-mono tracking-wider text-white">
+            {/* Footer Progress Bar */}
+            <footer className="px-5 py-3 border-t border-white/[0.08] bg-[#19191b]/50 shrink-0">
+                <div className="flex items-center justify-between mb-1.5 text-xs font-mono">
+                    <span className="text-[#85858b]">Tile sampling progress</span>
+                    <span className="text-[#ededed] font-medium tabular-nums">
                         {(progress * 100).toFixed(1)}%
                     </span>
                 </div>
 
-                <div className="w-full border border-neutral-700 h-6 bg-neutral-950 overflow-hidden relative flex items-center">
+                <div className="w-full bg-[#19191b] border border-white/[0.08] rounded-md h-2 overflow-hidden">
                     <div
-                        className="h-full bg-white text-black text-[9px] font-bold font-mono transition-all duration-300 flex items-center justify-end pr-2 overflow-hidden"
-                        style={{ width: `${Math.max(2, Math.min(100, progress * 100))}%` }}
-                    >
-                        {progress >= 0.15 && `${(progress * 100).toFixed(0)}%`}
-                    </div>
+                        className="h-full bg-[#AF3240] transition-[width] duration-150 ease-out"
+                        style={{ width: `${Math.max(1, Math.min(100, progress * 100))}%` }}
+                    />
                 </div>
 
-                <div className="flex items-center justify-between mt-2 text-[8px] tracking-wider uppercase text-neutral-600">
-                    <span>SWARM_ACCUMULATION // RAYTRACING</span>
-                    <span>PEER_DATACHANNEL // STABLE</span>
+                <div className="flex items-center justify-between mt-2 text-xs font-mono text-[#85858b]">
+                    <span>Swarm peer · Connected</span>
+                    <span>Direct P2P DataChannel</span>
                 </div>
-            </div>
+            </footer>
         </div>
     );
 };
 
 export default JoinAfter;
-

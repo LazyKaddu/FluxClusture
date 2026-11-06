@@ -1,8 +1,8 @@
 User-agent: *
 Allow: /
+Allow: /blogs
 Allow: /blog
-Allow: /abouts
-Allow: /blog
+Allow: /about
 Disallow: /joined*
 Disallow: /render*
 
