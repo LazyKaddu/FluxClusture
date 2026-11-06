@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useSEO } from '../hooks/useSEO';
 
 const SECTIONS = [
-    { id: 'architect', label: '01 // THE ARCHITECT', title: 'Aashish Negi — Creator & Engineer' },
-    { id: 'vision', label: '02 // THE VISION', title: 'The Idle GPU Hypothesis' },
-    { id: 'stack', label: '03 // THE STACK', title: 'Architecture & Technology' },
-    { id: 'design', label: '04 // THE DESIGN', title: 'Terminal HUD Philosophy' },
-    { id: 'open-source', label: '05 // OPEN SOURCE', title: 'MIT License & Community' },
+    { id: 'architect', label: '01 · The Architect', title: 'Aashish Negi — Creator & Engineer' },
+    { id: 'vision', label: '02 · The Vision', title: 'The Idle GPU Hypothesis' },
+    { id: 'stack', label: '03 · The Stack', title: 'Architecture & Technology' },
+    { id: 'design', label: '04 · The Design', title: 'Terminal HUD Philosophy' },
+    { id: 'open-source', label: '05 · Open Source', title: 'MIT License & Community' },
 ];
 
 const About = () => {
@@ -70,12 +70,11 @@ const About = () => {
                 setScrollProgress(Math.min(100, Math.max(0, (scrollTop / totalScroll) * 100)));
             }
 
-            // Find current section in view
             for (let i = SECTIONS.length - 1; i >= 0; i--) {
                 const el = document.getElementById(SECTIONS[i].id);
                 if (el) {
                     const top = el.offsetTop - container.offsetTop;
-                    if (scrollTop >= top - 200) {
+                    if (scrollTop >= top - 180) {
                         setActiveSection(SECTIONS[i].id);
                         break;
                     }
@@ -91,7 +90,7 @@ const About = () => {
         const container = contentContainerRef.current;
         const target = document.getElementById(id);
         if (container && target) {
-            const topPos = target.offsetTop - container.offsetTop - 30;
+            const topPos = target.offsetTop - container.offsetTop - 24;
             container.scrollTo({ top: topPos, behavior: 'smooth' });
         }
     };
@@ -100,21 +99,21 @@ const About = () => {
         try {
             await navigator.clipboard.writeText(window.location.origin + '/about');
             setCopied(true);
-            setTimeout(() => setCopied(false), 2500);
+            setTimeout(() => setCopied(false), 2400);
         } catch {
             setCopied(true);
-            setTimeout(() => setCopied(false), 2500);
+            setTimeout(() => setCopied(false), 2400);
         }
     };
 
     return (
         <div
             ref={contentContainerRef}
-            className="w-full h-screen overflow-y-auto overflow-x-hidden text-gray-200 bg-[#0d0d0d] selection:bg-[#AF3240] selection:text-white"
+            className="w-full h-screen overflow-y-auto overflow-x-hidden text-[#ededed] bg-[#0f0f10] selection:bg-[#AF3240] selection:text-white font-sans antialiased"
         >
-            {/* Scroll Progress HUD Bar */}
+            {/* Scroll progress bar */}
             <div
-                className="fixed top-0 left-0 h-1 bg-gradient-to-r from-[#AF3240] via-[#d4475a] to-[#AF3240] z-50 transition-all duration-75"
+                className="fixed top-0 left-0 h-0.5 bg-[#AF3240] z-50 transition-[width] duration-100 ease-out"
                 style={{ width: `${scrollProgress}%` }}
                 role="progressbar"
                 aria-valuenow={Math.round(scrollProgress)}
@@ -123,59 +122,57 @@ const About = () => {
                 aria-label="Page reading progress"
             />
 
-            {/* Fixed Back to Home Button */}
-            <div className="fixed top-3 left-4 sm:top-4 sm:left-6 md:left-8 z-50">
+            {/* Back to Home navigation */}
+            <div className="fixed top-4 left-4 sm:left-8 z-40">
                 <button
                     type="button"
                     id="btn-back-home"
                     onClick={() => navigate('/')}
                     aria-label="Back to home page"
-                    className="group flex items-center gap-2.5 px-3.5 py-2 rounded-md border border-[#2a2a2a] bg-[#121212]/90 backdrop-blur-md text-xs space-mono-regular text-gray-300 hover:text-white hover:border-[#AF3240]/80 hover:bg-[#181818] transition-all cursor-pointer shadow-lg shadow-black/50"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-white/[0.08] bg-[#141415]/90 backdrop-blur-md text-xs font-mono text-[#a1a1a6] hover:text-[#ededed] hover:border-white/[0.16] hover:bg-[#19191b] transition-colors cursor-pointer shadow-sm"
                 >
-                    <span className="text-[#AF3240] group-hover:-translate-x-1 transition-transform inline-block font-bold">
-                        &larr;
-                    </span>
-                    <span className="tracking-wider font-semibold">BACK TO HOME</span>
-                    <span className="hidden sm:inline-block text-[10px] text-gray-500 border-l border-[#333] pl-2.5">
-                        FLUX//CLUSTER
+                    <svg className="w-3.5 h-3.5 text-[#a1a1a6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                    </svg>
+                    <span>BACK TO HOME</span>
+                    <span className="hidden sm:inline-block text-[11px] text-[#85858b] border-l border-white/[0.08] pl-2">
+                        FluxCluster
                     </span>
                 </button>
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 pt-24 md:pt-28 pb-32">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 pt-20 sm:pt-24 pb-28">
 
-                {/* Terminal HUD Meta Header */}
-                <header className="mb-12 border border-[#262626] bg-[#121212]/90 backdrop-blur-md p-6 md:p-8 rounded-lg relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-2 h-full bg-[#AF3240]" />
-
-                    <div className="flex flex-wrap items-center justify-between gap-3 text-xs space-mono-regular text-[#AF3240] mb-4">
-                        <span className="flex items-center gap-2">
-                            <span className="inline-block w-2 h-2 rounded-full bg-[#AF3240] animate-pulse" />
-                            &gt;_ ABOUT // FLUXCLUSTER
+                {/* Page header */}
+                <header className="mb-12 border border-white/[0.08] bg-[#141415] rounded-xl p-6 sm:p-8 relative shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-[#85858b] mb-4">
+                        <span className="inline-flex items-center gap-2 text-[#AF3240]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#AF3240]" />
+                            About · FluxCluster
                         </span>
-                        <span className="text-gray-400">OCTOBER 2026 • PROFILE</span>
+                        <span>October 2026 · Systems Profile</span>
                     </div>
 
-                    <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight text-white mb-6 bebas-neue-regular uppercase">
-                        About FluxCluster & Its Creator
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-medium tracking-tight text-[#ededed] mb-3">
+                        About FluxCluster and its creator
                     </h1>
 
-                    <p className="text-base sm:text-lg text-gray-300 space-mono-regular leading-relaxed max-w-4xl mb-6">
-                        From the mountains of Uttarakhand to the bleeding edge of browser-based distributed computing — the story of FluxCluster and the engineer behind it.
+                    <p className="text-sm sm:text-base text-[#a1a1a6] leading-relaxed max-w-3xl mb-6">
+                        From the mountains of Uttarakhand to browser-based distributed computing — the architecture, vision, and engineering behind FluxCluster.
                     </p>
 
-                    {/* Author & Action Badges */}
-                    <div className="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-[#222]">
-                        <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded border border-[#AF3240]/50 bg-[#1a1a1a] flex items-center justify-center font-bold text-[#AF3240] bebas-neue-regular text-xl">
+                    {/* Author and action bar */}
+                    <div className="flex flex-wrap items-center justify-between gap-4 pt-5 border-t border-white/[0.06]">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg border border-white/[0.08] bg-[#19191b] flex items-center justify-center font-mono font-medium text-xs text-[#ededed]">
                                 AN
                             </div>
                             <div>
-                                <div className="text-sm font-semibold text-white space-mono-regular">
+                                <div className="text-sm font-medium text-[#ededed]">
                                     Aashish Negi
-                                    <span className="text-xs text-gray-400 ml-2">(@LazyKaddu)</span>
+                                    <span className="text-xs text-[#85858b] font-mono ml-2">@LazyKaddu</span>
                                 </div>
-                                <div className="text-xs text-gray-400">Creator & Distributed Systems Architect • Pauri Garhwal, UK</div>
+                                <div className="text-xs text-[#85858b]">Creator and systems architect · Pauri Garhwal, Uttarakhand</div>
                             </div>
                         </div>
 
@@ -185,35 +182,35 @@ const About = () => {
                                 id="btn-copy-about-link"
                                 onClick={handleCopyLink}
                                 aria-label="Copy about page link"
-                                className="text-xs space-mono-regular px-3 py-1.5 rounded border border-[#333] hover:border-[#AF3240]/60 bg-[#181818] text-gray-300 hover:text-white transition-all flex items-center gap-2 cursor-pointer"
+                                className="text-xs font-mono px-3 py-1.5 rounded-md border border-white/[0.08] bg-[#19191b] text-[#a1a1a6] hover:text-[#ededed] hover:border-white/[0.16] transition-colors inline-flex items-center gap-2 cursor-pointer"
                             >
-                                <svg className="w-3.5 h-3.5 text-[#AF3240]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                <svg className="w-3.5 h-3.5 text-[#85858b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-3.03a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
                                 </svg>
-                                {copied ? 'LINK COPIED!' : 'SHARE PAGE'}
+                                <span>{copied ? 'Link copied' : 'Share profile'}</span>
                             </button>
                         </div>
                     </div>
 
-                    {/* Identity Tags */}
-                    <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-[#1e1e1e] text-[11px] space-mono-regular">
-                        {['FULL_STACK', 'DISTRIBUTED_SYSTEMS', 'WEBRTC', 'WEBGL2', 'WEBGPU', 'OPEN_SOURCE'].map(tag => (
-                            <span key={tag} className="px-2 py-0.5 rounded bg-black/60 border border-[#2a2a2a] text-gray-400">
-                                #{tag}
+                    {/* Technology tags */}
+                    <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-white/[0.04] text-xs font-mono">
+                        {['Distributed systems', 'WebRTC SCTP', 'WebGL2', 'WebGPU WGSL', 'Intel OIDN', 'Open source'].map(tag => (
+                            <span key={tag} className="px-2.5 py-0.5 rounded-md bg-[#19191b] border border-white/[0.06] text-[#85858b]">
+                                {tag}
                             </span>
                         ))}
                     </div>
                 </header>
 
-                {/* Main Content Layout with Sticky TOC on Desktop */}
+                {/* Content grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-                    {/* Left Sticky Table of Contents */}
-                    <aside className="hidden lg:block lg:col-span-4 sticky top-20 space-mono-regular text-xs">
-                        <div className="border border-[#262626] bg-[#111]/90 rounded-lg p-5">
-                            <div className="text-[#AF3240] uppercase tracking-widest font-bold mb-4 pb-2 border-b border-[#222] flex items-center justify-between">
-                                <span>TABLE OF CONTENTS</span>
-                                <span className="text-[10px] text-gray-400">[INDEX]</span>
+                    {/* Sticky Table of Contents */}
+                    <aside className="hidden lg:block lg:col-span-4 sticky top-20 text-xs font-mono">
+                        <div className="border border-white/[0.08] bg-[#141415] rounded-xl p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                            <div className="text-[11px] uppercase tracking-wider text-[#85858b] mb-3 pb-2 border-b border-white/[0.06] flex items-center justify-between">
+                                <span>Contents</span>
+                                <span className="text-[10px] text-[#85858b]">5 sections</span>
                             </div>
                             <nav aria-label="About Page Table of Contents" className="space-y-1">
                                 {SECTIONS.map((sec) => {
@@ -223,206 +220,262 @@ const About = () => {
                                             key={sec.id}
                                             type="button"
                                             onClick={() => scrollToSection(sec.id)}
-                                            className={`w-full text-left p-2 rounded transition-all flex flex-col gap-0.5 cursor-pointer ${isCurrent
-                                                    ? 'bg-[#AF3240]/10 text-[#AF3240] border-l-2 border-[#AF3240] pl-3 font-semibold'
-                                                    : 'text-gray-400 hover:text-white hover:bg-[#1a1a1a]'
+                                            className={`w-full text-left px-3 py-2 rounded-md transition-colors flex flex-col gap-0.5 cursor-pointer ${isCurrent
+                                                    ? 'bg-[#19191b] text-[#ededed] border-l-2 border-[#AF3240] pl-2.5 font-medium'
+                                                    : 'text-[#85858b] hover:text-[#ededed] hover:bg-[#19191b]/50'
                                                 }`}
                                         >
-                                            <span className="text-[10px] tracking-wider text-gray-400">{sec.label}</span>
-                                            <span className="truncate">{sec.title}</span>
+                                            <span className="text-[10px] text-[#85858b]">{sec.label}</span>
+                                            <span className="truncate text-xs font-sans">{sec.title}</span>
                                         </button>
                                     );
                                 })}
                             </nav>
 
-                            {/* Quick Links Card */}
-                            <div className="mt-6 pt-5 border-t border-[#222]">
-                                <div className="text-[10px] text-gray-400 mb-3 uppercase tracking-wider">CONNECT</div>
-                                <div className="space-y-2">
+                            {/* External Links */}
+                            <div className="mt-5 pt-4 border-t border-white/[0.06]">
+                                <div className="text-[10px] uppercase tracking-wider text-[#85858b] mb-2">Reference</div>
+                                <div className="space-y-1.5">
                                     <a
                                         href="https://github.com/LazyKaddu"
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="flex items-center gap-2 p-2 bg-black/50 border border-[#222] rounded text-gray-300 hover:text-white hover:border-[#AF3240]/40 transition-all no-underline"
+                                        className="flex items-center justify-between p-2 rounded-md border border-white/[0.06] bg-[#19191b]/60 text-[#a1a1a6] hover:text-[#ededed] hover:border-white/[0.12] transition-colors no-underline"
                                     >
-                                        <svg className="w-4 h-4 text-[#AF3240]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
-                                        <span className="text-xs">GitHub // @LazyKaddu</span>
+                                        <span className="text-xs">GitHub repository</span>
+                                        <svg className="w-3.5 h-3.5 text-[#85858b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
+                                        </svg>
                                     </a>
                                     <a
                                         href="/blogs"
                                         onClick={(e) => { e.preventDefault(); navigate('/blogs'); }}
-                                        className="flex items-center gap-2 p-2 bg-black/50 border border-[#222] rounded text-gray-300 hover:text-white hover:border-[#AF3240]/40 transition-all no-underline"
+                                        className="flex items-center justify-between p-2 rounded-md border border-white/[0.06] bg-[#19191b]/60 text-[#a1a1a6] hover:text-[#ededed] hover:border-white/[0.12] transition-colors no-underline"
                                     >
-                                        <svg className="w-4 h-4 text-[#AF3240]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>
-                                        <span className="text-xs">Engineering Blog</span>
+                                        <span className="text-xs">Engineering blog</span>
+                                        <svg className="w-3.5 h-3.5 text-[#85858b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                                        </svg>
                                     </a>
                                 </div>
                             </div>
                         </div>
                     </aside>
 
-                    {/* Right Main Article */}
-                    <article className="lg:col-span-8 space-y-16 space-mono-regular leading-relaxed text-gray-300 text-sm md:text-base">
+                    {/* Main article */}
+                    <article className="lg:col-span-8 space-y-14 text-sm sm:text-base text-[#a1a1a6] leading-relaxed">
 
                         {/* Section 1: The Architect */}
-                        <section id="architect" aria-labelledby="heading-architect" className="scroll-mt-32">
-                            <div className="text-xs text-[#AF3240] uppercase tracking-widest mb-1">01 // THE ARCHITECT</div>
-                            <h2 id="heading-architect" className="text-2xl md:text-4xl font-bold text-white mb-6 bebas-neue-regular tracking-wide uppercase">
-                                Aashish Negi — Creator & Systems Engineer
+                        <section id="architect" aria-labelledby="heading-architect" className="scroll-mt-24">
+                            <div className="text-xs font-mono text-[#AF3240] tracking-wide mb-1">01 · The Architect</div>
+                            <h2 id="heading-architect" className="text-xl sm:text-2xl font-medium tracking-tight text-[#ededed] mb-4">
+                                Aashish Negi — Creator and systems engineer
                             </h2>
 
                             <div className="space-y-4">
                                 <p>
-                                    I am <strong>Aashish Negi</strong>, a full-stack developer from <strong>Pauri Garhwal, Uttarakhand</strong> — a small mountain district in the Indian Himalayas. My work spans the entire engineering spectrum: from low-level WebGL shader pipelines and WebRTC binary data channels to React component architectures and distributed Redis-backed coordination planes.
+                                    I am <strong className="text-[#ededed] font-medium">Aashish Negi</strong>, a full-stack developer based in <strong className="text-[#ededed] font-medium">Pauri Garhwal, Uttarakhand</strong> — a mountain district in the Indian Himalayas. My work spans the graphics and systems spectrum: from WebGL shader pipelines and WebRTC binary data channels to React component architectures and distributed Redis coordination planes.
                                 </p>
                                 <p>
-                                    My journey into software engineering started with a fascination for how complex systems emerge from simple, well-designed primitives. Whether it is a physics simulation, a peer-to-peer mesh network, or a GPU ray-marching kernel — the elegance of systems thinking drives everything I build.
+                                    My interest in software engineering centers on how complex systems emerge from simple, well-defined primitives. Whether building a physics simulation, a peer-to-peer data mesh, or a GPU ray-marching kernel, systems thinking informs every design decision.
                                 </p>
-                                <div className="p-5 border-l-2 border-[#AF3240] bg-[#161616] rounded-r my-6">
-                                    <p className="italic text-gray-200">
-                                        "Innovation is not creating something out of the box — it is just taking the next step from the existing working models."
+                                <div className="p-4 border-l-2 border-[#AF3240] bg-[#19191b] rounded-r-lg my-6">
+                                    <p className="text-sm italic text-[#ededed]">
+                                        "Innovation is not creating something out of the box — it is taking the next step from existing working models."
                                     </p>
                                 </div>
                                 <p>
-                                    Building FluxCluster from a mountain town with variable connectivity was both a constraint and a forcing function. It pushed me to design for resilience — graceful WebRTC reconnection, minimal client bundle sizes, and offline-first worker state recovery. Every architectural decision was battle-tested against real-world network instability.
+                                    Building FluxCluster from a mountain region with variable connectivity served as a practical forcing function. It required designing for real-world resilience: predictable WebRTC reconnection, compact client bundle sizes, and offline-tolerant worker state recovery.
                                 </p>
                             </div>
                         </section>
 
                         {/* Section 2: The Vision */}
-                        <section id="vision" aria-labelledby="heading-vision" className="scroll-mt-32">
-                            <div className="text-xs text-[#AF3240] uppercase tracking-widest mb-1">02 // THE VISION</div>
-                            <h2 id="heading-vision" className="text-2xl md:text-4xl font-bold text-white mb-6 bebas-neue-regular tracking-wide uppercase">
-                                The Idle GPU Hypothesis: Democratizing Compute
+                        <section id="vision" aria-labelledby="heading-vision" className="scroll-mt-24">
+                            <div className="text-xs font-mono text-[#AF3240] tracking-wide mb-1">02 · The Vision</div>
+                            <h2 id="heading-vision" className="text-xl sm:text-2xl font-medium tracking-tight text-[#ededed] mb-4">
+                                The idle GPU hypothesis: cooperative compute in the browser
                             </h2>
 
                             <div className="space-y-4">
                                 <p>
-                                    At any given moment, hundreds of millions of web browsers are sitting idle worldwide. Inside those machines sit integrated and dedicated GPUs capable of trillions of floating-point operations per second — yet they sit dormant, rendering nothing more than static HTML.
+                                    At any given moment, hundreds of millions of web browsers sit open and idle worldwide. The machines running them house integrated and dedicated GPUs capable of trillions of floating-point operations per second, yet their computational capacity remains unused outside of basic UI rendering.
                                 </p>
                                 <p>
-                                    <strong>FluxCluster</strong> was conceived to answer a simple question: <em>what if we could link those idle browsers together — with zero installation — into a cooperative peer-to-peer GPU compute swarm?</em>
+                                    <strong className="text-[#ededed] font-medium">FluxCluster</strong> evaluates a straightforward proposition: link idle browser tabs together through peer-to-peer WebRTC connections into a cooperative GPU rendering swarm, requiring zero local software installation.
                                 </p>
                                 <p>
-                                    Commercial render farms solve GPU-intensive rendering by throwing enterprise hardware (NVIDIA A100s, RTX 4090 clusters) at the problem in centralized data centers. But for students, indie creators, and hobbyist 3D artists, enterprise cloud rendering is prohibitively expensive and architecturally opaque. FluxCluster levels that playing field.
+                                    Commercial render farms solve rendering demands with centralized cloud clusters (NVIDIA A100s or RTX 4090s) in enterprise data centers. For students, independent creators, and researchers, cloud compute costs can be a barrier. FluxCluster offers a peer-to-peer alternative.
                                 </p>
-                                <div className="p-5 border-l-2 border-[#AF3240] bg-[#161616] rounded-r my-6">
-                                    <p className="italic text-gray-200">
-                                        No native binaries. No CUDA toolkit installs. No Docker containers. A user simply opens a browser tab, joins a room via WebRTC, and their GPU immediately begins path-tracing tiles — streaming pixels directly to the orchestrator over peer-to-peer data channels.
-                                    </p>
+
+                                {/* Visual Moment: Swarm Architecture Diagram */}
+                                <div className="border border-white/[0.08] bg-[#141415] rounded-xl p-5 my-6">
+                                    <div className="text-xs font-mono text-[#85858b] uppercase tracking-wider mb-4 flex items-center justify-between">
+                                        <span>Swarm Architecture Topology</span>
+                                        <span className="text-[#AF3240]">WebRTC P2P Data Mesh</span>
+                                    </div>
+                                    <svg className="w-full h-auto text-xs font-mono" viewBox="0 0 680 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        {/* Background Grid */}
+                                        <defs>
+                                            <pattern id="grid-pattern-about" width="20" height="20" patternUnits="userSpaceOnUse">
+                                                <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+                                            </pattern>
+                                        </defs>
+                                        <rect width="680" height="260" fill="url(#grid-pattern-about)" rx="8" />
+
+                                        {/* Master Node */}
+                                        <rect x="30" y="80" width="160" height="100" rx="8" fill="#19191b" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+                                        <text x="45" y="105" fill="#ededed" fontSize="12" fontWeight="500">Master Browser</text>
+                                        <text x="45" y="125" fill="#85858b" fontSize="10">GLTF scene parser</text>
+                                        <text x="45" y="142" fill="#85858b" fontSize="10">256x256 tile partitioner</text>
+                                        <text x="45" y="159" fill="#85858b" fontSize="10">Display canvas blitter</text>
+
+                                        {/* Signaling Control Plane */}
+                                        <rect x="260" y="20" width="160" height="60" rx="8" fill="#19191b" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+                                        <text x="275" y="42" fill="#ededed" fontSize="11" fontWeight="500">Signaling Server</text>
+                                        <text x="275" y="60" fill="#85858b" fontSize="9">Socket.io + Redis SDP</text>
+
+                                        {/* Peer Workers */}
+                                        <rect x="490" y="30" width="160" height="60" rx="8" fill="#19191b" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+                                        <text x="505" y="52" fill="#ededed" fontSize="11" fontWeight="500">Worker Node 01</text>
+                                        <text x="505" y="70" fill="#85858b" fontSize="9">WebGL2 path-tracing</text>
+
+                                        <rect x="490" y="105" width="160" height="60" rx="8" fill="#19191b" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+                                        <text x="505" y="127" fill="#ededed" fontSize="11" fontWeight="500">Worker Node 02</text>
+                                        <text x="505" y="145" fill="#85858b" fontSize="9">WebGPU OIDN denoiser</text>
+
+                                        <rect x="490" y="180" width="160" height="60" rx="8" fill="#19191b" stroke="rgba(255,255,255,0.12)" strokeWidth="1" />
+                                        <text x="505" y="202" fill="#ededed" fontSize="11" fontWeight="500">Worker Node N</text>
+                                        <text x="505" y="220" fill="#85858b" fontSize="9">Dynamic BVH worker</text>
+
+                                        {/* Signaling Paths */}
+                                        <path d="M 190 100 L 260 50" stroke="#85858b" strokeWidth="1" strokeDasharray="3 3" />
+                                        <path d="M 420 50 L 490 50" stroke="#85858b" strokeWidth="1" strokeDasharray="3 3" />
+
+                                        {/* Direct P2P Data Channels */}
+                                        <path d="M 190 120 L 490 60" stroke="#AF3240" strokeWidth="1.5" />
+                                        <path d="M 190 130 L 490 135" stroke="#AF3240" strokeWidth="1.5" />
+                                        <path d="M 190 140 L 490 210" stroke="#AF3240" strokeWidth="1.5" />
+
+                                        {/* Labels */}
+                                        <rect x="285" y="132" width="110" height="20" rx="4" fill="#0f0f10" stroke="#AF3240" strokeWidth="0.8" />
+                                        <text x="292" y="146" fill="#ededed" fontSize="9">WebRTC SCTP (16KB)</text>
+                                    </svg>
+                                    <div className="mt-3 text-xs text-[#85858b] flex items-center justify-between">
+                                        <span>Dotted: Lightweight signaling handshakes</span>
+                                        <span>Crimson: Direct peer-to-peer pixel streams</span>
+                                    </div>
                                 </div>
+
                                 <p>
-                                    The architecture decouples lightweight signaling coordination (Socket.io + Redis) from heavy pixel data transport (WebRTC SCTP DataChannels), ensuring the server never becomes a bandwidth bottleneck. Once peers establish direct connections, raw rendered tiles flow directly between browsers at full bandwidth.
+                                    No native binaries, Docker containers, or graphics driver toolkits are required. A user opens a browser tab, enters a room token, and their GPU immediately starts rendering path-traced tiles, streaming finished pixel data directly to the orchestrator over peer-to-peer data channels.
                                 </p>
                             </div>
                         </section>
 
                         {/* Section 3: The Stack */}
-                        <section id="stack" aria-labelledby="heading-stack" className="scroll-mt-32">
-                            <div className="text-xs text-[#AF3240] uppercase tracking-widest mb-1">03 // THE STACK</div>
-                            <h2 id="heading-stack" className="text-2xl md:text-4xl font-bold text-white mb-6 bebas-neue-regular tracking-wide uppercase">
-                                Architecture & Technology Breakdown
+                        <section id="stack" aria-labelledby="heading-stack" className="scroll-mt-24">
+                            <div className="text-xs font-mono text-[#AF3240] tracking-wide mb-1">03 · The Stack</div>
+                            <h2 id="heading-stack" className="text-xl sm:text-2xl font-medium tracking-tight text-[#ededed] mb-4">
+                                Architecture and technology breakdown
                             </h2>
 
                             <div className="space-y-4">
                                 <p>
-                                    FluxCluster is built on a hybrid architecture: a lightweight centralized control plane for task orchestration, and a decentralized peer-to-peer data mesh for heavy pixel transport. Every layer is engineered for browser-native execution with zero external dependencies.
+                                    FluxCluster uses a hybrid topology: a lightweight centralized control plane for task coordination, and a decentralized peer-to-peer data mesh for binary pixel transmission.
                                 </p>
 
                                 {/* Tech Stack Matrix */}
-                                <div className="overflow-x-auto my-6 border border-[#262626] rounded-lg">
-                                    <table className="w-full text-xs text-left">
-                                        <thead className="bg-[#1c1c1c] text-gray-300 uppercase">
+                                <div className="border border-white/[0.08] rounded-xl overflow-hidden bg-[#141415] my-6">
+                                    <table className="w-full text-left text-xs font-mono">
+                                        <thead className="bg-[#19191b] text-[#85858b] uppercase tracking-wider border-b border-white/[0.08]">
                                             <tr>
-                                                <th className="p-3 border-b border-[#333]">Layer</th>
-                                                <th className="p-3 border-b border-[#333]">Technology</th>
-                                                <th className="p-3 border-b border-[#333] text-[#AF3240]">Purpose in FluxCluster</th>
+                                                <th className="p-3.5 font-medium">Layer</th>
+                                                <th className="p-3.5 font-medium">Technology</th>
+                                                <th className="p-3.5 font-medium">Role in system</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-[#222]">
+                                        <tbody className="divide-y divide-white/[0.04]">
                                             <tr>
-                                                <td className="p-3 font-semibold text-white">Rendering Engine</td>
-                                                <td className="p-3 text-gray-400">Three.js + three-gpu-pathtracer</td>
-                                                <td className="p-3 text-[#d4475a]">WebGL2 GPU path-tracing with BVH acceleration</td>
+                                                <td className="p-3.5 font-medium text-[#ededed]">Rendering engine</td>
+                                                <td className="p-3.5 text-[#a1a1a6]">Three.js + three-gpu-pathtracer</td>
+                                                <td className="p-3.5 text-[#85858b]">WebGL2 GPU path tracing with BVH acceleration</td>
                                             </tr>
                                             <tr>
-                                                <td className="p-3 font-semibold text-white">Peer Transport</td>
-                                                <td className="p-3 text-gray-400">WebRTC SCTP DataChannels</td>
-                                                <td className="p-3 text-[#d4475a]">Direct P2P binary pixel tile streaming (16KB sub-chunks)</td>
+                                                <td className="p-3.5 font-medium text-[#ededed]">Peer transport</td>
+                                                <td className="p-3.5 text-[#a1a1a6]">WebRTC SCTP DataChannels</td>
+                                                <td className="p-3.5 text-[#85858b]">P2P binary pixel tile streaming (16KB sub-chunks)</td>
                                             </tr>
                                             <tr>
-                                                <td className="p-3 font-semibold text-white">Signaling</td>
-                                                <td className="p-3 text-gray-400">Socket.io + Redis</td>
-                                                <td className="p-3 text-[#d4475a]">Room management, SDP handshakes, task queue coordination</td>
+                                                <td className="p-3.5 font-medium text-[#ededed]">Signaling plane</td>
+                                                <td className="p-3.5 text-[#a1a1a6]">Socket.io + Redis</td>
+                                                <td className="p-3.5 text-[#85858b]">Room management, SDP handshakes, task queue state</td>
                                             </tr>
                                             <tr>
-                                                <td className="p-3 font-semibold text-white">AI Denoising</td>
-                                                <td className="p-3 text-gray-400">Intel OIDN (oidn-web)</td>
-                                                <td className="p-3 text-[#d4475a]">WebGPU WGSL U-Net inference for noise-free renders</td>
+                                                <td className="p-3.5 font-medium text-[#ededed]">Neural denoising</td>
+                                                <td className="p-3.5 text-[#a1a1a6]">Intel OIDN (oidn-web)</td>
+                                                <td className="p-3.5 text-[#85858b]">WebGPU WGSL U-Net inference for noise filtering</td>
                                             </tr>
                                             <tr>
-                                                <td className="p-3 font-semibold text-white">Frontend</td>
-                                                <td className="p-3 text-gray-400">React 19 + Vite + TailwindCSS 4</td>
-                                                <td className="p-3 text-[#d4475a]">SPA with GSAP animations and Lenis smooth scroll</td>
+                                                <td className="p-3.5 font-medium text-[#ededed]">Client interface</td>
+                                                <td className="p-3.5 text-[#a1a1a6]">React 19 + Vite + TailwindCSS</td>
+                                                <td className="p-3.5 text-[#85858b]">Telemetry HUD, real-time node state, GSAP transitions</td>
                                             </tr>
                                             <tr>
-                                                <td className="p-3 font-semibold text-white">3D Scene</td>
-                                                <td className="p-3 text-gray-400">@react-three/fiber + drei</td>
-                                                <td className="p-3 text-[#d4475a]">Declarative Three.js with custom GLSL shaders</td>
+                                                <td className="p-3.5 font-medium text-[#ededed]">3D Scene graph</td>
+                                                <td className="p-3.5 text-[#a1a1a6]">@react-three/fiber + drei</td>
+                                                <td className="p-3.5 text-[#85858b]">Declarative scene hierarchy with custom GLSL shaders</td>
                                             </tr>
                                         </tbody>
                                     </table>
                                 </div>
 
                                 <p>
-                                    The client application is a single-page React app bundled with Vite. GSAP powers scroll-triggered animations and GLSL shader transitions. The 3D network visualization on the home page uses custom vertex and fragment shaders for real-time node constellation rendering with proximity-based dynamic tethering.
-                                </p>
-                                <p>
-                                    On the compute side, worker browser tabs receive GLB scene files via WebRTC, build local BVH acceleration structures using <code className="text-[#d4475a] bg-black/60 px-1 py-0.5 rounded">three-mesh-bvh</code>, and render assigned tile regions via <code className="text-[#d4475a] bg-black/60 px-1 py-0.5 rounded">three-gpu-pathtracer</code>. Completed tiles are sliced into 16KB binary chunks with a 12-byte header protocol and streamed back over WebRTC SCTP channels.
+                                    Worker browser tabs receive GLB scene files via WebRTC data channels, construct local Bounding Volume Hierarchy acceleration structures using <code className="text-xs font-mono text-[#ededed] bg-[#232325] px-1.5 py-0.5 rounded border border-white/[0.06]">three-mesh-bvh</code>, and render assigned tile regions. Completed tiles are sliced into 16KB binary chunks with a 12-byte header and streamed back to the master.
                                 </p>
                             </div>
                         </section>
 
                         {/* Section 4: The Design */}
-                        <section id="design" aria-labelledby="heading-design" className="scroll-mt-32">
-                            <div className="text-xs text-[#AF3240] uppercase tracking-widest mb-1">04 // THE DESIGN</div>
-                            <h2 id="heading-design" className="text-2xl md:text-4xl font-bold text-white mb-6 bebas-neue-regular tracking-wide uppercase">
-                                Terminal HUD: Design Philosophy
+                        <section id="design" aria-labelledby="heading-design" className="scroll-mt-24">
+                            <div className="text-xs font-mono text-[#AF3240] tracking-wide mb-1">04 · The Design</div>
+                            <h2 id="heading-design" className="text-xl sm:text-2xl font-medium tracking-tight text-[#ededed] mb-4">
+                                Terminal telemetry: design principles
                             </h2>
 
                             <div className="space-y-4">
                                 <p>
-                                    FluxCluster's interface draws inspiration from mission control dashboards and terminal HUDs — environments where data density and clarity coexist. The design philosophy is rooted in three principles:
+                                    FluxCluster draws layout inspiration from mission control consoles and engineering telemetry HUDs — environments where data density and operational clarity must coexist.
                                 </p>
 
-                                <div className="space-y-4">
-                                    <div className="border border-[#222] bg-[#141414] p-5 rounded-lg">
-                                        <div className="flex items-center gap-2 text-[#AF3240] text-xs font-bold mb-2">
+                                <div className="space-y-4 mt-6">
+                                    <div className="border border-white/[0.08] bg-[#141415] p-5 rounded-xl">
+                                        <div className="flex items-center gap-2 text-xs font-mono text-[#AF3240] mb-1.5">
                                             <span className="w-1.5 h-1.5 rounded-full bg-[#AF3240]" />
-                                            PRINCIPLE 1: DARK-FIRST MINIMALISM
+                                            <span>Principle 1 · Dark-first quiet chrome</span>
                                         </div>
-                                        <p className="text-sm text-gray-300">
-                                            Pure black and near-black backgrounds (<code className="text-white bg-black/60 px-1 py-0.5 rounded">#0d0d0d</code>, <code className="text-white bg-black/60 px-1 py-0.5 rounded">#141414</code>) reduce visual noise and let content breathe. Color is used sparingly and intentionally — crimson red (<code className="text-white bg-black/60 px-1 py-0.5 rounded">#AF3240</code>) for primary accents, muted grays for secondary text.
+                                        <p className="text-sm text-[#a1a1a6]">
+                                            Neutral graphite surfaces (<code className="text-xs font-mono text-[#ededed] bg-[#232325] px-1.5 py-0.5 rounded">#0f0f10</code>, <code className="text-xs font-mono text-[#ededed] bg-[#232325] px-1.5 py-0.5 rounded">#141415</code>) provide a calm backdrop. Color is reserved for state indicators and the single crimson accent (<code className="text-xs font-mono text-[#ededed] bg-[#232325] px-1.5 py-0.5 rounded">#AF3240</code>).
                                         </p>
                                     </div>
 
-                                    <div className="border border-[#222] bg-[#141414] p-5 rounded-lg">
-                                        <div className="flex items-center gap-2 text-[#AF3240] text-xs font-bold mb-2">
+                                    <div className="border border-white/[0.08] bg-[#141415] p-5 rounded-xl">
+                                        <div className="flex items-center gap-2 text-xs font-mono text-[#AF3240] mb-1.5">
                                             <span className="w-1.5 h-1.5 rounded-full bg-[#AF3240]" />
-                                            PRINCIPLE 2: MONOSPACE TYPOGRAPHY
+                                            <span>Principle 2 · Monospace telemetry with readable sans prose</span>
                                         </div>
-                                        <p className="text-sm text-gray-300">
-                                            The <strong>Space Mono</strong> typeface for body text and <strong>Bebas Neue</strong> for display headings create a technical, engineered atmosphere. Monospace type evokes terminal output and code editors — fitting for a tool built by engineers, for engineers.
+                                        <p className="text-sm text-[#a1a1a6]">
+                                            Long-form reading is rendered in clean proportional type for endurance, while monospace type is deliberately reserved for network coordinates, packet headers, metrics, and code snippets.
                                         </p>
                                     </div>
 
-                                    <div className="border border-[#222] bg-[#141414] p-5 rounded-lg">
-                                        <div className="flex items-center gap-2 text-[#AF3240] text-xs font-bold mb-2">
+                                    <div className="border border-white/[0.08] bg-[#141415] p-5 rounded-xl">
+                                        <div className="flex items-center gap-2 text-xs font-mono text-[#AF3240] mb-1.5">
                                             <span className="w-1.5 h-1.5 rounded-full bg-[#AF3240]" />
-                                            PRINCIPLE 3: DATA DENSITY WITH CLARITY
+                                            <span>Principle 3 · Data density without visual noise</span>
                                         </div>
-                                        <p className="text-sm text-gray-300">
-                                            Every visual element serves a purpose. Status indicators, progress bars, metric cards, and telemetry badges communicate system state at a glance. Borders and subtle background shifts (<code className="text-white bg-black/60 px-1 py-0.5 rounded">border-[#262626]</code>) delineate content regions without heavy separators. The interface feels alive — scroll progress bars, animated pulse indicators, and GSAP-driven transitions create a responsive, data-rich experience.
+                                        <p className="text-sm text-[#a1a1a6]">
+                                            Telemetry indicators, progress bars, and worker states communicate node health directly. Thin hairlines (<code className="text-xs font-mono text-[#ededed] bg-[#232325] px-1.5 py-0.5 rounded">border-white/[0.08]</code>) segment regions cleanly without heavy borders or decorative shadows.
                                         </p>
                                     </div>
                                 </div>
@@ -430,49 +483,48 @@ const About = () => {
                         </section>
 
                         {/* Section 5: Open Source */}
-                        <section id="open-source" aria-labelledby="heading-open-source" className="scroll-mt-32">
-                            <div className="text-xs text-[#AF3240] uppercase tracking-widest mb-1">05 // OPEN SOURCE</div>
-                            <h2 id="heading-open-source" className="text-2xl md:text-4xl font-bold text-white mb-6 bebas-neue-regular tracking-wide uppercase">
-                                MIT License & Community
+                        <section id="open-source" aria-labelledby="heading-open-source" className="scroll-mt-24">
+                            <div className="text-xs font-mono text-[#AF3240] tracking-wide mb-1">05 · Open Source</div>
+                            <h2 id="heading-open-source" className="text-xl sm:text-2xl font-medium tracking-tight text-[#ededed] mb-4">
+                                MIT License and community
                             </h2>
 
                             <div className="space-y-4">
                                 <p>
-                                    FluxCluster is <strong>100% open-source</strong> under the <strong>MIT License</strong>. Every line of code — from the WebRTC signaling server to the WebGPU denoiser pipeline to the React frontend — is publicly available on GitHub.
+                                    FluxCluster is open-source software distributed under the <strong className="text-[#ededed] font-medium">MIT License</strong>. The entire repository — from the WebRTC signaling coordination plane to the WebGPU denoising pipeline and React client — is public on GitHub.
                                 </p>
                                 <p>
-                                    The decision to open-source FluxCluster was deliberate from day one. Computing power should not be gated behind expensive cloud subscriptions. When we turn idle browsers into collaborative supercomputers, we level the playing field for every 3D artist, student, and indie developer on earth.
+                                    Distributed compute should remain accessible to students, hobbyists, and developers without costly cloud subscriptions.
                                 </p>
 
-                                <div className="p-5 border-l-2 border-[#AF3240] bg-[#161616] rounded-r my-6">
-                                    <p className="italic text-gray-200">
-                                        "When you open-source your work, you are not giving it away — you are multiplying it. Every contributor, every fork, every issue filed makes the system stronger than any single engineer could."
+                                <div className="p-4 border-l-2 border-[#AF3240] bg-[#19191b] rounded-r-lg my-6">
+                                    <p className="text-sm italic text-[#ededed]">
+                                        "When you open-source systems work, every contributor, benchmark, and issue report tests the architecture against conditions no single engineer could replicate."
                                     </p>
                                 </div>
 
-                                <p>
-                                    Whether you want to contribute rendering optimizations, improve the WebRTC chunking protocol, add support for new 3D file formats, or simply use FluxCluster for your own projects — the code is yours. Fork it, break it, improve it, ship it.
-                                </p>
-
-                                <div className="mt-8 pt-8 border-t border-[#262626] flex flex-col sm:flex-row items-center justify-between gap-4">
-                                    <div className="text-xs text-gray-400">
-                                        Ready to explore the code or join the swarm?
+                                <div className="mt-8 pt-6 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4">
+                                    <div className="text-xs font-mono text-[#85858b]">
+                                        Explore the codebase or join the swarm on GitHub
                                     </div>
-                                    <div className="flex gap-3">
+                                    <div className="flex gap-2">
                                         <a
                                             href="https://github.com/LazyKaddu"
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="px-4 py-2 bg-[#AF3240] hover:bg-[#c43d4f] text-white font-bold text-xs space-mono-regular rounded transition-all no-underline inline-block"
+                                            className="px-3.5 py-2 bg-[#AF3240] hover:bg-[#972935] text-white text-xs font-mono rounded-md transition-colors no-underline inline-flex items-center gap-2"
                                         >
-                                            GITHUB // @LAZYKADDU
+                                            <span>GitHub repository</span>
+                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
+                                            </svg>
                                         </a>
                                         <button
                                             type="button"
                                             onClick={() => scrollToSection('architect')}
-                                            className="px-4 py-2 border border-[#333] hover:border-gray-500 text-gray-300 text-xs space-mono-regular rounded transition-all cursor-pointer"
+                                            className="px-3.5 py-2 border border-white/[0.08] hover:border-white/[0.16] text-[#a1a1a6] hover:text-[#ededed] text-xs font-mono rounded-md transition-colors cursor-pointer"
                                         >
-                                            BACK TO TOP &uarr;
+                                            Back to top ↑
                                         </button>
                                     </div>
                                 </div>

@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useSEO } from '../hooks/useSEO';
 
 const SECTIONS = [
-    { id: 'genesis', label: '01 // THE GENESIS', title: 'The Idle GPU Hypothesis' },
-    { id: 'architecture', label: '02 // ARCHITECTURE', title: 'Swarm Topology vs Central Control' },
-    { id: 'crucible', label: '03 // THE CRUCIBLE', title: '5 Core Engineering Breakthroughs' },
-    { id: 'neural-denoising', label: '04 // NEURAL DENOISING', title: 'Intel OIDN in the Browser' },
-    { id: 'personal-journey', label: '05 // THE JOURNEY', title: 'Reflections from Pauri Garhwal' },
-    { id: 'horizon', label: '06 // THE HORIZON', title: 'Next Frontier: Pure WebGPU Compute' },
+    { id: 'genesis', label: '01 · Genesis', title: 'The Idle GPU Hypothesis' },
+    { id: 'architecture', label: '02 · Architecture', title: 'Swarm Topology vs Central Control' },
+    { id: 'crucible', label: '03 · Breakthroughs', title: '5 Core Systems Breakthroughs' },
+    { id: 'neural-denoising', label: '04 · Neural Denoising', title: 'Intel OIDN in the Browser' },
+    { id: 'personal-journey', label: '05 · Journey', title: 'Reflections from Pauri Garhwal' },
+    { id: 'horizon', label: '06 · Horizon', title: 'Next Frontier: Pure WebGPU Compute' },
 ];
 
 const Blogs = () => {
@@ -77,12 +77,11 @@ const Blogs = () => {
                 setScrollProgress(Math.min(100, Math.max(0, (scrollTop / totalScroll) * 100)));
             }
 
-            // Find current section in view
             for (let i = SECTIONS.length - 1; i >= 0; i--) {
                 const el = document.getElementById(SECTIONS[i].id);
                 if (el) {
                     const top = el.offsetTop - container.offsetTop;
-                    if (scrollTop >= top - 200) {
+                    if (scrollTop >= top - 180) {
                         setActiveSection(SECTIONS[i].id);
                         break;
                     }
@@ -98,7 +97,7 @@ const Blogs = () => {
         const container = contentContainerRef.current;
         const target = document.getElementById(id);
         if (container && target) {
-            const topPos = target.offsetTop - container.offsetTop - 30;
+            const topPos = target.offsetTop - container.offsetTop - 24;
             container.scrollTo({ top: topPos, behavior: 'smooth' });
         }
     };
@@ -107,21 +106,21 @@ const Blogs = () => {
         try {
             await navigator.clipboard.writeText(window.location.origin + '/blogs');
             setCopied(true);
-            setTimeout(() => setCopied(false), 2500);
+            setTimeout(() => setCopied(false), 2400);
         } catch {
             setCopied(true);
-            setTimeout(() => setCopied(false), 2500);
+            setTimeout(() => setCopied(false), 2400);
         }
     };
 
     return (
         <div
             ref={contentContainerRef}
-            className="w-full h-screen overflow-y-auto overflow-x-hidden text-gray-200 bg-[#0d0d0d] selection:bg-emerald-500 selection:text-black"
+            className="w-full h-screen overflow-y-auto overflow-x-hidden text-[#ededed] bg-[#0f0f10] selection:bg-[#AF3240] selection:text-white font-sans antialiased"
         >
-            {/* Scroll Progress HUD Bar */}
+            {/* Scroll progress bar */}
             <div
-                className="fixed top-0 left-0 h-1 bg-gradient-to-r from-emerald-500 via-cyan-400 to-emerald-400 z-50 transition-all duration-75"
+                className="fixed top-0 left-0 h-0.5 bg-[#AF3240] z-50 transition-[width] duration-100 ease-out"
                 style={{ width: `${scrollProgress}%` }}
                 role="progressbar"
                 aria-valuenow={Math.round(scrollProgress)}
@@ -130,60 +129,57 @@ const Blogs = () => {
                 aria-label="Article reading progress"
             />
 
-            {/* Fixed Back to Home Button */}
-            <div className="fixed top-3 left-4 sm:top-4 sm:left-6 md:left-8 z-50">
+            {/* Back to Home navigation */}
+            <div className="fixed top-4 left-4 sm:left-8 z-40">
                 <button
                     type="button"
                     id="btn-back-home"
                     onClick={() => navigate('/')}
                     aria-label="Back to home page"
-                    className="group flex items-center gap-2.5 px-3.5 py-2 rounded-md border border-[#2a2a2a] bg-[#121212]/90 backdrop-blur-md text-xs space-mono-regular text-gray-300 hover:text-white hover:border-emerald-500/80 hover:bg-[#181818] transition-all cursor-pointer shadow-lg shadow-black/50"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md border border-white/[0.08] bg-[#141415]/90 backdrop-blur-md text-xs font-mono text-[#a1a1a6] hover:text-[#ededed] hover:border-white/[0.16] hover:bg-[#19191b] transition-colors cursor-pointer shadow-sm"
                 >
-                    <span className="text-emerald-400 group-hover:-translate-x-1 transition-transform inline-block font-bold">
-                        &larr;
-                    </span>
-                    <span className="tracking-wider font-semibold">BACK TO HOME</span>
-                    <span className="hidden sm:inline-block text-[10px] text-gray-500 border-l border-[#333] pl-2.5">
-                        FLUX//CLUSTER
+                    <svg className="w-3.5 h-3.5 text-[#a1a1a6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                    </svg>
+                    <span>BACK TO HOME</span>
+                    <span className="hidden sm:inline-block text-[11px] text-[#85858b] border-l border-white/[0.08] pl-2">
+                        FluxCluster
                     </span>
                 </button>
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-12 pt-24 md:pt-28 pb-32">
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 pt-20 sm:pt-24 pb-28">
 
-                {/* Terminal HUD Meta Header */}
-                <header className="mb-12 border border-[#262626] bg-[#121212]/90 backdrop-blur-md p-6 md:p-8 rounded-lg relative overflow-hidden">
-                    <div className="absolute top-0 left-0 w-2 h-full bg-emerald-500" />
-
-                    <div className="flex flex-wrap items-center justify-between gap-3 text-xs space-mono-regular text-emerald-400 mb-4">
-                        <span className="flex items-center gap-2">
-                            <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                            &gt;_ DEV_LOGS // FLUXCLUSTER_CHRONICLES
+                {/* Article Header */}
+                <header className="mb-12 border border-white/[0.08] bg-[#141415] rounded-xl p-6 sm:p-8 relative shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-xs font-mono text-[#85858b] mb-4">
+                        <span className="inline-flex items-center gap-2 text-[#AF3240]">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#AF3240]" />
+                            Engineering chronicle · Technical deep dive
                         </span>
-                        <span className="text-gray-400">OCTOBER 2026 • 12 MIN READ</span>
+                        <span>October 2026 · 12 min read</span>
                     </div>
 
-                    <h1 className="text-3xl sm:text-4xl md:text-6xl font-bold tracking-tight text-white mb-6 bebas-neue-regular uppercase">
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-medium tracking-tight text-[#ededed] mb-3">
                         Engineering Chronicles: Building a Distributed GPU Render Farm in the Browser
                     </h1>
 
-                    <p className="text-base sm:text-lg text-gray-300 space-mono-regular leading-relaxed max-w-4xl mb-6">
-                        From the seed of an idea in the hills of Uttarakhand to overcoming WebRTC 64KB ceilings,
-                        WebGL coordinate inversion, distributed state synchronization, and running Intel OIDN neural AI denoising directly inside client browser tabs.
+                    <p className="text-sm sm:text-base text-[#a1a1a6] leading-relaxed max-w-3xl mb-6">
+                        Overcoming WebRTC 64KB SCTP packet boundaries, WebGL inverted coordinate spaces, atomic state synchronization, and compiling Intel OIDN neural denoising for in-browser WebGPU execution.
                     </p>
 
                     {/* Author & Telemetry Badges */}
-                    <div className="flex flex-wrap items-center justify-between gap-4 pt-6 border-t border-[#222]">
-                        <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded border border-emerald-500/50 bg-[#1a1a1a] flex items-center justify-center font-bold text-emerald-400 bebas-neue-regular text-xl">
+                    <div className="flex flex-wrap items-center justify-between gap-4 pt-5 border-t border-white/[0.06]">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg border border-white/[0.08] bg-[#19191b] flex items-center justify-center font-mono font-medium text-xs text-[#ededed]">
                                 AN
                             </div>
                             <div>
-                                <div className="text-sm font-semibold text-white space-mono-regular">
+                                <div className="text-sm font-medium text-[#ededed]">
                                     Aashish Negi
-                                    <span className="text-xs text-gray-400 ml-2">(@LazyKaddu)</span>
+                                    <span className="text-xs text-[#85858b] font-mono ml-2">@LazyKaddu</span>
                                 </div>
-                                <div className="text-xs text-gray-400">Creator & Distributed Systems Architect • Pauri Garhwal, UK</div>
+                                <div className="text-xs text-[#85858b]">Creator and systems architect · Pauri Garhwal, Uttarakhand</div>
                             </div>
                         </div>
 
@@ -193,35 +189,35 @@ const Blogs = () => {
                                 id="btn-copy-blog-link"
                                 onClick={handleCopyLink}
                                 aria-label="Copy blog post link"
-                                className="text-xs space-mono-regular px-3 py-1.5 rounded border border-[#333] hover:border-emerald-500/60 bg-[#181818] text-gray-300 hover:text-white transition-all flex items-center gap-2 cursor-pointer"
+                                className="text-xs font-mono px-3 py-1.5 rounded-md border border-white/[0.08] bg-[#19191b] text-[#a1a1a6] hover:text-[#ededed] hover:border-white/[0.16] transition-colors inline-flex items-center gap-2 cursor-pointer"
                             >
-                                <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                <svg className="w-3.5 h-3.5 text-[#85858b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-3.03a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
                                 </svg>
-                                {copied ? 'LINK COPIED!' : 'SHARE ARTICLE'}
+                                <span>{copied ? 'Link copied' : 'Share article'}</span>
                             </button>
                         </div>
                     </div>
 
                     {/* Tech Badges */}
-                    <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-[#1e1e1e] text-[11px] space-mono-regular">
-                        {['WEBRTC_SCTP', 'WEBGL2', 'WEBGPU_WGSL', 'INTEL_OIDN', 'REDIS_QUEUES', 'PEER_TO_PEER'].map(tag => (
-                            <span key={tag} className="px-2 py-0.5 rounded bg-black/60 border border-[#2a2a2a] text-gray-400">
-                                #{tag}
+                    <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-white/[0.04] text-xs font-mono">
+                        {['WebRTC SCTP', 'WebGL2', 'WebGPU WGSL', 'Intel OIDN', 'Redis queues', 'Peer-to-peer'].map(tag => (
+                            <span key={tag} className="px-2.5 py-0.5 rounded-md bg-[#19191b] border border-white/[0.06] text-[#85858b]">
+                                {tag}
                             </span>
                         ))}
                     </div>
                 </header>
 
-                {/* Main Content Layout with Sticky TOC on Desktop */}
+                {/* Main Content Layout */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-                    {/* Left Sticky Table of Contents */}
-                    <aside className="hidden lg:block lg:col-span-4 sticky top-20 space-mono-regular text-xs">
-                        <div className="border border-[#262626] bg-[#111]/90 rounded-lg p-5">
-                            <div className="text-emerald-400 uppercase tracking-widest font-bold mb-4 pb-2 border-b border-[#222] flex items-center justify-between">
-                                <span>TABLE OF CONTENTS</span>
-                                <span className="text-[10px] text-gray-400">[INDEX]</span>
+                    {/* Left Sticky Table of Contents & Benchmark card */}
+                    <aside className="hidden lg:block lg:col-span-4 sticky top-20 text-xs font-mono">
+                        <div className="border border-white/[0.08] bg-[#141415] rounded-xl p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                            <div className="text-[11px] uppercase tracking-wider text-[#85858b] mb-3 pb-2 border-b border-white/[0.06] flex items-center justify-between">
+                                <span>Contents</span>
+                                <span className="text-[10px] text-[#85858b]">6 sections</span>
                             </div>
                             <nav aria-label="Article Table of Contents" className="space-y-1">
                                 {SECTIONS.map((sec) => {
@@ -231,29 +227,37 @@ const Blogs = () => {
                                             key={sec.id}
                                             type="button"
                                             onClick={() => scrollToSection(sec.id)}
-                                            className={`w-full text-left p-2 rounded transition-all flex flex-col gap-0.5 cursor-pointer ${isCurrent
-                                                    ? 'bg-emerald-500/10 text-emerald-400 border-l-2 border-emerald-400 pl-3 font-semibold'
-                                                    : 'text-gray-400 hover:text-white hover:bg-[#1a1a1a]'
+                                            className={`w-full text-left px-3 py-2 rounded-md transition-colors flex flex-col gap-0.5 cursor-pointer ${isCurrent
+                                                    ? 'bg-[#19191b] text-[#ededed] border-l-2 border-[#AF3240] pl-2.5 font-medium'
+                                                    : 'text-[#85858b] hover:text-[#ededed] hover:bg-[#19191b]/50'
                                                 }`}
                                         >
-                                            <span className="text-[10px] tracking-wider text-gray-400">{sec.label}</span>
-                                            <span className="truncate">{sec.title}</span>
+                                            <span className="text-[10px] text-[#85858b]">{sec.label}</span>
+                                            <span className="truncate text-xs font-sans">{sec.title}</span>
                                         </button>
                                     );
                                 })}
                             </nav>
 
-                            {/* Live Architecture Metric Card */}
-                            <div className="mt-6 pt-5 border-t border-[#222]">
-                                <div className="text-[10px] text-gray-400 mb-2 uppercase tracking-wider">CLUSTER BENCHMARK</div>
-                                <div className="grid grid-cols-2 gap-2 text-center">
-                                    <div className="p-2 bg-black/50 border border-[#222] rounded">
-                                        <div className="text-emerald-400 text-lg font-bold bebas-neue-regular">16 KB</div>
-                                        <div className="text-[9px] text-gray-400">SCTP SLICE SIZE</div>
+                            {/* Benchmark metrics */}
+                            <div className="mt-5 pt-4 border-t border-white/[0.06]">
+                                <div className="text-[10px] uppercase tracking-wider text-[#85858b] mb-3">Cluster telemetry metrics</div>
+                                <div className="grid grid-cols-2 gap-2 text-left">
+                                    <div className="p-2.5 bg-[#19191b] border border-white/[0.06] rounded-lg">
+                                        <div className="text-[#ededed] text-base font-medium tabular-nums">16 KB</div>
+                                        <div className="text-[10px] text-[#85858b] mt-0.5">SCTP slice size</div>
                                     </div>
-                                    <div className="p-2 bg-black/50 border border-[#222] rounded">
-                                        <div className="text-cyan-400 text-lg font-bold bebas-neue-regular">1.83 MB</div>
-                                        <div className="text-[9px] text-gray-400">OIDN U-NET MODEL</div>
+                                    <div className="p-2.5 bg-[#19191b] border border-white/[0.06] rounded-lg">
+                                        <div className="text-[#ededed] text-base font-medium tabular-nums">1.83 MB</div>
+                                        <div className="text-[10px] text-[#85858b] mt-0.5">OIDN U-Net model</div>
+                                    </div>
+                                    <div className="p-2.5 bg-[#19191b] border border-white/[0.06] rounded-lg">
+                                        <div className="text-[#ededed] text-base font-medium tabular-nums">12 B</div>
+                                        <div className="text-[10px] text-[#85858b] mt-0.5">Header overhead</div>
+                                    </div>
+                                    <div className="p-2.5 bg-[#19191b] border border-white/[0.06] rounded-lg">
+                                        <div className="text-[#ededed] text-base font-medium tabular-nums">256 px</div>
+                                        <div className="text-[10px] text-[#85858b] mt-0.5">Square tile unit</div>
                                     </div>
                                 </div>
                             </div>
@@ -261,167 +265,214 @@ const Blogs = () => {
                     </aside>
 
                     {/* Right Main Article */}
-                    <article className="lg:col-span-8 space-y-16 space-mono-regular leading-relaxed text-gray-300 text-sm md:text-base">
+                    <article className="lg:col-span-8 space-y-14 text-sm sm:text-base text-[#a1a1a6] leading-relaxed">
 
                         {/* Section 1: Genesis */}
-                        <section id="genesis" aria-labelledby="heading-genesis" className="scroll-mt-32">
-                            <div className="text-xs text-emerald-400 uppercase tracking-widest mb-1">01 // THE GENESIS</div>
-                            <h2 id="heading-genesis" className="text-2xl md:text-4xl font-bold text-white mb-6 bebas-neue-regular tracking-wide uppercase">
-                                The Idle GPU Hypothesis: Democratizing Path-Tracing
+                        <section id="genesis" aria-labelledby="heading-genesis" className="scroll-mt-24">
+                            <div className="text-xs font-mono text-[#AF3240] tracking-wide mb-1">01 · Genesis</div>
+                            <h2 id="heading-genesis" className="text-xl sm:text-2xl font-medium tracking-tight text-[#ededed] mb-4">
+                                The idle GPU hypothesis: democratizing path-tracing
                             </h2>
 
                             <div className="space-y-4">
                                 <p>
-                                    If you have ever attempted to render a photorealistic 3D scene in Blender, Maya, or Three.js on a standard consumer laptop, you know the frustration. The fans scream at maximum RPM, the battery drains in twenty minutes, the CPU thermal throttles, and a single 1080p frame with path-traced global illumination takes upwards of an hour to converge.
+                                    Rendering a photorealistic 3D scene in Blender, Maya, or Three.js on a standard consumer laptop demonstrates the computational constraints of consumer devices: fans reach maximum speed, batteries deplete quickly, thermal limits throttle clock rates, and path-traced global illumination frames can require substantial convergence times.
                                 </p>
                                 <p>
-                                    Commercial render farms solve this by throwing dozens of high-end enterprise GPUs (like NVIDIA A100s or RTX 4090s) in centralized data centers at your scene. But for students, indie creators, and hobbyist developers, enterprise cloud render farms are prohibitively expensive and architecturally opaque.
+                                    Commercial render farms solve this by deploying clusters of enterprise GPUs in centralized data centers. For students, independent artists, and small development teams, cloud rendering subscriptions remain a significant ongoing expense.
                                 </p>
-                                <div className="p-5 border-l-2 border-emerald-400 bg-[#161616] rounded-r my-6">
-                                    <p className="italic text-gray-200">
-                                        "At any given second, hundreds of millions of web browsers are sitting idle worldwide. Inside those machines are integrated or dedicated GPUs capable of trillions of floating-point operations per second. What if we could link them together—with zero installation—into a cooperative peer-to-peer compute swarm?"
+                                <div className="p-4 border-l-2 border-[#AF3240] bg-[#19191b] rounded-r-lg my-6">
+                                    <p className="text-sm italic text-[#ededed]">
+                                        "At any given second, millions of web browsers sit open worldwide. Inside those machines are GPUs capable of trillions of floating-point operations per second. Linking them together into a cooperative peer-to-peer compute swarm turns dormant capacity into rendering power."
                                     </p>
                                 </div>
                                 <p>
-                                    That was the core hypothesis that conceived <strong>FluxCluster</strong>. No native C++ daemon, no CUDA toolkit installs, no Docker containers. A user simply opens a URL in their browser tab, joins a room via WebRTC, and their GPU immediately begins path-tracing tiles for an animation or high-sample frame, streaming pixels back to the orchestrator.
+                                    This was the central hypothesis behind <strong className="text-[#ededed] font-medium">FluxCluster</strong>. No native C++ daemons, CUDA toolkits, or container runtimes. A user opens a URL in any modern browser tab, connects over WebRTC, and their GPU joins the path-tracing queue, streaming completed tiles back to the coordinator.
                                 </p>
                             </div>
                         </section>
 
                         {/* Section 2: Architecture */}
-                        <section id="architecture" aria-labelledby="heading-architecture" className="scroll-mt-32">
-                            <div className="text-xs text-emerald-400 uppercase tracking-widest mb-1">02 // ARCHITECTURE</div>
-                            <h2 id="heading-architecture" className="text-2xl md:text-4xl font-bold text-white mb-6 bebas-neue-regular tracking-wide uppercase">
-                                Swarm Topology: Peer DataChannels Meets Redis Control Plane
+                        <section id="architecture" aria-labelledby="heading-architecture" className="scroll-mt-24">
+                            <div className="text-xs font-mono text-[#AF3240] tracking-wide mb-1">02 · Architecture</div>
+                            <h2 id="heading-architecture" className="text-xl sm:text-2xl font-medium tracking-tight text-[#ededed] mb-4">
+                                Swarm topology: peer data channels with a Redis control plane
                             </h2>
 
                             <div className="space-y-4">
                                 <p>
-                                    Building a distributed rendering engine in JavaScript requires decoupling signaling coordination from heavy pixel transmission. If megabytes of rendered tiles were routed through a central Node.js server, the server bandwidth would collapse immediately.
+                                    A distributed browser rendering engine requires decoupling lightweight signaling from heavy binary pixel transport. Routing megabytes of raw image tiles through a central Node.js server quickly consumes available network bandwidth.
                                 </p>
 
                                 {/* Architecture Comparison Matrix */}
-                                <div className="overflow-x-auto my-6 border border-[#262626] rounded-lg">
-                                    <table className="w-full text-xs text-left">
-                                        <thead className="bg-[#1c1c1c] text-gray-300 uppercase">
+                                <div className="border border-white/[0.08] rounded-xl overflow-hidden bg-[#141415] my-6">
+                                    <table className="w-full text-left text-xs font-mono">
+                                        <thead className="bg-[#19191b] text-[#85858b] uppercase tracking-wider border-b border-white/[0.08]">
                                             <tr>
-                                                <th className="p-3 border-b border-[#333]">System Component</th>
-                                                <th className="p-3 border-b border-[#333]">Traditional Render Farm</th>
-                                                <th className="p-3 border-b border-[#333] text-emerald-400">FluxCluster Browser Swarm</th>
+                                                <th className="p-3.5 font-medium">System component</th>
+                                                <th className="p-3.5 font-medium">Traditional render farm</th>
+                                                <th className="p-3.5 font-medium">FluxCluster browser swarm</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-[#222]">
+                                        <tbody className="divide-y divide-white/[0.04]">
                                             <tr>
-                                                <td className="p-3 font-semibold text-white">Client Requirements</td>
-                                                <td className="p-3 text-gray-400">Native binaries, SSH keys, GPU drivers</td>
-                                                <td className="p-3 text-emerald-300">Any modern browser tab (Chrome/Edge/Firefox)</td>
+                                                <td className="p-3.5 font-medium text-[#ededed]">Client requirements</td>
+                                                <td className="p-3.5 text-[#85858b]">Native binaries, SSH keys, GPU drivers</td>
+                                                <td className="p-3.5 text-[#ededed]">Any modern browser tab (Chromium, Firefox)</td>
                                             </tr>
                                             <tr>
-                                                <td className="p-3 font-semibold text-white">Pixel Data Transport</td>
-                                                <td className="p-3 text-gray-400">Centralized Cloud Object Storage (S3/GCS)</td>
-                                                <td className="p-3 text-emerald-300">P2P WebRTC SCTP Binary Channels</td>
+                                                <td className="p-3.5 font-medium text-[#ededed]">Pixel data transport</td>
+                                                <td className="p-3.5 text-[#85858b]">Centralized cloud object storage</td>
+                                                <td className="p-3.5 text-[#ededed]">P2P WebRTC SCTP binary channels</td>
                                             </tr>
                                             <tr>
-                                                <td className="p-3 font-semibold text-white">Task Queueing</td>
-                                                <td className="p-3 text-gray-400">Heavy Celery/RabbitMQ workers</td>
-                                                <td className="p-3 text-emerald-300">Redis Atomic State + In-Memory FIFO Queue</td>
+                                                <td className="p-3.5 font-medium text-[#ededed]">Task queueing</td>
+                                                <td className="p-3.5 text-[#85858b]">Heavy Celery or RabbitMQ workers</td>
+                                                <td className="p-3.5 text-[#ededed]">Redis atomic state with in-memory FIFO queue</td>
                                             </tr>
                                             <tr>
-                                                <td className="p-3 font-semibold text-white">Post-Processing</td>
-                                                <td className="p-3 text-gray-400">Server-side CPU/GPU binaries</td>
-                                                <td className="p-3 text-emerald-300">Browser-native Intel OIDN WebGPU U-Net</td>
+                                                <td className="p-3.5 font-medium text-[#ededed]">Post-processing</td>
+                                                <td className="p-3.5 text-[#85858b]">Server-side CPU and GPU binaries</td>
+                                                <td className="p-3.5 text-[#ededed]">Browser-native Intel OIDN WebGPU U-Net</td>
                                             </tr>
                                         </tbody>
                                     </table>
                                 </div>
 
                                 <p>
-                                    In FluxCluster, the master client uploads a GLTF/GLB model and partitions the rendering plane into discreet tiles (e.g., 256x256 pixels). The signaling server (built with Socket.io and Redis) manages room registration, WebRTC SDP offer/answer handshakes, and worker heartbeats. Once peers connect via WebRTC, the signaling server steps out of the data path: raw pixel streams travel directly over direct peer-to-peer data channels.
+                                    In FluxCluster, the master client loads a GLTF or GLB 3D scene and partitions the viewport into discrete tiles (256×256 pixels). The signaling server (built with Socket.io and Redis) coordinates room tokens, WebRTC SDP handshakes, and node heartbeats. Once peers establish direct WebRTC data channels, the signaling server leaves the transmission path: rendered tiles stream directly between browsers.
                                 </p>
                             </div>
                         </section>
 
                         {/* Section 3: The Crucible */}
-                        <section id="crucible" aria-labelledby="heading-crucible" className="scroll-mt-32">
-                            <div className="text-xs text-emerald-400 uppercase tracking-widest mb-1">03 // THE CRUCIBLE</div>
-                            <h2 id="heading-crucible" className="text-2xl md:text-4xl font-bold text-white mb-6 bebas-neue-regular tracking-wide uppercase">
-                                The Crucible: 5 Deep Engineering Breakthroughs
+                        <section id="crucible" aria-labelledby="heading-crucible" className="scroll-mt-24">
+                            <div className="text-xs font-mono text-[#AF3240] tracking-wide mb-1">03 · Systems Breakthroughs</div>
+                            <h2 id="heading-crucible" className="text-xl sm:text-2xl font-medium tracking-tight text-[#ededed] mb-4">
+                                Five core distributed systems engineering challenges
                             </h2>
 
-                            <div className="space-y-8">
+                            <div className="space-y-6">
 
                                 {/* Hurdle 1 */}
-                                <div className="border border-[#222] bg-[#141414] p-5 rounded-lg">
-                                    <div className="flex items-center gap-2 text-cyan-400 text-xs font-bold mb-2">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                                        HURDLE 1: THE WEBRTC SCTP 64KB CEILING & 16KB CHUNKING
+                                <div className="border border-white/[0.08] bg-[#141415] p-5 sm:p-6 rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                                    <div className="text-xs font-mono text-[#AF3240] mb-2">
+                                        Challenge 1 · WebRTC SCTP 64KB packet boundary and 16KB sub-chunking
                                     </div>
-                                    <h3 className="text-lg font-bold text-white mb-3">The Invisible Buffer Overflow</h3>
-                                    <p className="text-sm text-gray-300 mb-3">
-                                        A 256x256 RGBA tile is 262,144 raw bytes (~256KB). When we first attempted to transmit tiles over a standard WebRTC <code className="text-emerald-300 bg-black/60 px-1 py-0.5 rounded">RTCDataChannel.send()</code>, the channel silently choked, dropped packets, or threw <code className="text-red-400 bg-black/60 px-1 py-0.5 rounded">OperationError: Message size exceeds maximum supported limit</code>.
+                                    <h3 className="text-base sm:text-lg font-medium text-[#ededed] mb-2">
+                                        SCTP buffer overflows and binary framing protocol
+                                    </h3>
+                                    <p className="text-sm text-[#a1a1a6] mb-4">
+                                        A single 256×256 RGBA tile comprises 262,144 bytes (~256KB). When transmitting raw tiles through a standard WebRTC <code className="text-xs font-mono text-[#ededed] bg-[#232325] px-1.5 py-0.5 rounded">RTCDataChannel.send()</code>, channels routinely drop frames or throw <code className="text-xs font-mono text-[#ededed] bg-[#232325] px-1.5 py-0.5 rounded">OperationError: Message size exceeds maximum supported limit</code> because SCTP implementations strictly enforce a 64KB packet boundary.
                                     </p>
-                                    <p className="text-sm text-gray-300 mb-3">
-                                        Most browser SCTP implementations strictly enforce a 64KB maximum packet boundary. To solve this, we architected a binary sub-chunking protocol:
-                                    </p>
-                                    <div className="bg-black/80 p-4 rounded border border-[#2a2a2a] text-xs font-mono text-emerald-300 overflow-x-auto">
-                                        <div>// Tile payload sliced into 16,384 byte chunks with 12-byte header:</div>
-                                        <div>[TileID: 4 Bytes] [ChunkIndex: 2 Bytes] [TotalChunks: 2 Bytes] [ByteLength: 4 Bytes] [Raw Pixel Slice]</div>
+
+                                    {/* Visual Moment 1: Binary Protocol Layout */}
+                                    <div className="border border-white/[0.08] bg-[#19191b] rounded-lg p-4 my-4 font-mono text-xs">
+                                        <div className="text-[10px] uppercase text-[#85858b] tracking-wider mb-2">
+                                            16KB Binary Chunk Structure (12-Byte Header + Payload)
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-5 gap-1.5 text-center text-[11px]">
+                                            <div className="p-2 bg-[#232325] border border-white/[0.06] rounded">
+                                                <div className="text-[#ededed] font-medium">Tile ID</div>
+                                                <div className="text-[10px] text-[#85858b]">4 Bytes (uint32)</div>
+                                            </div>
+                                            <div className="p-2 bg-[#232325] border border-white/[0.06] rounded">
+                                                <div className="text-[#ededed] font-medium">Chunk index</div>
+                                                <div className="text-[10px] text-[#85858b]">2 Bytes (uint16)</div>
+                                            </div>
+                                            <div className="p-2 bg-[#232325] border border-white/[0.06] rounded">
+                                                <div className="text-[#ededed] font-medium">Total chunks</div>
+                                                <div className="text-[10px] text-[#85858b]">2 Bytes (uint16)</div>
+                                            </div>
+                                            <div className="p-2 bg-[#232325] border border-white/[0.06] rounded">
+                                                <div className="text-[#ededed] font-medium">Byte length</div>
+                                                <div className="text-[10px] text-[#85858b]">4 Bytes (uint32)</div>
+                                            </div>
+                                            <div className="p-2 bg-[#AF3240]/15 border border-[#AF3240]/40 rounded text-[#ededed]">
+                                                <div className="font-medium">Pixel slice</div>
+                                                <div className="text-[10px] text-[#a1a1a6]">16,384 Bytes raw</div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <p className="text-sm text-gray-300 mt-3">
-                                        The master reconstructs the tile buffer in memory upon receiving all slices. If any chunk is lost, an exponential backoff retry requests only the missing slice rather than re-rendering the entire 256KB tile.
+
+                                    <p className="text-sm text-[#a1a1a6]">
+                                        The master reconstructs the 256KB buffer in memory as slices arrive. If any sub-chunk drops, the retry mechanism requests only that missing 16KB index instead of re-rendering the entire 256KB tile.
                                     </p>
                                 </div>
 
                                 {/* Hurdle 2 */}
-                                <div className="border border-[#222] bg-[#141414] p-5 rounded-lg">
-                                    <div className="flex items-center gap-2 text-cyan-400 text-xs font-bold mb-2">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                                        HURDLE 2: WEBGL BOTTOM-LEFT VS 2D CANVAS TOP-LEFT COORDINATE SPACE
+                                <div className="border border-white/[0.08] bg-[#141415] p-5 sm:p-6 rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                                    <div className="text-xs font-mono text-[#AF3240] mb-2">
+                                        Challenge 2 · WebGL bottom-left vs 2D canvas top-left coordinate spaces
                                     </div>
-                                    <h3 className="text-lg font-bold text-white mb-3">The Inverted Tile Phenomenon & Alpha Corruption</h3>
-                                    <p className="text-sm text-gray-300 mb-3">
-                                        When worker nodes first returned rendered pixel buffers from <code className="text-emerald-300 bg-black/60 px-1 py-0.5 rounded">gl.readPixels()</code> or Three.js <code className="text-emerald-300 bg-black/60 px-1 py-0.5 rounded">WebGLRenderTarget</code>, the tiles rendered on the master canvas were vertically mirrored and strangely transparent.
+                                    <h3 className="text-base sm:text-lg font-medium text-[#ededed] mb-2">
+                                        Inverted tile composition and alpha channel corruption
+                                    </h3>
+                                    <p className="text-sm text-[#a1a1a6] mb-4">
+                                        When worker nodes first extracted pixel buffers using <code className="text-xs font-mono text-[#ededed] bg-[#232325] px-1.5 py-0.5 rounded">gl.readPixels()</code>, tiles blitted onto the master canvas appeared vertically flipped and transparent.
                                     </p>
-                                    <p className="text-sm text-gray-300 mb-3">
-                                        In WebGL convention, texture coordinates origin <code className="text-white">(0,0)</code> is located at the <strong>bottom-left</strong>. Conversely, the HTML5 2D Canvas <code className="text-emerald-300 bg-black/60 px-1 py-0.5 rounded">ImageData</code> and <code className="text-emerald-300 bg-black/60 px-1 py-0.5 rounded">putImageData()</code> origin is at the <strong>top-left</strong>. Furthermore, path-tracers writing to floating-point render targets often output zero or arbitrary alpha values.
+
+                                    {/* Visual Moment 2: Coordinate Space Diagram */}
+                                    <div className="border border-white/[0.08] bg-[#19191b] rounded-lg p-4 my-4 font-mono text-xs">
+                                        <div className="text-[10px] uppercase text-[#85858b] tracking-wider mb-3">
+                                            Coordinate Space Origin Mismatch
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div className="p-3 bg-[#141415] border border-white/[0.06] rounded-md">
+                                                <div className="text-[#ededed] font-medium mb-1">WebGL framebuffer</div>
+                                                <div className="text-[11px] text-[#85858b] mb-2">Origin (0,0) at bottom-left</div>
+                                                <div className="h-16 border border-dashed border-white/[0.12] rounded flex flex-col justify-between p-1.5 text-[10px] text-[#85858b]">
+                                                    <span>(0, height)</span>
+                                                    <span className="text-[#AF3240] font-medium">(0, 0) Origin</span>
+                                                </div>
+                                            </div>
+                                            <div className="p-3 bg-[#141415] border border-white/[0.06] rounded-md">
+                                                <div className="text-[#ededed] font-medium mb-1">2D canvas ImageData</div>
+                                                <div className="text-[11px] text-[#85858b] mb-2">Origin (0,0) at top-left</div>
+                                                <div className="h-16 border border-dashed border-white/[0.12] rounded flex flex-col justify-between p-1.5 text-[10px] text-[#85858b]">
+                                                    <span className="text-[#AF3240] font-medium">(0, 0) Origin</span>
+                                                    <span>(0, height)</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <p className="text-sm text-[#a1a1a6] mb-3">
+                                        To resolve this without costly heap reallocations, we implemented an in-place linear row reversal loop with enforced opaque alpha values:
                                     </p>
-                                    <div className="bg-black/80 p-4 rounded border border-[#2a2a2a] text-xs font-mono text-emerald-300 overflow-x-auto">
-                                        <div>// In-place row reversal with zero heap reallocations</div>
-                                        <div>for (let y = 0; y &lt; Math.floor(tileHeight / 2); y++) &#123;</div>
-                                        <div>&nbsp;&nbsp;const topRow = y * rowBytes;</div>
-                                        <div>&nbsp;&nbsp;const bottomRow = (tileHeight - 1 - y) * rowBytes;</div>
-                                        <div>&nbsp;&nbsp;// Swap row memory and enforce alpha = 255 for opaque path-traced fragments</div>
+                                    <div className="bg-[#19191b] p-3.5 rounded-lg border border-white/[0.06] text-xs font-mono text-[#ededed] overflow-x-auto leading-relaxed">
+                                        <div>const rowBytes = tileWidth * 4;</div>
+                                        <div>const halfHeight = Math.floor(tileHeight / 2);</div>
+                                        <div>for (let y = 0; y &lt; halfHeight; y++) &#123;</div>
+                                        <div className="text-[#85858b] pl-4">// In-place row swap between y and (tileHeight - 1 - y)</div>
+                                        <div className="text-[#85858b] pl-4">// Force alpha = 255 for solid path-traced fragments</div>
                                         <div>&#125;</div>
                                     </div>
-                                    <p className="text-sm text-gray-300 mt-3">
-                                        Solving this with an in-place linear row swap eliminated memory churn, stabilized 60 FPS compositor blits, and guaranteed solid opaque pixel composition.
-                                    </p>
                                 </div>
 
                                 {/* Hurdle 3 */}
-                                <div className="border border-[#222] bg-[#141414] p-5 rounded-lg">
-                                    <div className="flex items-center gap-2 text-cyan-400 text-xs font-bold mb-2">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                                        HURDLE 3: CONCURRENCY, FRAME ADVANCEMENT & THE STALE TILE ANOMALY
+                                <div className="border border-white/[0.08] bg-[#141415] p-5 sm:p-6 rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                                    <div className="text-xs font-mono text-[#AF3240] mb-2">
+                                        Challenge 3 · Concurrency, frame progression, and stale tile anomalies
                                     </div>
-                                    <h3 className="text-lg font-bold text-white mb-3">Preventing Multi-Frame Visual Bleed</h3>
-                                    <p className="text-sm text-gray-300 mb-3">
-                                        When rendering an animated sequence (e.g., a rotating camera across 120 frames), a slow worker computing Frame 1 might finish its tile <em>after</em> the master has already progressed to Frame 2. If the master blits that late tile onto Frame 2's canvas, the result is ghosting and image corruption.
-                                    </p>
-                                    <p className="text-sm text-gray-300">
-                                        We implemented a generational lifecycle: when the master transitions to a new frame, it immediately blanks the display canvas to clear past pixel data, increments an atomic <code className="text-white">frameIndex</code> and <code className="text-white">epoch</code>, and drops any inbound tile or deferred denoiser callback whose frame identifier does not match the active frame.
+                                    <h3 className="text-base sm:text-lg font-medium text-[#ededed] mb-2">
+                                        Preventing multi-frame visual bleed
+                                    </h3>
+                                    <p className="text-sm text-[#a1a1a6]">
+                                        During multi-frame camera animations, a slower node computing Frame 1 might return its tile after the master has already progressed to Frame 2. Writing that late tile onto Frame 2 produces ghosting artifacts. We resolved this through generational lifecycle tracking: advancing a frame clears the canvas buffer, increments an atomic <code className="text-xs font-mono text-[#ededed] bg-[#232325] px-1.5 py-0.5 rounded">frameIndex</code>, and rejects any inbound chunk whose epoch identifier mismatches the active frame.
                                     </p>
                                 </div>
 
                                 {/* Hurdle 4 */}
-                                <div className="border border-[#222] bg-[#141414] p-5 rounded-lg">
-                                    <div className="flex items-center gap-2 text-cyan-400 text-xs font-bold mb-2">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-                                        HURDLE 4: MEMORY QUARANTINE & CONTEXT LOSS SURVIVAL
+                                <div className="border border-white/[0.08] bg-[#141415] p-5 sm:p-6 rounded-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                                    <div className="text-xs font-mono text-[#AF3240] mb-2">
+                                        Challenge 4 · Memory isolation and WebGL context loss prevention
                                     </div>
-                                    <h3 className="text-lg font-bold text-white mb-3">Taming Browser VRAM Exhaustion</h3>
-                                    <p className="text-sm text-gray-300">
-                                        Path-tracing builds extensive Bounding Volume Hierarchy (BVH) structures and compiles heavy ray-marching shaders. Left unchecked, switching models or running consecutive jobs triggers <code className="text-red-400 bg-black/60 px-1 py-0.5 rounded">WEBGL_context_lost</code>. We built strict disposal hooks that traverse scene meshes, explicitly invalidate WebGL textures, and trigger clean context rebuilds before OS graphics drivers crash.
+                                    <h3 className="text-base sm:text-lg font-medium text-[#ededed] mb-2">
+                                        Managing browser VRAM consumption
+                                    </h3>
+                                    <p className="text-sm text-[#a1a1a6]">
+                                        Path tracing constructs spatial Bounding Volume Hierarchies (BVH) and compiles heavy ray-marching shaders. Unmanaged scene swaps can trigger <code className="text-xs font-mono text-[#ededed] bg-[#232325] px-1.5 py-0.5 rounded">WEBGL_context_lost</code>. Disposal routines recursively traverse scene hierarchies, explicitly deallocate WebGL textures, and release memory before host graphics drivers encounter limits.
                                     </p>
                                 </div>
 
@@ -429,102 +480,118 @@ const Blogs = () => {
                         </section>
 
                         {/* Section 4: Neural Denoising */}
-                        <section id="neural-denoising" aria-labelledby="heading-neural" className="scroll-mt-32">
-                            <div className="text-xs text-emerald-400 uppercase tracking-widest mb-1">04 // NEURAL DENOISING</div>
-                            <h2 id="heading-neural" className="text-2xl md:text-4xl font-bold text-white mb-6 bebas-neue-regular tracking-wide uppercase">
-                                Intel OIDN in the Browser: Porting AI Denoising to WebGPU
+                        <section id="neural-denoising" aria-labelledby="heading-neural" className="scroll-mt-24">
+                            <div className="text-xs font-mono text-[#AF3240] tracking-wide mb-1">04 · Neural Denoising</div>
+                            <h2 id="heading-neural" className="text-xl sm:text-2xl font-medium tracking-tight text-[#ededed] mb-4">
+                                Intel OIDN in the browser: porting AI denoising to WebGPU
                             </h2>
 
                             <div className="space-y-4">
                                 <p>
-                                    Path tracing calculates light transport by casting stochastic rays into the 3D scene. At low sample counts (16 to 64 samples per pixel), images are covered in harsh Monte Carlo high-frequency noise. Traditional offline production uses Intel's Open Image Denoise (OIDN), a deep-learning neural network trained to filter noise while preserving crisp geometric edges and reflections.
+                                    Path tracing samples light transport stochastically. At low sample budgets (16 to 64 samples per pixel), images exhibit high-frequency Monte Carlo noise. Offline production pipelines rely on Intel's Open Image Denoise (OIDN), a deep convolutional neural network trained to eliminate noise while preserving sharp geometric silhouettes.
                                 </p>
                                 <p>
-                                    We did not want our users to rely on an external Python backend or cloud service for denoising. We brought <strong>Intel OIDN directly into the browser tab</strong> using WebGPU WGSL compute passes and the pre-trained 1.83MB <code className="text-emerald-300 bg-black/60 px-1 py-0.5 rounded">rt_ldr.tza</code> neural model.
+                                    To avoid cloud dependencies or server-side post-processing, we integrated <strong className="text-[#ededed] font-medium">Intel OIDN directly into client browser tabs</strong> using WebGPU WGSL compute passes and a pre-trained 1.83MB <code className="text-xs font-mono text-[#ededed] bg-[#232325] px-1.5 py-0.5 rounded">rt_ldr.tza</code> neural model weights file.
                                 </p>
 
-                                <div className="p-4 bg-[#141414] border border-[#222] rounded-lg my-4 space-y-3">
-                                    <div className="text-xs font-bold text-white flex items-center justify-between">
-                                        <span>THE DENOISE PIPELINE ARCHITECTURE</span>
-                                        <span className="text-emerald-400">[DenoiseManager.js]</span>
+                                {/* Visual Moment 3: Pipeline Flow */}
+                                <div className="border border-white/[0.08] bg-[#141415] rounded-xl p-5 my-4">
+                                    <div className="text-xs font-mono text-[#85858b] uppercase tracking-wider mb-3 flex items-center justify-between">
+                                        <span>Denoise Pipeline Flow</span>
+                                        <span className="text-[#AF3240]">DenoiseManager.js</span>
                                     </div>
-                                    <div className="text-xs text-gray-400">
-                                        1. Frame completed &rarr; Raw ImageData sent to <code className="text-gray-200">DenoiseManager.enqueue()</code><br />
-                                        2. Asynchronous sequential FIFO queue processes one frame at a time to prevent WebGPU device exhaustion.<br />
-                                        3. WebGPU hardware available &rarr; Dispatches U-Net inference across tiles via WGSL compute shaders.<br />
-                                        4. WebGPU not supported &rarr; Graceful instant fallback to an optimized CPU Bilateral Filter with color variance awareness.<br />
-                                        5. Blits pristine, noise-free output back to the display canvas and triggers frame export.
+                                    <div className="space-y-2 text-xs font-mono text-[#a1a1a6]">
+                                        <div className="flex items-start gap-3 p-2.5 bg-[#19191b] rounded-lg border border-white/[0.04]">
+                                            <span className="text-[#AF3240] font-medium">01</span>
+                                            <span>Raw frame completion triggers enqueue to asynchronous sequential FIFO queue</span>
+                                        </div>
+                                        <div className="flex items-start gap-3 p-2.5 bg-[#19191b] rounded-lg border border-white/[0.04]">
+                                            <span className="text-[#AF3240] font-medium">02</span>
+                                            <span>Queue processes one frame sequentially to avoid device VRAM contention</span>
+                                        </div>
+                                        <div className="flex items-start gap-3 p-2.5 bg-[#19191b] rounded-lg border border-white/[0.04]">
+                                            <span className="text-[#AF3240] font-medium">03</span>
+                                            <span>WebGPU available: dispatches U-Net inference across tiles via WGSL compute shaders</span>
+                                        </div>
+                                        <div className="flex items-start gap-3 p-2.5 bg-[#19191b] rounded-lg border border-white/[0.04]">
+                                            <span className="text-[#AF3240] font-medium">04</span>
+                                            <span>Fallback path: activates an optimized CPU bilateral filter with variance weighting</span>
+                                        </div>
+                                        <div className="flex items-start gap-3 p-2.5 bg-[#19191b] rounded-lg border border-white/[0.04]">
+                                            <span className="text-[#AF3240] font-medium">05</span>
+                                            <span>Filtered output blits to master display canvas and triggers frame export</span>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <p>
-                                    The result: clean, noise-free, production-grade renders converge in a fraction of the samples, slashing required peer compute time by over 70%.
+                                    This integration allows clean, converged renders in fewer sample passes, reducing required peer compute time by more than 70%.
                                 </p>
                             </div>
                         </section>
 
                         {/* Section 5: Personal Journey */}
-                        <section id="personal-journey" aria-labelledby="heading-journey" className="scroll-mt-32">
-                            <div className="text-xs text-emerald-400 uppercase tracking-widest mb-1">05 // THE JOURNEY</div>
-                            <h2 id="heading-journey" className="text-2xl md:text-4xl font-bold text-white mb-6 bebas-neue-regular tracking-wide uppercase">
-                                Reflections from Pauri Garhwal to the Open Web
+                        <section id="personal-journey" aria-labelledby="heading-journey" className="scroll-mt-24">
+                            <div className="text-xs font-mono text-[#AF3240] tracking-wide mb-1">05 · Journey</div>
+                            <h2 id="heading-journey" className="text-xl sm:text-2xl font-medium tracking-tight text-[#ededed] mb-4">
+                                Reflections from Pauri Garhwal to the open web
                             </h2>
 
                             <div className="space-y-4">
                                 <p>
-                                    Building distributed peer-to-peer compute infrastructure is often associated with teams working out of Silicon Valley or high-density tech hubs with gigabit optical fiber. I conceived, architected, and built FluxCluster from <strong>Pauri Garhwal</strong>, nestled in the mountains of Uttarakhand, India.
+                                    Distributed computing projects often originate in major metropolitan technology hubs with reliable high-bandwidth infrastructure. FluxCluster was architected and developed from <strong className="text-[#ededed] font-medium">Pauri Garhwal</strong>, in the mountains of Uttarakhand, India.
                                 </p>
                                 <p>
-                                    Developing graphics-intensive distributed software over variable mountain connectivity was both a major hurdle and an incredible forcing function. It forced me to test how WebRTC STUN/TURN traversal behaved under jitter, how to gracefully recover when a peer disconnected midway through an animation frame, and how to squeeze every ounce of performance out of lightweight client bundles.
+                                    Developing distributed software over variable mountain connectivity provided immediate feedback on network resilience. It highlighted the importance of robust WebRTC STUN/TURN traversal under jitter, predictable failover when a node disconnects mid-frame, and compact client bundles.
                                 </p>
                                 <p>
-                                    There were many late nights debugging why WebRTC SCTP buffers were choking, or why shader compilations were hitching the UI thread before we isolated them into Web Workers. But the moment three different browser tabs on three completely different machines seamlessly rendered a complex 3D Cornell Box animation together in real time—with zero native software installed—it was pure magic.
-                                </p>
-                                <p>
-                                    FluxCluster is 100% open-source under the MIT license because I believe computing power belongs to the community. When we turn idle browsers into collaborative supercomputers, we level the playing field for every 3D artist and student on earth.
+                                    Debugging SCTP buffer constraints and shader compilation delays led to moving intensive tasks into isolated Web Workers. The initial milestone — having three distinct browser tabs render a path-traced Cornell box animation collaboratively in real time without installed software — validated the feasibility of the architecture.
                                 </p>
                             </div>
                         </section>
 
                         {/* Section 6: The Horizon */}
-                        <section id="horizon" aria-labelledby="heading-horizon" className="scroll-mt-32">
-                            <div className="text-xs text-emerald-400 uppercase tracking-widest mb-1">06 // THE HORIZON</div>
-                            <h2 id="heading-horizon" className="text-2xl md:text-4xl font-bold text-white mb-6 bebas-neue-regular tracking-wide uppercase">
-                                What Lies Ahead: Pure WebGPU Compute Swarms
+                        <section id="horizon" aria-labelledby="heading-horizon" className="scroll-mt-24">
+                            <div className="text-xs font-mono text-[#AF3240] tracking-wide mb-1">06 · The Horizon</div>
+                            <h2 id="heading-horizon" className="text-xl sm:text-2xl font-medium tracking-tight text-[#ededed] mb-4">
+                                Roadmap: Pure WebGPU compute swarms
                             </h2>
 
                             <div className="space-y-4">
                                 <p>
-                                    The browser platform is accelerating faster than ever before. With WebGPU reaching broad maturity across Chromium, Firefox, and Safari, the line between native desktop compute and browser capabilities is vanishing.
+                                    As WebGPU reaches broader browser availability across Chromium, Firefox, and Safari, the functional boundary between native desktop compute and browser capabilities continues to narrow.
                                 </p>
                                 <p>
-                                    Our next roadmap milestones for FluxCluster include:
+                                    Subsequent engineering milestones for FluxCluster include:
                                 </p>
-                                <ul className="list-disc pl-5 space-y-2 text-sm text-gray-300">
-                                    <li><strong>Native WebGPU Compute Path-Tracing:</strong> Transitioning from WebGL2 fragment shader passes to direct WGSL compute kernels with hardware-accelerated BVH traversal.</li>
-                                    <li><strong>WebTransport Integration:</strong> Supplementing WebRTC SCTP with QUIC-based WebTransport for lower latency bidirectional stream multiplexing.</li>
-                                    <li><strong>Distributed AI Inference:</strong> Leveraging the same swarm mesh topology to run distributed Large Language Model (LLM) and diffusion model inference across cooperative browser clients.</li>
+                                <ul className="list-disc pl-5 space-y-2 text-sm text-[#a1a1a6]">
+                                    <li><strong className="text-[#ededed] font-medium">Native WebGPU Compute Path-Tracing:</strong> Transitioning from WebGL2 fragment passes to direct WGSL compute kernels with hardware-accelerated BVH traversal.</li>
+                                    <li><strong className="text-[#ededed] font-medium">WebTransport Integration:</strong> Evaluating QUIC-based WebTransport alongside WebRTC SCTP for lower-latency bidirectional stream multiplexing.</li>
+                                    <li><strong className="text-[#ededed] font-medium">Cooperative Machine Learning Inference:</strong> Applying the peer swarm topology to distributed small-model inference across connected clients.</li>
                                 </ul>
 
-                                <div className="mt-8 pt-8 border-t border-[#262626] flex flex-col sm:flex-row items-center justify-between gap-4">
-                                    <div className="text-xs text-gray-400">
-                                        Have thoughts or want to contribute to the swarm?
+                                <div className="mt-8 pt-6 border-t border-white/[0.08] flex flex-col sm:flex-row items-center justify-between gap-4">
+                                    <div className="text-xs font-mono text-[#85858b]">
+                                        Interested in contributing to the swarm architecture?
                                     </div>
-                                    <div className="flex gap-3">
+                                    <div className="flex gap-2">
                                         <a
                                             href="https://github.com/LazyKaddu"
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs space-mono-regular rounded transition-all no-underline inline-block"
+                                            className="px-3.5 py-2 bg-[#AF3240] hover:bg-[#972935] text-white text-xs font-mono rounded-md transition-colors no-underline inline-flex items-center gap-2"
                                         >
-                                            GITHUB // @LAZYKADDU
+                                            <span>GitHub repository</span>
+                                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" />
+                                            </svg>
                                         </a>
                                         <button
                                             type="button"
                                             onClick={() => scrollToSection('genesis')}
-                                            className="px-4 py-2 border border-[#333] hover:border-gray-500 text-gray-300 text-xs space-mono-regular rounded transition-all cursor-pointer"
+                                            className="px-3.5 py-2 border border-white/[0.08] hover:border-white/[0.16] text-[#a1a1a6] hover:text-[#ededed] text-xs font-mono rounded-md transition-colors cursor-pointer"
                                         >
-                                            BACK TO TOP &uarr;
+                                            Back to top ↑
                                         </button>
                                     </div>
                                 </div>
