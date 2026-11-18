@@ -40,22 +40,37 @@ export async function getAverageChunkTime(roomId) {
 }
 
 export async function handleEmptyQueue(roomId, io) {
-    if (activeMonitors.has(roomId)) return;
-    
-    // Ensure there are actually pending chunks left before we monitor
-    const pendingCount = await redis.sCard(`pending_chunks:${roomId}`);
-    if (pendingCount === 0) return;
+    if (!roomId) return;
 
-    activeMonitors.add(roomId);
+    // Distributed atomic lock: prevents multiple pods from concurrently running empty-queue recovery
+    const lockKey = `lock:empty_queue:${roomId}`;
+    let lockAcquired = false;
 
     try {
+        if (redis && redis.isOpen) {
+            const lockResult = await redis.set(lockKey, process.pid.toString(), { NX: true, EX: 45 });
+            if (!lockResult) {
+                // Another pod in the cluster is already handling the empty queue for this room
+                return;
+            }
+            lockAcquired = true;
+        } else {
+            if (activeMonitors.has(roomId)) return;
+            activeMonitors.add(roomId);
+            lockAcquired = true;
+        }
+
+        // Ensure there are actually pending chunks left before we monitor
+        const pendingCount = await redis.sCard(`pending_chunks:${roomId}`);
+        if (pendingCount === 0) return;
+
         const avgTime = await getAverageChunkTime(roomId);
         console.log(`[Room: ${roomId}] Microqueue empty. Waiting ${avgTime}ms (avg render time) before rescuing pending chunks...`);
 
         await new Promise(resolve => setTimeout(resolve, avgTime));
 
         // After waiting, check pending chunks again
-            const pendingChunks = await redis.sMembers(`pending_chunks:${roomId}`);
+        const pendingChunks = await redis.sMembers(`pending_chunks:${roomId}`);
         if (pendingChunks.length > 0) {
             const now = Date.now();
             const rescuedChunks = [];
@@ -110,12 +125,17 @@ export async function handleEmptyQueue(roomId, io) {
                 await redis.lPush(`micro_queue:${roomId}`, JSON.stringify(chunkTask));
             }
 
-            // Alert the swarm that tasks are available again
+            // Alert the swarm across all pods that tasks are available again
             io.to(roomId).emit('TASKS_AVAILABLE');
         }
     } catch (error) {
         console.error(`[Room: ${roomId}] Error in handleEmptyQueue:`, error);
     } finally {
-        activeMonitors.delete(roomId);
+        if (lockAcquired) {
+            activeMonitors.delete(roomId);
+            if (redis && redis.isOpen) {
+                await redis.del(lockKey).catch(() => {});
+            }
+        }
     }
 }
