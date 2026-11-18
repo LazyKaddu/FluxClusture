@@ -55,7 +55,7 @@ export async function advanceFrame(roomId) {
     if (!frameStr) return false;
 
     const frame = parseInt(frameStr, 10);
-    console.log(`[Room: ${roomId}] 💥 Exploding Frame ${frame}`);
+    console.log(`[Room: ${roomId}] Exploding Frame ${frame}`);
 
     // Fetch the stored dimensions and render settings
     const metaStr = await redis.get(`job_meta:${roomId}`);

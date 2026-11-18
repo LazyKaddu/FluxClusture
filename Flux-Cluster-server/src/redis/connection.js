@@ -8,6 +8,6 @@ redis.on('error', (err) => console.error('Redis Error:', err));
 
 // Top-level await is supported in modern Node
 await redis.connect();
-console.log('🔥 Redis connected');
+console.log('Redis connected');
 
 export default redis;
