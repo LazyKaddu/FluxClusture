@@ -1,21 +1,47 @@
+import http from 'http';
 import { Server } from 'socket.io';
 import { initializeJob, getNextTask, requeueTask, acknowledgeTask, completeChunk, advanceFrame } from './redis/queues.js';
 import { setWorkerState, removeWorker, getRoomWorkers, getGlbHash, getOwnerId, getRenderSettings } from './redis/workers.js';
 import { trackTaskStart, trackTaskCompletion, handleEmptyQueue } from './orchestrator/taskAllocator.js';
 import { startHeartbeatMonitor, recordWorkerActivity, handleNodeDisconnect, registerRoom } from './orchestrator/heartbeat.js';
+import { setupRedisAdapter } from './redis/adapter.js';
 
 const PORT = process.env.PORT || 8080;
 
-const io = new Server(PORT, {
+const httpServer = http.createServer((req, res) => {
+    // Handle CORS preflight OPTIONS requests immediately
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204, {
+            'Access-Control-Allow-Origin': req.headers.origin || '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': '*, ngrok-skip-browser-warning, Content-Type, Authorization',
+            'Access-Control-Allow-Credentials': 'true',
+            'Content-Length': '0'
+        });
+        res.end();
+        return;
+    }
+    res.writeHead(404);
+    res.end();
+});
+
+const io = new Server(httpServer, {
     cors: {
-        origin: "*",
+        origin: (origin, callback) => callback(null, true),
         methods: ["GET", "POST", "OPTIONS"],
-        allowedHeaders: ["*", "ngrok-skip-browser-warning"]
+        allowedHeaders: ["*", "ngrok-skip-browser-warning", "Content-Type", "Authorization"],
+        credentials: true
     },
     pingTimeout: 120000, // 2 minutes (allows long WebGL shader compilation)
     pingInterval: 25000
 });
-console.log(`🚀 Master Node running on port ${PORT}`);
+
+// Initialize Redis Pub/Sub adapter to allow horizontal scaling across multi-container Kubernetes pods
+await setupRedisAdapter(io);
+
+httpServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`Master Node running on port ${PORT}`);
+});
 
 // Initialize the Heartbeat Orchestrator to detect abrupt disconnects
 startHeartbeatMonitor(io);
@@ -27,7 +53,7 @@ async function broadcastSwarmState(roomId) {
 }
 
 io.on('connection', (socket) => {
-    console.log(`⚡ Node connected: ${socket.id}`);
+    console.log(`Node connected: ${socket.id}`);
 
     // 1. Join Room & Register as Idle
     socket.on('JOIN_ROOM', async ({ roomId }) => {

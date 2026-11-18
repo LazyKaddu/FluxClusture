@@ -1,19 +1,14 @@
 FROM node:20-alpine
-
-# Set the working directory inside the container
 WORKDIR /app
 
-# Copy dependency manifests first to leverage Docker cache
+# Install dependencies (production only for lean container size)
 COPY package*.json ./
+RUN npm ci --omit=dev
 
-# Install dependencies (including nodemon for live reloading)
-RUN npm install
-
-# Copy the rest of the application code
+# Copy application source
 COPY . .
 
-# Expose the WebSocket port
+# Expose server port (8080 default)
 EXPOSE 8080
 
-# Run the app using your package.json start script
-CMD ["npm", "start"]
+CMD ["node", "src/main.js"]

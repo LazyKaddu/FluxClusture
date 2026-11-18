@@ -6,6 +6,7 @@ export class SocketManager {
         // but don't connect to the server until connect() is called.
         this.socket = io(url, { 
             autoConnect: false,
+            transports: ['websocket', 'polling'],
             extraHeaders: {
                 "ngrok-skip-browser-warning": "true"
             }

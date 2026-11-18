@@ -37,17 +37,30 @@ export function unregisterRoom(roomId) {
 export function recordWorkerActivity(socketId, roomId = null) {
     if (!socketId) return;
     const existing = nodeActivity.get(socketId) || {};
+    const targetRoom = roomId || existing.roomId || null;
+    const now = Date.now();
+
     nodeActivity.set(socketId, {
-        lastSeen: Date.now(),
-        roomId: roomId || existing.roomId || null
+        lastSeen: now,
+        roomId: targetRoom
     });
+
+    // Share heartbeat timestamp in Redis so all cluster pods have visibility
+    if (targetRoom && redis && redis.isOpen) {
+        redis.hSet(`worker_heartbeat:${targetRoom}`, socketId, now.toString()).catch(() => {});
+    }
 }
 
 /**
  * Clean up tracking for a disconnected socket.
  */
-export function clearWorkerActivity(socketId) {
+export function clearWorkerActivity(socketId, roomId = null) {
+    const existing = nodeActivity.get(socketId);
     nodeActivity.delete(socketId);
+    const targetRoom = roomId || existing?.roomId;
+    if (targetRoom && redis && redis.isOpen) {
+        redis.hDel(`worker_heartbeat:${targetRoom}`, socketId).catch(() => {});
+    }
 }
 
 /**
@@ -105,10 +118,10 @@ export async function rescueWorkerTasks(io, roomId, socketId, lastStateTask = nu
 
     // 1. If lastState had the task recorded, attempt to requeue it
     if (lastStateTask && lastStateTask.id) {
-        console.log(`🚨 [Heartbeat] Attempting to rescue recorded task ${lastStateTask.id} from worker ${socketId}`);
+        console.log(`[Heartbeat] Attempting to rescue recorded task ${lastStateTask.id} from worker ${socketId}`);
         const requeued = await requeueTask(roomId, lastStateTask, socketId);
         if (requeued) {
-            console.log(`✅ [Heartbeat] Successfully requeued task ${lastStateTask.id} to micro_queue:${roomId}`);
+            console.log(`[Heartbeat] Successfully requeued task ${lastStateTask.id} to micro_queue:${roomId}`);
             await redis.hDel(`task_start:${roomId}`, lastStateTask.id);
             taskRescued = true;
         }
@@ -119,12 +132,12 @@ export async function rescueWorkerTasks(io, roomId, socketId, lastStateTask = nu
         const owners = await redis.hGetAll(`task_owner:${roomId}`);
         for (const [taskId, ownerSocketId] of Object.entries(owners)) {
             if (ownerSocketId === socketId && (!lastStateTask || lastStateTask.id !== taskId)) {
-                console.log(`🚨 [Heartbeat] Found unrecovered task ${taskId} still owned by ${socketId}. Reconstructing...`);
+                console.log(`[Heartbeat] Found unrecovered task ${taskId} still owned by ${socketId}. Reconstructing...`);
                 const reconstructed = await reconstructTask(roomId, taskId);
                 if (reconstructed) {
                     const requeued = await requeueTask(roomId, reconstructed, socketId);
                     if (requeued) {
-                        console.log(`✅ [Heartbeat] Successfully rescued and requeued ${taskId}`);
+                        console.log(`[Heartbeat] Successfully rescued and requeued ${taskId}`);
                         await redis.hDel(`task_start:${roomId}`, taskId);
                         taskRescued = true;
                     }
@@ -137,7 +150,7 @@ export async function rescueWorkerTasks(io, roomId, socketId, lastStateTask = nu
 
     // 3. If any task was rescued, sound the alarm to awaken idle nodes
     if (taskRescued && io) {
-        console.log(`📢 [Heartbeat] Waking up swarm in room ${roomId} for newly available tasks!`);
+        console.log(`[Heartbeat] Waking up swarm in room ${roomId} for newly available tasks!`);
         io.to(roomId).emit('TASKS_AVAILABLE');
     }
 
@@ -154,7 +167,7 @@ export async function handleNodeDisconnect(io, roomId, socketId, reason = 'DISCO
         return;
     }
 
-    console.log(`⚠️ [Heartbeat] Node ${socketId} disconnected from room ${roomId} (Reason: ${reason})`);
+    console.log(`[Heartbeat] Node ${socketId} disconnected from room ${roomId} (Reason: ${reason})`);
 
     // Clear local heartbeat tracking
     clearWorkerActivity(socketId);
@@ -193,8 +206,9 @@ export function startHeartbeatMonitor(io, options = {}) {
 
     const intervalMs = options.interval || DEFAULT_HEARTBEAT_INTERVAL;
     const timeoutMs = options.timeout || DEFAULT_HEARTBEAT_TIMEOUT;
+    const orphanTimeoutMs = options.orphanTimeout || (timeoutMs * 2.5);
 
-    console.log(`💓 [Heartbeat] Monitor started (Interval: ${intervalMs}ms, Timeout: ${timeoutMs}ms)`);
+    console.log(`[Heartbeat] Monitor started (Interval: ${intervalMs}ms, Timeout: ${timeoutMs}ms, OrphanTimeout: ${orphanTimeoutMs}ms)`);
 
     heartbeatTimer = setInterval(async () => {
         try {
@@ -226,28 +240,52 @@ export function startHeartbeatMonitor(io, options = {}) {
                     continue;
                 }
 
+                // Retrieve cluster-wide heartbeat timestamps from Redis
+                let clusterHeartbeats = {};
+                try {
+                    if (redis && redis.isOpen) {
+                        clusterHeartbeats = await redis.hGetAll(`worker_heartbeat:${roomId}`) || {};
+                    }
+                } catch (err) {
+                    console.error(`[Heartbeat] Failed to get cluster heartbeats for room ${roomId}:`, err);
+                }
+
                 for (const socketId of workerIds) {
+                    const isLocallyTracked = nodeActivity.has(socketId);
                     const socket = io && io.sockets && io.sockets.sockets ? io.sockets.sockets.get(socketId) : null;
 
-                    // 1. Socket already disconnected or absent in memory
-                    if (!socket || !socket.connected) {
-                        console.warn(`[Heartbeat] Detected socket absence for node ${socketId} in room ${roomId}`);
-                        await handleNodeDisconnect(io, roomId, socketId, 'SOCKET_DROPPED');
-                        continue;
+                    // 1. Pod-Local Socket: Node is managed by THIS container instance
+                    if (isLocallyTracked || (socket && socket.connected)) {
+                        // Socket abruptly dropped or disconnected locally
+                        if (!socket || !socket.connected) {
+                            console.warn(`[Heartbeat] Detected local socket absence for node ${socketId} in room ${roomId}`);
+                            await handleNodeDisconnect(io, roomId, socketId, 'SOCKET_DROPPED');
+                            continue;
+                        }
+
+                        // Local inactivity timeout check
+                        const activity = nodeActivity.get(socketId);
+                        const lastSeen = activity?.lastSeen || 0;
+
+                        if (lastSeen > 0 && (now - lastSeen > timeoutMs)) {
+                            console.warn(`[Heartbeat] Local node ${socketId} in room ${roomId} timed out (Inactive for ${now - lastSeen}ms)`);
+                            await handleNodeDisconnect(io, roomId, socketId, 'HEARTBEAT_TIMEOUT');
+                            continue;
+                        }
+
+                        // Send heartbeat ping to active local node
+                        socket.emit('HEARTBEAT_PING', { timestamp: now, roomId });
+                    } else {
+                        // 2. Remote Socket: Node is connected to ANOTHER pod in the Kubernetes cluster
+                        // Check if the remote pod died without disconnecting its workers (orphan sweep)
+                        const remoteLastSeenStr = clusterHeartbeats[socketId];
+                        const remoteLastSeen = remoteLastSeenStr ? parseInt(remoteLastSeenStr, 10) : 0;
+
+                        if (remoteLastSeen > 0 && (now - remoteLastSeen > orphanTimeoutMs)) {
+                            console.warn(`[Heartbeat] Remote node ${socketId} in room ${roomId} orphaned across cluster (Inactive for ${now - remoteLastSeen}ms)`);
+                            await handleNodeDisconnect(io, roomId, socketId, 'CLUSTER_ORPHAN_TIMEOUT');
+                        }
                     }
-
-                    // 2. Check last seen timestamp
-                    const activity = nodeActivity.get(socketId);
-                    const lastSeen = activity?.lastSeen || 0;
-
-                    if (lastSeen > 0 && (now - lastSeen > timeoutMs)) {
-                        console.warn(`[Heartbeat] Node ${socketId} in room ${roomId} timed out (Inactive for ${now - lastSeen}ms)`);
-                        await handleNodeDisconnect(io, roomId, socketId, 'HEARTBEAT_TIMEOUT');
-                        continue;
-                    }
-
-                    // 3. Send heartbeat ping to active node
-                    socket.emit('HEARTBEAT_PING', { timestamp: now, roomId });
                 }
             }
         } catch (error) {
@@ -265,6 +303,6 @@ export function stopHeartbeatMonitor() {
     if (heartbeatTimer) {
         clearInterval(heartbeatTimer);
         heartbeatTimer = null;
-        console.log('🛑 [Heartbeat] Monitor stopped');
+        console.log('[Heartbeat] Monitor stopped');
     }
 }
