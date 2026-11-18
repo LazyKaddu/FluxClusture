@@ -1,0 +1,108 @@
+name: Release & Publish Backend Image
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run Test Suites
+    runs-on: ubuntu-latest
+
+    # Spin up Redis service container so all server tests execute against a live Redis instance
+    services:
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: |
+            Flux-Cluster-server/package-lock.json
+            Flux-Cluster-Client/package-lock.json
+
+      - name: Install Server Dependencies
+        working-directory: ./Flux-Cluster-server
+        run: npm ci
+
+      - name: Run Backend Tests
+        working-directory: ./Flux-Cluster-server
+        env:
+          REDIS_URL: redis://localhost:6379
+        run: npm test
+
+      - name: Install Client Dependencies
+        working-directory: ./Flux-Cluster-Client
+        run: npm ci
+
+      - name: Run Frontend Tests
+        working-directory: ./Flux-Cluster-Client
+        run: |
+          node --test test/seo.test.js test/blogs.test.js test/canvasFrameTransition.test.js test/denoiseManager.test.js test/heroNetwork.test.js
+
+      - name: Verify Client Build
+        working-directory: ./Flux-Cluster-Client
+        run: npm run build
+
+  build-and-push:
+    name: Build & Push Backend Docker Image
+    needs: test
+    runs-on: ubuntu-latest
+    # Push on branch push or tag or manual dispatch; skip pushing on PRs
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME || secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN || secrets.DOCKER_PASSWORD }}
+
+      - name: Extract Docker Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ secrets.DOCKERHUB_USERNAME || secrets.DOCKER_USERNAME || 'lazykaddu' }}/flux-cluster-server
+          tags: |
+            type=sha,format=short,prefix=
+            type=sha,format=long,prefix=sha-
+            type=ref,event=tag
+            type=raw,value=latest
+
+      - name: Build and Push Backend Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./Flux-Cluster-server
+          file: ./Flux-Cluster-server/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
