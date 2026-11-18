@@ -8,6 +8,8 @@ services:
 
   orchestrator:
     build: .
+    ports:
+      - "8080:8080"
     environment:
       # Docker's internal DNS automatically resolves 'redis' to the database container
       - REDIS_URL=redis://redis:6379
