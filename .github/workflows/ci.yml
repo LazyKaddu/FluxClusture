@@ -1,9 +1,12 @@
-name: Release & Publish Backend Image
+name: Multi-Stage CI/CD & GitOps Promotion
 
 on:
   push:
+    branches:
+      - dev
+      - staging
+      - main
     tags:
-      - 'v*.*.*'
       - 'v*'
   workflow_dispatch:
 
@@ -12,7 +15,6 @@ jobs:
     name: Run Test Suites
     runs-on: ubuntu-latest
 
-    # Spin up Redis service container so all server tests execute against a live Redis instance
     services:
       redis:
         image: redis:alpine
@@ -25,7 +27,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Application Code
         uses: actions/checkout@v4
 
       - name: Setup Node.js 20
@@ -60,16 +62,43 @@ jobs:
         working-directory: ./Flux-Cluster-Client
         run: npm run build
 
-  build-and-push:
-    name: Build & Push Backend Docker Image
+  build-and-deploy:
+    name: Build, Push Image & Update GitOps
     needs: test
     runs-on: ubuntu-latest
-    # Push on branch push or tag or manual dispatch; skip pushing on PRs
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Application Code
         uses: actions/checkout@v4
+
+      - name: Determine Environment & Image Tag
+        id: vars
+        run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            ENV="production"
+            IMAGE_TAG="${GITHUB_REF_NAME}"
+            VALUES_FILE="environments/production/values.yaml"
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            ENV="production"
+            IMAGE_TAG="prod-${SHORT_SHA}"
+            VALUES_FILE="environments/production/values.yaml"
+          elif [[ "${{ github.ref }}" == "refs/heads/staging" ]]; then
+            ENV="staging"
+            IMAGE_TAG="staging-${SHORT_SHA}"
+            VALUES_FILE="environments/staging/values.yaml"
+          elif [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
+            ENV="dev"
+            IMAGE_TAG="dev-${SHORT_SHA}"
+            VALUES_FILE="environments/dev/values.yaml"
+          else
+            ENV="dev"
+            IMAGE_TAG="branch-${SHORT_SHA}"
+            VALUES_FILE="environments/dev/values.yaml"
+          fi
+          echo "env=${ENV}" >> $GITHUB_OUTPUT
+          echo "image_tag=${IMAGE_TAG}" >> $GITHUB_OUTPUT
+          echo "values_file=${VALUES_FILE}" >> $GITHUB_OUTPUT
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -80,29 +109,63 @@ jobs:
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME || secrets.DOCKER_USERNAME }}
+          username: ${{ secrets.DOCKERHUB_USERNAME || secrets.DOCKER_USERNAME || 'lazykaddu' }}
           password: ${{ secrets.DOCKERHUB_TOKEN || secrets.DOCKER_PASSWORD }}
 
-      - name: Extract Docker Metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ${{ secrets.DOCKERHUB_USERNAME || secrets.DOCKER_USERNAME || 'lazykaddu' }}/flux-cluster-server
-          tags: |
-            type=sha,format=short,prefix=
-            type=sha,format=long,prefix=sha-
-            type=ref,event=tag
-            type=raw,value=latest
-
-      - name: Build and Push Backend Image
+      - name: Build and Push Docker Image
         uses: docker/build-push-action@v6
         with:
           context: ./Flux-Cluster-server
           file: ./Flux-Cluster-server/Dockerfile
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME || 'lazykaddu' }}/flux-cluster-server:${{ steps.vars.outputs.image_tag }}
+            ${{ github.ref == 'refs/heads/main' && format('{0}/flux-cluster-server:latest', secrets.DOCKERHUB_USERNAME || 'lazykaddu') || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Checkout GitOps Repository
+        uses: actions/checkout@v4
+        with:
+          repository: LazyKaddu/gitops-manifest-fluxcluster
+          ssh-key: ${{ secrets.GITOPS_DEPLOY_KEY || secrets.GITOPS_SSH_KEY }}
+          path: gitops-repo
+
+      - name: Update Image Repository & Tag in GitOps Manifest
+        run: |
+          cd gitops-repo
+          VALUES_PATH="${{ steps.vars.outputs.values_file }}"
+          NEW_TAG="${{ steps.vars.outputs.image_tag }}"
+          IMAGE_REPO="${{ secrets.DOCKERHUB_USERNAME || 'lazykaddu' }}/flux-cluster-server"
+
+          # Fallback to root values.yaml if environment overlay is not yet created
+          if [ ! -f "$VALUES_PATH" ]; then
+            if [ -f "values.yaml" ]; then
+              echo "Notice: $VALUES_PATH not found, falling back to root values.yaml"
+              VALUES_PATH="values.yaml"
+            else
+              echo "Error: Neither $VALUES_PATH nor root values.yaml found in GitOps repository!"
+              exit 1
+            fi
+          fi
+
+          # Install yq for safe in-place YAML editing preserving comments
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+          # Update both .image.repository and .image.tag atomically
+          yq -i ".image.repository = \"$IMAGE_REPO\" | .image.tag = \"$NEW_TAG\"" "$VALUES_PATH"
+
+          # Configure git identity
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Commit and push with rebase resilience
+          git add "$VALUES_PATH"
+          if git diff --staged --quiet; then
+            echo "No change in image repository and tag ($IMAGE_REPO:$NEW_TAG). Skipping commit."
+          else
+            git commit -m "chore(deploy): update ${{ steps.vars.outputs.env }} image to $IMAGE_REPO:$NEW_TAG [skip ci]"
+            git pull --rebase origin main
+            git push origin main
+          fi

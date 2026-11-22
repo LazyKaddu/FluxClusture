@@ -274,30 +274,35 @@ const UploadAfter = () => {
     const isComplete = progress >= 0.999 || (completedFramesCount > 0 && completedFramesCount >= totalFrames);
 
     return (
-        <div className="font-sans antialiased text-[#ededed] bg-[#141415] w-full max-w-5xl max-h-[min(92vh,820px)] flex flex-col overflow-hidden border border-white/[0.08] rounded-xl shadow-2xl my-auto select-none">
+        <div className="font-sans antialiased text-[#ededed] bg-[#141415] w-full max-w-5xl max-h-[min(94vh,840px)] flex flex-col overflow-hidden border border-white/[0.08] rounded-xl shadow-2xl my-auto select-none">
             {/* Header */}
-            <header className="flex items-center justify-between px-5 py-3 border-b border-white/[0.08] bg-[#19191b]/50 shrink-0">
-                <div className="flex items-center gap-3">
-                    <span className="text-xs font-mono font-medium text-[#AF3240] px-2 py-0.5 rounded bg-[#AF3240]/10 border border-[#AF3240]/20">
+            <header className="flex items-center justify-between px-4 sm:px-5 py-2.5 sm:py-3 border-b border-white/[0.08] bg-[#19191b]/50 shrink-0">
+                <div className="flex items-center gap-2 sm:gap-3">
+                    <button
+                        onClick={() => navigate('/')}
+                        className="text-xs font-mono font-medium text-[#AF3240] px-2 py-0.5 rounded bg-[#AF3240]/10 border border-[#AF3240]/20 hover:bg-[#AF3240]/20 transition-colors cursor-pointer"
+                        title="Return to FluxCluster Home"
+                    >
                         FluxCluster
-                    </span>
-                    <h1 className="text-xs font-mono font-medium text-[#ededed] m-0 p-0">
+                    </button>
+                    <span className="text-white/20 hidden sm:inline">/</span>
+                    <h1 className="text-xs font-mono font-medium text-[#ededed] m-0 p-0 truncate max-w-[160px] sm:max-w-none">
                         Orchestrator Console
                     </h1>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                     <span className="hidden sm:inline-block text-xs font-mono text-[#85858b]">
                         Swarm host
                     </span>
 
-                    <span className="hidden sm:inline-block text-xs font-mono text-[#85858b] border-l border-white/[0.08] pl-3">
+                    <span className="hidden sm:inline-block text-xs font-mono text-[#85858b] border-l border-white/[0.08] pl-2 sm:pl-3">
                         {denoiserEnabled ? (denoiserBackend === 'oidn-webgpu' ? 'OIDN WebGPU' : 'OIDN Fallback') : 'Denoiser off'}
                     </span>
 
-                    <div className="flex items-center gap-2 border-l border-white/[0.08] pl-3">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#4cc38a]" />
-                        <span className="text-xs font-mono text-[#a1a1a6] truncate max-w-[140px] sm:max-w-[200px]">
+                    <div className="flex items-center gap-2 border-l border-white/[0.08] pl-2 sm:pl-3">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#4cc38a] shrink-0" />
+                        <span className="text-xs font-mono text-[#a1a1a6] truncate max-w-[120px] sm:max-w-[180px]">
                             {status}
                         </span>
                     </div>
@@ -308,14 +313,14 @@ const UploadAfter = () => {
             <div className="flex flex-1 overflow-hidden min-h-0 flex-col md:flex-row">
 
                 {/* Left: Composite Accumulation Viewport */}
-                <div className="flex-1 min-w-0 flex flex-col border-b md:border-b-0 md:border-r border-white/[0.08] relative overflow-hidden bg-[#0f0f10]">
-                    <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.06] shrink-0 bg-[#141415] text-xs font-mono">
-                        <span className="font-medium text-[#ededed]">
+                <div className="flex-1 min-w-0 min-h-0 flex flex-col border-b md:border-b-0 md:border-r border-white/[0.08] relative overflow-hidden bg-[#0f0f10]">
+                    <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b border-white/[0.06] shrink-0 bg-[#141415] text-xs font-mono">
+                        <span className="font-medium text-[#ededed] truncate">
                             Composite frame accumulation
                         </span>
-                        <div className="flex items-center gap-2">
-                            <span className="text-[#85858b]">
-                                {width}×{height} canvas
+                        <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-[#85858b] hidden sm:inline">
+                                {width}×{height}
                             </span>
                             <span className={`px-2 py-0.5 rounded text-[11px] ${
                                 isComplete ? 'text-[#4cc38a] bg-[#4cc38a]/10' : 'text-[#85858b] bg-[#19191b]'
@@ -326,15 +331,11 @@ const UploadAfter = () => {
                     </div>
 
                     {/* Viewport Canvas Arena */}
-                    <div className="flex-1 relative flex items-center justify-center p-3 sm:p-4 bg-[#0f0f10] overflow-hidden">
+                    <div className="flex-1 min-h-0 relative flex items-center justify-center p-2 sm:p-4 bg-[#0f0f10] overflow-hidden">
                         <div
-                            className="relative border border-white/[0.08] bg-[#141415] rounded-lg flex items-center justify-center overflow-hidden shadow-lg"
+                            className="relative border border-white/[0.08] bg-[#141415] rounded-lg flex items-center justify-center overflow-hidden shadow-lg max-w-full max-h-full"
                             style={{
-                                aspectRatio: `${width} / ${height}`,
-                                maxWidth: '100%',
-                                maxHeight: '100%',
-                                width: width >= height ? '100%' : 'auto',
-                                height: width < height ? '100%' : 'auto'
+                                aspectRatio: `${width} / ${height}`
                             }}
                         >
                             <canvas
@@ -347,7 +348,7 @@ const UploadAfter = () => {
                     </div>
 
                     {/* Viewport Sub-footer */}
-                    <div className="flex items-center justify-between px-4 py-2 border-t border-white/[0.06] shrink-0 bg-[#141415] text-xs font-mono text-[#85858b]">
+                    <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-t border-white/[0.06] shrink-0 bg-[#141415] text-xs font-mono text-[#85858b]">
                         <span>Frame #{currentFrame} / #{endFrame}</span>
                         <span className="truncate max-w-[140px]">Tile: {chunkAssigned}</span>
                         <span className={`hidden sm:inline ${isDenoising ? 'text-[#4cc38a]' : ''}`}>
@@ -357,18 +358,18 @@ const UploadAfter = () => {
                 </div>
 
                 {/* Right: Inspector & Swarm Orchestration */}
-                <div className="w-full md:w-[280px] lg:w-[320px] shrink-0 flex flex-col overflow-hidden bg-[#141415]">
+                <div className="w-full md:w-[280px] lg:w-[320px] shrink-0 flex flex-col overflow-y-auto bg-[#141415] min-h-0">
 
                     {/* 01 · Swarm Orchestration */}
-                    <div className="border-b border-white/[0.06] p-4">
-                        <div className="flex items-center justify-between mb-3 text-xs font-mono">
+                    <div className="border-b border-white/[0.06] p-3 sm:p-4 shrink-0">
+                        <div className="flex items-center justify-between mb-2.5 text-xs font-mono">
                             <span className="text-[#85858b] uppercase tracking-wider text-[11px]">
                                 01 · Swarm Orchestration
                             </span>
                             <span className="text-[#85858b]">Master</span>
                         </div>
 
-                        <div className="space-y-2 text-xs font-mono">
+                        <div className="space-y-1.5 text-xs font-mono">
                             <div className="flex items-center justify-between">
                                 <span className="text-[#85858b]">Room ID</span>
                                 <div className="flex items-center gap-1.5">
@@ -409,51 +410,51 @@ const UploadAfter = () => {
                     </div>
 
                     {/* 02 · Pipeline Specs */}
-                    <div className="flex-1 overflow-y-auto p-4 border-b border-white/[0.06]">
-                        <div className="flex items-center justify-between mb-3 text-xs font-mono">
+                    <div className="flex-1 min-h-[140px] overflow-y-auto p-3 sm:p-4 border-b border-white/[0.06]">
+                        <div className="flex items-center justify-between mb-2.5 text-xs font-mono">
                             <span className="text-[#85858b] uppercase tracking-wider text-[11px]">
                                 02 · Pipeline Specs
                             </span>
                             <span className="text-[#85858b]">Manifest</span>
                         </div>
 
-                        <div className="space-y-2 text-xs font-mono">
-                            <div className="flex items-center justify-between py-1 border-b border-white/[0.04]">
+                        <div className="space-y-1.5 text-xs font-mono">
+                            <div className="flex items-center justify-between py-0.5 border-b border-white/[0.04]">
                                 <span className="text-[#85858b]">Resolution</span>
                                 <span className="text-[#ededed] font-medium">
                                     {width} × {height}
                                 </span>
                             </div>
 
-                            <div className="flex items-center justify-between py-1 border-b border-white/[0.04]">
+                            <div className="flex items-center justify-between py-0.5 border-b border-white/[0.04]">
                                 <span className="text-[#85858b]">Samples</span>
                                 <span className="text-[#ededed] font-medium">
                                     {samples} SPP
                                 </span>
                             </div>
 
-                            <div className="flex items-center justify-between py-1 border-b border-white/[0.04]">
+                            <div className="flex items-center justify-between py-0.5 border-b border-white/[0.04]">
                                 <span className="text-[#85858b]">Noise cut</span>
                                 <span className="text-[#ededed] font-medium">
                                     {noiseThreshold} RMS
                                 </span>
                             </div>
 
-                            <div className="flex items-center justify-between py-1 border-b border-white/[0.04]">
+                            <div className="flex items-center justify-between py-0.5 border-b border-white/[0.04]">
                                 <span className="text-[#85858b]">Framerate</span>
                                 <span className="text-[#ededed] font-medium">
                                     {fps} FPS
                                 </span>
                             </div>
 
-                            <div className="flex items-center justify-between py-1 border-b border-white/[0.04]">
+                            <div className="flex items-center justify-between py-0.5 border-b border-white/[0.04]">
                                 <span className="text-[#85858b]">Frame range</span>
                                 <span className="text-[#ededed] font-medium">
                                     #{startFrame} → #{endFrame} ({totalFrames})
                                 </span>
                             </div>
 
-                            <div className="flex items-center justify-between py-1">
+                            <div className="flex items-center justify-between py-0.5">
                                 <span className="text-[#85858b]">AI denoiser</span>
                                 <span className={`font-medium ${denoiserEnabled ? 'text-[#4cc38a]' : 'text-[#85858b]'}`}>
                                     {denoiserEnabled ? (denoiserBackend === 'oidn-webgpu' ? 'Intel OIDN' : 'OIDN Fallback') : 'Off'}
@@ -463,7 +464,7 @@ const UploadAfter = () => {
                     </div>
 
                     {/* 03 · Actions & Export */}
-                    <div className="p-4 bg-[#141415] shrink-0 space-y-2">
+                    <div className="p-3 sm:p-4 bg-[#141415] shrink-0 space-y-2 mt-auto">
                         <div className="flex items-center justify-between text-xs font-mono text-[#85858b]">
                             <span>Frames ready</span>
                             <span className="text-[#ededed] font-medium">
@@ -522,7 +523,7 @@ const UploadAfter = () => {
             </div>
 
             {/* Footer Progress Bar */}
-            <footer className="px-5 py-3 border-t border-white/[0.08] bg-[#19191b]/50 shrink-0">
+            <footer className="px-4 sm:px-5 py-2.5 sm:py-3 border-t border-white/[0.08] bg-[#19191b]/50 shrink-0">
                 <div className="flex items-center justify-between mb-1.5 text-xs font-mono">
                     <span className="text-[#85858b]">Cluster render progress</span>
                     <span className="text-[#ededed] font-medium tabular-nums">
