@@ -290,41 +290,59 @@ const Editor = () => {
         : '—';
 
     return (
-        <div className="font-sans antialiased text-[#ededed] bg-[#141415] w-full max-w-5xl max-h-[min(92vh,820px)] flex flex-col overflow-hidden border border-white/[0.08] rounded-xl shadow-2xl my-auto">
+        <div className="font-sans antialiased text-[#ededed] bg-[#141415] w-full max-w-5xl max-h-[min(94vh,840px)] flex flex-col overflow-hidden border border-white/[0.08] rounded-xl shadow-2xl my-auto">
 
             {/* Header */}
-            <header className="flex items-center justify-between px-5 py-3 border-b border-white/[0.08] bg-[#19191b]/50 shrink-0">
-                <div className="flex items-center gap-3">
-                    <span className="text-xs font-mono font-medium text-[#AF3240] px-2 py-0.5 rounded bg-[#AF3240]/10 border border-[#AF3240]/20">
+            <header className="flex items-center justify-between px-4 sm:px-5 py-2.5 sm:py-3 border-b border-white/[0.08] bg-[#19191b]/50 shrink-0">
+                <div className="flex items-center gap-2 sm:gap-3">
+                    <button
+                        onClick={() => navigate('/')}
+                        className="text-xs font-mono font-medium text-[#AF3240] px-2 py-0.5 rounded bg-[#AF3240]/10 border border-[#AF3240]/20 hover:bg-[#AF3240]/20 transition-colors cursor-pointer"
+                        title="Return to FluxCluster Home"
+                    >
                         FluxCluster
-                    </span>
-                    <h1 className="text-xs font-mono font-medium text-[#ededed] m-0 p-0">
+                    </button>
+                    <span className="text-white/20 hidden sm:inline">/</span>
+                    <h1 className="text-xs font-mono font-medium text-[#ededed] m-0 p-0 truncate max-w-[160px] sm:max-w-none">
                         Scene Lighting Studio
                     </h1>
                 </div>
 
-                {/* Preview Mode Switcher */}
-                <div className="flex items-center gap-1 bg-[#19191b] p-1 rounded-lg border border-white/[0.06]">
+                <div className="flex items-center gap-2 sm:gap-3">
                     <button
-                        className={`text-xs font-mono px-3 py-1 rounded transition-colors cursor-pointer ${
-                            previewMode === 'normal'
-                                ? 'bg-[#232325] text-[#ededed] font-medium shadow-sm'
-                                : 'text-[#85858b] hover:text-[#ededed]'
-                        }`}
-                        onClick={() => setPreviewMode('normal')}
+                        onClick={() => navigate('/upload', { state: renderConfig })}
+                        className="text-xs font-mono text-[#85858b] hover:text-[#ededed] px-2.5 py-1 rounded border border-white/[0.08] bg-[#19191b] hover:bg-[#232325] transition-colors cursor-pointer flex items-center gap-1.5"
+                        title="Return to 3D Staging & Dispatch Console"
                     >
-                        Rasterizer
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                        </svg>
+                        <span className="hidden sm:inline">Staging</span>
                     </button>
-                    <button
-                        className={`text-xs font-mono px-3 py-1 rounded transition-colors cursor-pointer ${
-                            previewMode === 'pathtracer'
-                                ? 'bg-[#AF3240] text-white font-medium shadow-sm'
-                                : 'text-[#85858b] hover:text-[#ededed]'
-                        }`}
-                        onClick={() => setPreviewMode('pathtracer')}
-                    >
-                        Path Tracer
-                    </button>
+
+                    {/* Preview Mode Switcher */}
+                    <div className="flex items-center gap-1 bg-[#19191b] p-0.5 sm:p-1 rounded-lg border border-white/[0.06]">
+                        <button
+                            className={`text-xs font-mono px-2.5 sm:px-3 py-1 rounded transition-colors cursor-pointer ${
+                                previewMode === 'normal'
+                                    ? 'bg-[#232325] text-[#ededed] font-medium shadow-sm'
+                                    : 'text-[#85858b] hover:text-[#ededed]'
+                            }`}
+                            onClick={() => setPreviewMode('normal')}
+                        >
+                            Rasterizer
+                        </button>
+                        <button
+                            className={`text-xs font-mono px-2.5 sm:px-3 py-1 rounded transition-colors cursor-pointer ${
+                                previewMode === 'pathtracer'
+                                    ? 'bg-[#AF3240] text-white font-medium shadow-sm'
+                                    : 'text-[#85858b] hover:text-[#ededed]'
+                            }`}
+                            onClick={() => setPreviewMode('pathtracer')}
+                        >
+                            Path Tracer
+                        </button>
+                    </div>
                 </div>
             </header>
 
@@ -332,16 +350,16 @@ const Editor = () => {
             <div className="flex flex-col md:flex-row flex-1 overflow-hidden min-h-0">
 
                 {/* Left: 3D Viewport */}
-                <div className="flex-1 min-w-0 flex flex-col border-b md:border-b-0 md:border-r border-white/[0.08] relative overflow-hidden bg-[#0a0a0c] min-h-[260px] md:min-h-0">
-                    <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.06] shrink-0 bg-[#141415] text-xs font-mono text-[#85858b]">
-                        <span className="flex items-center gap-2 text-[#ededed]">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#AF3240]" />
-                            {previewMode === 'normal' ? 'Interactive raster preview' : 'Path tracer progressive accumulation'}
+                <div className="flex-1 min-w-0 min-h-0 flex flex-col border-b md:border-b-0 md:border-r border-white/[0.08] relative overflow-hidden bg-[#0a0a0c]">
+                    <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-b border-white/[0.06] shrink-0 bg-[#141415] text-xs font-mono text-[#85858b]">
+                        <span className="flex items-center gap-2 text-[#ededed] truncate">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#AF3240] shrink-0" />
+                            <span className="truncate">{previewMode === 'normal' ? 'Interactive raster preview' : 'Path tracer progressive accumulation'}</span>
                         </span>
-                        <span>{lights.length} emitters in scene</span>
+                        <span className="shrink-0">{lights.length} emitters in scene</span>
                     </div>
 
-                    <div className="flex-1 relative overflow-hidden" ref={containerRef}>
+                    <div className="flex-1 min-h-0 relative overflow-hidden" ref={containerRef}>
                         {isLoading && (
                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#0a0a0c]/85 z-10 gap-3">
                                 <div className="w-7 h-7 border-2 border-white/20 border-t-[#AF3240] rounded-full animate-spin" />
@@ -353,24 +371,24 @@ const Editor = () => {
                         <canvas ref={canvasRef} className="w-full h-full block" />
                     </div>
 
-                    <div className="flex items-center justify-between px-4 py-2 border-t border-white/[0.06] shrink-0 bg-[#141415] text-xs font-mono text-[#85858b]">
+                    <div className="flex items-center justify-between px-3 sm:px-4 py-2 border-t border-white/[0.06] shrink-0 bg-[#141415] text-xs font-mono text-[#85858b]">
                         <span>Orbit: Left click · Pan: Right click</span>
-                        <span className="text-[#a1a1a6]">Drag to reposition view</span>
+                        <span className="text-[#a1a1a6] hidden sm:inline">Drag to reposition view</span>
                     </div>
                 </div>
 
                 {/* Right: Inspector */}
-                <div className="w-full md:w-[280px] lg:w-[300px] shrink-0 flex flex-col overflow-y-auto md:overflow-hidden bg-[#141415]">
+                <div className="w-full md:w-[280px] lg:w-[300px] shrink-0 flex flex-col overflow-y-auto bg-[#141415] min-h-0">
 
                     {/* Scene Lights List */}
                     <div className="border-b border-white/[0.06] shrink-0">
-                        <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06] bg-[#19191b]/30">
+                        <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.06] bg-[#19191b]/30">
                             <span className="text-xs font-mono text-[#85858b] uppercase tracking-wider text-[11px]">
                                 Scene Lights
                             </span>
                             <span className="text-xs font-mono text-[#85858b]">{lights.length}</span>
                         </div>
-                        <div className="overflow-y-auto max-h-40 p-2 space-y-1">
+                        <div className="overflow-y-auto max-h-32 sm:max-h-36 p-2 space-y-1">
                             {lights.map(light => {
                                 const lType = getLightTypeFromTitle(light.name);
                                 const isSelected = selectedLightId === light.uuid;
@@ -395,15 +413,15 @@ const Editor = () => {
                     </div>
 
                     {/* Properties */}
-                    <div className="flex-1 flex flex-col overflow-hidden border-b border-white/[0.06]">
-                        <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.06] bg-[#19191b]/30">
-                            <span className="text-xs font-mono text-[#85858b] uppercase tracking-wider text-[11px]">
+                    <div className="flex-1 min-h-[140px] flex flex-col overflow-hidden border-b border-white/[0.06]">
+                        <div className="flex items-center justify-between px-4 py-2 border-b border-white/[0.06] bg-[#19191b]/30 shrink-0">
+                            <span className="text-xs font-mono text-[#85858b] uppercase tracking-wider text-[11px] truncate">
                                 {selectedLight ? (selectedLight.name || 'Selected Light') : 'Properties'}
                             </span>
                         </div>
 
                         {selectedLight ? (
-                            <div className="overflow-y-auto flex-1 p-3 space-y-3">
+                            <div className="overflow-y-auto flex-1 p-3 space-y-2.5">
                                 {/* Type selector */}
                                 <div className="flex items-center justify-between text-xs font-mono">
                                     <span className="text-[#85858b]">Type</span>
@@ -469,14 +487,14 @@ const Editor = () => {
                                 )}
                             </div>
                         ) : (
-                            <div className="p-6 text-center text-xs font-mono text-[#85858b]">
+                            <div className="p-4 sm:p-6 text-center text-xs font-mono text-[#85858b] my-auto">
                                 Select a light above to configure properties
                             </div>
                         )}
                     </div>
 
                     {/* Telemetry Strip */}
-                    <div className="p-3 border-b border-white/[0.06] text-xs font-mono space-y-1.5">
+                    <div className="p-3 border-b border-white/[0.06] text-xs font-mono space-y-1 shrink-0">
                         <div className="flex items-center justify-between">
                             <span className="text-[#85858b]">Asset</span>
                             <span className="text-[#ededed] max-w-[150px] truncate text-right">{fileName}</span>
@@ -492,7 +510,7 @@ const Editor = () => {
                     </div>
 
                     {/* Export Footer */}
-                    <div className="p-4 bg-[#141415] shrink-0">
+                    <div className="p-3 sm:p-4 bg-[#141415] shrink-0 mt-auto">
                         <button
                             className="w-full py-2.5 px-4 text-xs font-mono font-medium rounded-lg bg-[#AF3240] hover:bg-[#972935] text-white transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                             onClick={handleContinue}

@@ -76,12 +76,13 @@ const Base = ({ childComponent: RenderPage }) => {
     // Only block computationally intensive worker/render routes on mobile
     const heavyPaths = ['/upload', '/render', '/editor', '/join', '/joined', '/demo'];
     const isHeavyRoute = heavyPaths.includes(location.pathname);
+    const isHomePage = location.pathname === '/';
 
     return (
         <main className="relative text-[#ededed] bg-[#0f0f10] overflow-hidden w-full h-screen font-sans antialiased">
             <div className="absolute z-10 w-full bg-[#0f0f10] flex justify-between min-h-screen" ref={mainRef}>
                 {/* Left Panel */}
-                <header className="flex flex-col justify-between ml-5 md:ml-10 my-6 md:my-10 pointer-events-none z-20">
+                <header className="flex flex-col justify-between ml-5 md:ml-8 lg:ml-10 my-6 md:my-10 pointer-events-none z-20">
                     <a
                         href="/"
                         aria-label="FluxCluster Home"
@@ -138,7 +139,11 @@ const Base = ({ childComponent: RenderPage }) => {
                 </header>
 
                 {/* Center Content */}
-                <div className="absolute inset-0 flex items-center justify-center w-full h-screen z-10 p-2 sm:p-4 md:p-6 overflow-y-auto">
+                <div className={`absolute inset-0 flex items-center justify-center w-full h-screen z-10 overflow-y-auto ${
+                    isHomePage
+                        ? 'p-2 sm:p-4 md:p-6'
+                        : 'p-3 sm:p-4 md:px-44 lg:px-48 xl:px-56 md:py-6'
+                }`}>
                     {isMobile && isHeavyRoute ? (
                         <div className="flex flex-col items-center justify-center text-center px-8 z-50 pointer-events-auto max-w-md">
                             <span className="text-xs font-mono text-[#AF3240] uppercase tracking-wider mb-2">Notice</span>
@@ -159,7 +164,7 @@ const Base = ({ childComponent: RenderPage }) => {
                 </div>
 
                 {/* Right Panel */}
-                <aside aria-label="Status and Controls" className="flex flex-col justify-between items-end mr-5 md:mr-10 my-6 md:my-10 pointer-events-none z-20">
+                <aside aria-label="Status and Controls" className="flex flex-col justify-between items-end mr-5 md:mr-8 lg:mr-10 my-6 md:my-10 pointer-events-none z-20">
                     <button
                         id="nav-open-menu-btn"
                         type="button"
